@@ -27,3 +27,72 @@ android {
 dependencies {
     implementation project(':FtcRobotController')
 }
+
+// Collects every "// TODO(step): ..." comment in TeamCode into TODO_LIST.md at the
+// repo root, sorted by step, each linked to its line. Runs before every build.
+// Step numbers match the sections of TUNING_GUIDE.md.
+tasks.register('todoList') {
+    def sourceDir = file('src/main/java')
+    def output = rootProject.file('TODO_LIST.md')
+    def repoRoot = rootProject.projectDir.toPath()
+    def stepNames = [
+            1 : 'Wiring and configuration',
+            2 : 'Drivetrain and localization',
+            3 : 'Storage and rail',
+            4 : 'Servos',
+            5 : 'Turret',
+            6 : 'Shooter',
+            7 : 'Shot tables',
+            8 : 'Field',
+            9 : 'Shooting while moving',
+            10: 'Driver feedback and loop time',
+    ]
+    inputs.dir(sourceDir)
+    outputs.file(output)
+
+    doLast {
+        def todoPattern = ~/\/\/\s*TODO\((\d+)\):\s*(.*)/
+        def items = []
+        sourceDir.eachFileRecurse(groovy.io.FileType.FILES) { source ->
+            if (!source.name.endsWith('.java')) return
+            def lines = source.readLines('UTF-8')
+            lines.eachWithIndex { line, i ->
+                def match = todoPattern.matcher(line)
+                if (!match.find()) return
+                def code = lines.drop(i + 1).collect { it.trim() }.find {
+                    it && !it.startsWith('//') && !it.startsWith('/*') && !it.startsWith('*')
+                } ?: ''
+                def field = code =~ /static\s+\S+\s+(\w+)\s*=/
+                def method = code =~ /(\w+)\s*\(/
+                def subject = field.find() ? field.group(1) : (method.find() ? method.group(1) + '()' : '')
+                items << [
+                        step   : match.group(1) as int,
+                        text   : match.group(2).trim(),
+                        file   : source.name,
+                        path   : repoRoot.relativize(source.toPath()).toString().replace('\\', '/'),
+                        line   : i + 1,
+                        subject: subject,
+                ]
+            }
+        }
+
+        def out = new StringBuilder()
+        out << '# TODO list\n\n'
+        out << 'Generated from the `// TODO(step): ...` comments in TeamCode. Don\'t edit this file. '
+        out << 'Do the item, delete its TODO comment, and the list updates on the next build '
+        out << '(or run `./gradlew todoList`). How to do each step is in TUNING_GUIDE.md.\n\n'
+        out << "**${items.size()} left.**\n"
+        items.sort { a, b -> a.step <=> b.step ?: a.path <=> b.path ?: a.line <=> b.line }
+                .groupBy { it.step }
+                .each { step, stepItems ->
+                    out << "\n## ${step}. ${stepNames[step] ?: 'Other'}\n\n"
+                    stepItems.each { item ->
+                        def subject = item.subject ? " `${item.subject}`" : ''
+                        out << "- [ ] [${item.file}:${item.line}](${item.path}#L${item.line})${subject}: ${item.text}\n"
+                    }
+                }
+        output.text = out.toString()
+    }
+}
+
+tasks.named('preBuild') { dependsOn 'todoList' }
