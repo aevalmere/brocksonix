@@ -46,9 +46,12 @@ public class ShotSolver {
         }
 
         double distance = Math.hypot(aimX - from.x(), aimY - from.y());
+        // The real distance to the target, so telemetry can show it next to the led one.
+        double targetDistance = Math.hypot(target.x() - from.x(), target.y() - from.y());
         return new ShotSolution(
                 turretAngle(from, aimX, aimY),
                 distance,
+                targetDistance,
                 LookupTable.at(ShotTables.SHOT_RPM, distance),
                 LookupTable.at(ShotTables.SHOT_FEED_POWER, distance),
                 inRange(ShotTables.SHOT_RPM, distance));
@@ -64,6 +67,7 @@ public class ShotSolver {
         return new ShotSolution(
                 turretAngle(robot, target.x(), target.y()),
                 distance,
+                distance, // no lead on a pass, so both distances are the same
                 LookupTable.at(ShotTables.PASS_RPM, distance),
                 LookupTable.at(ShotTables.PASS_FEED_POWER, distance),
                 inRange(ShotTables.PASS_RPM, distance));

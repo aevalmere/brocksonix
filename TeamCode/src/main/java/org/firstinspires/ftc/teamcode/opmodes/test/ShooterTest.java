@@ -55,6 +55,7 @@ public class ShooterTest extends LinearOpMode {
         waitForStart();
         while (opModeIsActive()) {
             bulkReads.clear();
+            shooter.readSensors();
             storage.update();
 
             if (gamepad1.crossWasPressed()) on = !on;

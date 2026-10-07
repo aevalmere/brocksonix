@@ -29,6 +29,10 @@ import org.firstinspires.ftc.teamcode.util.VoltageCache;
  * Safety: if the turret pushes at full power and the error doesn't shrink (encoder
  * unplugged or stuck, or SERVO_REVERSED and ENCODER_REVERSED disagree), a watchdog
  * cuts the power until the OpMode restarts. Ask it with watchdogTripped().
+ *
+ * Call readSensors() at the start of each loop (after the bulk-read clear) and
+ * update() at the end. That way angleDeg(), errorDeg() and onTarget() are this
+ * loop's values when the loop decides whether to fire, not last loop's.
  */
 @Configurable
 public class Turret {
@@ -92,7 +96,6 @@ public class Turret {
     private double lastTargetDeg = 0;
     private double trimDeg = 0;
     private double angleDeg = 0;
-    private double errorDeg = 0;
     private double lastErrorDeg = 0;
     private boolean closeGains = false;
     private double power = 0;
@@ -133,13 +136,18 @@ public class Turret {
         return angleDeg;
     }
 
+    /**
+     * Shortest way from the angle readSensors() read to the aimed angle (target plus trim).
+     * It is worked out on each call instead of stored, so it is never a loop old: the
+     * target can change after readSensors() and onTarget() still sees it.
+     */
     public double errorDeg() {
-        return errorDeg;
+        return Angles.wrapDegrees(targetDeg + trimDeg - angleDeg);
     }
 
     /** False once the watchdog has tripped: a turret that is switched off isn't aimed. */
     public boolean onTarget() {
-        return !watchdogTripped && Math.abs(errorDeg) < ON_TARGET_DEG;
+        return !watchdogTripped && Math.abs(errorDeg()) < ON_TARGET_DEG;
     }
 
     /** True once the turret was cut off for running at full power without closing the error. Stays true until the OpMode restarts. */
@@ -157,13 +165,17 @@ public class Turret {
         return Angles.wrapDegrees(raw - ENCODER_ZERO_DEG);
     }
 
+    /** Reads the turret angle. Call it at the start of the loop, after the bulk-read clear, before anything uses angleDeg() or onTarget(). */
+    public void readSensors() {
+        angleDeg = readAngle();
+    }
+
+    /** Works out the servo power from the angle that readSensors() read, and writes it. Call it at the end of the loop. */
     public void update() {
         double dt = Math.max(loopTimer.seconds(), 1e-3);
         loopTimer.reset();
 
-        angleDeg = readAngle();
-        double aimDeg = targetDeg + trimDeg;
-        errorDeg = Angles.wrapDegrees(aimDeg - angleDeg);
+        double errorDeg = errorDeg();
         double targetStep = Angles.wrapDegrees(targetDeg - lastTargetDeg);
         double targetRate = targetStep / dt;
         double errorRate = (errorDeg - lastErrorDeg) / dt;
@@ -251,7 +263,7 @@ public class Turret {
 
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addData("Turret angle", "%.1f -> %.1f (trim %+.1f)", angleDeg, targetDeg + trimDeg, trimDeg);
-        telemetry.addData("Turret error / power", "%.1f / %.2f %s", errorDeg, power, closeGains ? "close" : "far");
+        telemetry.addData("Turret error / power", "%.1f / %.2f %s", errorDeg(), power, closeGains ? "close" : "far");
         if (watchdogTripped) {
             telemetry.addData("Turret WATCHDOG", "TRIPPED: full power but the error did not shrink. Turret is off. Check the encoder wiring and the two REVERSED flags, then restart the OpMode.");
         }

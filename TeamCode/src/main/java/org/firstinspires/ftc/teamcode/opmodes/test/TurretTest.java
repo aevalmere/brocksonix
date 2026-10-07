@@ -31,6 +31,7 @@ public class TurretTest extends LinearOpMode {
         waitForStart();
         while (opModeIsActive()) {
             bulkReads.clear();
+            turret.readSensors();
 
             if (gamepad1.crossWasPressed()) manual = !manual;
             if (gamepad1.dpadUpWasPressed()) target = 0;

@@ -20,6 +20,10 @@ import org.firstinspires.ftc.teamcode.util.VoltageCache;
  * Normal control: power = kS + kV * target + kP * error, scaled for battery voltage.
  * While a burst is firing, "boost" switches to full power whenever the wheel
  * drops below target, so it recovers between balls as fast as possible.
+ *
+ * Call readSensors() at the start of each loop (after the bulk-read clear) and
+ * update() at the end. That way atSpeed() and rpm() are this loop's values when
+ * the loop decides whether to fire, not last loop's.
  */
 @Configurable
 public class Shooter {
@@ -91,6 +95,7 @@ public class Shooter {
     private static DcMotorEx motor(HardwareMap hardwareMap, String name) {
         DcMotorEx motor = hardwareMap.get(DcMotorEx.class, name);
         motor.setDirection(DcMotorSimple.Direction.FORWARD);
+        // TODO(6): After a trim-down the wheel coasts (FLOAT) and atSpeed() blocks shots until it slows. Time a 100 to 200 RPM coast-down; if it blocks shots, tell the programmers to add braking or a small reverse power.
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         return motor;
@@ -142,10 +147,14 @@ public class Shooter {
         return watchdogTripped;
     }
 
-    public void update() {
+    /** Reads the wheel speed. Call it at the start of the loop, after the bulk-read clear, before anything uses rpm() or atSpeed(). */
+    public void readSensors() {
         double ticksPerSecond = encoderMotor.getVelocity();
         rpm = (ENCODER_REVERSED ? -ticksPerSecond : ticksPerSecond) * 60 / TICKS_PER_REV;
+    }
 
+    /** Works out the motor power from the rpm that readSensors() read, and writes it. Call it at the end of the loop. */
+    public void update() {
         double leftPower;
         double rightPower;
         if (openLoop) {

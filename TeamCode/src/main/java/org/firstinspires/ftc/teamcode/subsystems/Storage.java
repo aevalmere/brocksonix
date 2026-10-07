@@ -21,8 +21,8 @@ public class Storage {
     // TODO(3): Storage Test: each beam must show true when blocked by hand. Flip if backwards.
     /** Adafruit receivers usually read low when the beam is blocked. */
     public static boolean BLOCKED_READS_LOW = true;
-    // TODO(3): Raise if the ball count flickers.
-    public static int DEBOUNCE_LOOPS = 3;
+    // TODO(3): Raise (in ms) if the ball count flickers.
+    public static double DEBOUNCE_MS = 30;
     // TODO(3): Feed balls one at a time. Full must appear only on the 4th.
     public static double FULL_HOLD_MS = 150;
 
@@ -46,11 +46,11 @@ public class Storage {
     }
 
     public void update() {
-        slot1.update(isBlocked(slot1Beam), DEBOUNCE_LOOPS);
-        slot2.update(isBlocked(slot2Beam), DEBOUNCE_LOOPS);
+        slot1.update(isBlocked(slot1Beam), DEBOUNCE_MS);
+        slot2.update(isBlocked(slot2Beam), DEBOUNCE_MS);
 
         boolean wasBlocked = fullBlocked.get();
-        boolean blocked = fullBlocked.update(isBlocked(fullBeam), DEBOUNCE_LOOPS);
+        boolean blocked = fullBlocked.update(isBlocked(fullBeam), DEBOUNCE_MS);
         if (blocked && !wasBlocked) fullBlockedFor.reset();
         full = blocked && fullBlockedFor.milliseconds() >= FULL_HOLD_MS;
     }

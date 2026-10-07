@@ -32,7 +32,7 @@ Each item says where its value goes: `Class.FIELD`.
 - [ ] `Rail.TRANSFER_HOLD_POWER`: with a ball against the closed door, the lowest power that keeps it seated without the motor straining.
 - [ ] `Rail.INTAKE_POWER`, `Rail.TRANSFER_INTAKE_POWER`: lower them if balls jam or bounce.
 - [ ] `Storage.FULL_HOLD_MS`: feed balls one at a time. "Full" must only appear on the 4th. Raise it if a passing ball triggers full.
-- [ ] `Storage.DEBOUNCE_LOOPS`: raise it if the count flickers.
+- [ ] `Storage.DEBOUNCE_MS`: raise it (in ms) if the count flickers. A beam change only counts after it holds this long.
 - [ ] Watch the count go 0, 1, 2-3, 4 as balls come in.
 
 ## 4. Servos (Servo Position Finder OpMode)

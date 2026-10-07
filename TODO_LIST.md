@@ -2,7 +2,7 @@
 
 Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this file. Do the item, delete its TODO comment, and the list updates on the next build (or run `./gradlew todoList`). How to do each step is in TUNING_GUIDE.md.
 
-**69 left.**
+**70 left.**
 
 ## 1. Wiring and configuration
 
@@ -27,7 +27,7 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 - [ ] [Rail.java:23](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Rail.java#L23) `INTAKE_POWER`: Lower the collect powers if balls jam or bounce.
 - [ ] [Rail.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Rail.java#L26) `TRANSFER_HOLD_POWER`: Lowest power that keeps a ball seated on the closed door without the motor straining.
 - [ ] [Storage.java:21](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Storage.java#L21) `BLOCKED_READS_LOW`: Storage Test: each beam must show true when blocked by hand. Flip if backwards.
-- [ ] [Storage.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Storage.java#L24) `DEBOUNCE_LOOPS`: Raise if the ball count flickers.
+- [ ] [Storage.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Storage.java#L24) `DEBOUNCE_MS`: Raise (in ms) if the ball count flickers.
 - [ ] [Storage.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Storage.java#L26) `FULL_HOLD_MS`: Feed balls one at a time. Full must appear only on the 4th.
 
 ## 4. Servos
@@ -41,19 +41,19 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 ## 5. Turret
 
-- [ ] [Turret.java:35](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L35) `ENCODER_FULL_TURN_VOLTS`: Turret Test, manual: turn slowly through full turns. Use the highest clean volts before it drops to 0.
-- [ ] [Turret.java:38](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L38) `ENCODER_ZERO_DEG`: Point the shooter straight out the front, read the angle, put it here.
-- [ ] [Turret.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L41) `ENCODER_REVERSED`: The angle must increase when the turret turns counter-clockwise.
-- [ ] [Turret.java:43](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L43) `SERVO_REVERSED`: Turret Test, manual: stick left must turn the turret counter-clockwise (seen from above).
-- [ ] [Turret.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L46) `FAR_KP`: Aiming mode, D-pad 0 to 180: tune FAR_KP and FAR_KD for fast moves with a small overshoot.
-- [ ] [Turret.java:49](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L49) `CLOSE_KP`: Aiming mode, bumper nudges: tune CLOSE_KP and CLOSE_KD so it settles without buzzing.
-- [ ] [Turret.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L52) `CLOSE_ZONE_DEG`: Aiming mode: if it chatters near the target, adjust this.
-- [ ] [Turret.java:57](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L57) `KS`: Manual mode: raise until the turret just starts to move, then use a bit less.
-- [ ] [Turret.java:59](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L59) `KS_RAMP_DEG`: Aiming mode: if it chatters near the target, adjust this. Higher = KS fades in over a wider zone.
-- [ ] [Turret.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L61) `KV`: Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
-- [ ] [Turret.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L64) `MAX_POWER`: Lower if the gearing or wiring complains.
-- [ ] [Turret.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L67) `ON_TARGET_DEG`: Largest aim error that still scores. Find it once the shooter works.
-- [ ] [Turret.java:70](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L70) `WATCHDOG_MS`: Aiming mode, D-pad 0 to 180: if a normal big move trips the watchdog, raise this time.
+- [ ] [Turret.java:39](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L39) `ENCODER_FULL_TURN_VOLTS`: Turret Test, manual: turn slowly through full turns. Use the highest clean volts before it drops to 0.
+- [ ] [Turret.java:42](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L42) `ENCODER_ZERO_DEG`: Point the shooter straight out the front, read the angle, put it here.
+- [ ] [Turret.java:45](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L45) `ENCODER_REVERSED`: The angle must increase when the turret turns counter-clockwise.
+- [ ] [Turret.java:47](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L47) `SERVO_REVERSED`: Turret Test, manual: stick left must turn the turret counter-clockwise (seen from above).
+- [ ] [Turret.java:50](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L50) `FAR_KP`: Aiming mode, D-pad 0 to 180: tune FAR_KP and FAR_KD for fast moves with a small overshoot.
+- [ ] [Turret.java:53](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L53) `CLOSE_KP`: Aiming mode, bumper nudges: tune CLOSE_KP and CLOSE_KD so it settles without buzzing.
+- [ ] [Turret.java:56](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L56) `CLOSE_ZONE_DEG`: Aiming mode: if it chatters near the target, adjust this.
+- [ ] [Turret.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L61) `KS`: Manual mode: raise until the turret just starts to move, then use a bit less.
+- [ ] [Turret.java:63](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L63) `KS_RAMP_DEG`: Aiming mode: if it chatters near the target, adjust this. Higher = KS fades in over a wider zone.
+- [ ] [Turret.java:65](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L65) `KV`: Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
+- [ ] [Turret.java:68](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L68) `MAX_POWER`: Lower if the gearing or wiring complains.
+- [ ] [Turret.java:71](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L71) `ON_TARGET_DEG`: Largest aim error that still scores. Find it once the shooter works.
+- [ ] [Turret.java:74](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L74) `WATCHDOG_MS`: Aiming mode, D-pad 0 to 180: if a normal big move trips the watchdog, raise this time.
 
 ## 6. Shooter
 
@@ -61,14 +61,15 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 - [ ] [FireControl.java:37](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L37) `SHOT_DIP_RPM`: Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
 - [ ] [FireControl.java:39](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L39) `FEED_TIMEOUT_MS`: 400 is a guess. Watch how long a normal feed takes to show the RPM dip, then set this a bit above the slowest.
 - [ ] [FireControl.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L41) `RECOVER_MS`: Lower for faster bursts; raise if back-to-back balls still miss.
-- [ ] [Shooter.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L29) `LEFT_REVERSED`: The motors are geared together: test each alone at low power first (Shooter Test, hold Square or Circle). Both must push the shooting direction.
-- [ ] [Shooter.java:32](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L32) `ENCODER_REVERSED`: RPM must read positive while shooting. The encoder must be on the left motor's port. This flag alone sets the RPM sign, LEFT_REVERSED does not change it.
-- [ ] [Shooter.java:35](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L35) `KS`: Raise if low RPMs sit below target.
-- [ ] [Shooter.java:37](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L37) `KV`: Shooter Test with KS and KP at 0: raise until the wheel settles on target at 2000, 3500 and 5000 RPM.
-- [ ] [Shooter.java:40](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L40) `KP`: Raise until it recovers fast without oscillating.
-- [ ] [Shooter.java:43](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L43) `RPM_TOLERANCE`: Largest RPM error that still scores at mid range.
-- [ ] [Shooter.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L46) `BOOST_BELOW_RPM`: Fire 4 balls: quick recovery between balls, no big overshoot.
-- [ ] [Shooter.java:57](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L57) `WATCHDOG_MS`: Only if the watchdog trips on a normal spin-up: raise this, or lower WATCHDOG_MIN_RPM.
+- [ ] [Shooter.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L33) `LEFT_REVERSED`: The motors are geared together: test each alone at low power first (Shooter Test, hold Square or Circle). Both must push the shooting direction.
+- [ ] [Shooter.java:36](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L36) `ENCODER_REVERSED`: RPM must read positive while shooting. The encoder must be on the left motor's port. This flag alone sets the RPM sign, LEFT_REVERSED does not change it.
+- [ ] [Shooter.java:39](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L39) `KS`: Raise if low RPMs sit below target.
+- [ ] [Shooter.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L41) `KV`: Shooter Test with KS and KP at 0: raise until the wheel settles on target at 2000, 3500 and 5000 RPM.
+- [ ] [Shooter.java:44](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L44) `KP`: Raise until it recovers fast without oscillating.
+- [ ] [Shooter.java:47](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L47) `RPM_TOLERANCE`: Largest RPM error that still scores at mid range.
+- [ ] [Shooter.java:50](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L50) `BOOST_BELOW_RPM`: Fire 4 balls: quick recovery between balls, no big overshoot.
+- [ ] [Shooter.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L61) `WATCHDOG_MS`: Only if the watchdog trips on a normal spin-up: raise this, or lower WATCHDOG_MIN_RPM.
+- [ ] [Shooter.java:98](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L98) `setZeroPowerBehavior()`: After a trim-down the wheel coasts (FLOAT) and atSpeed() blocks shots until it slows. Time a 100 to 200 RPM coast-down; if it blocks shots, tell the programmers to add braking or a small reverse power.
 
 ## 7. Shot tables
 

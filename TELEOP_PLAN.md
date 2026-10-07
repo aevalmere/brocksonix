@@ -168,7 +168,7 @@ Rail slots, as in `ROBOT.md`: slot 1 at the door (beam A), slot 2 (beam B), slot
 - **Transfer drops to a gentle hold power** (`Rail.TRANSFER_HOLD_POWER`) as soon as beam A is blocked (debounced), so it doesn't stall against the closed door (the idea from Meta's `BEAM3_TRANSFER_OFF_MS`; we hold gently instead of stopping).
 - **Full** = intake beam blocked continuously for `FULL_HOLD_MS` (a ball passing through on entry only blocks it briefly). Intake stops when full.
 - **Count:** beams give 0, 1, "2-3" (slot 3 has no beam, so 2 and 3 look the same), or 4. Capacity is 4. The firing rule only needs "at least 2" (beams A and B, or full), and the auto-stop only needs "4", so slot 3 doesn't need its own beam.
-- Beams are debounced over a few loops (`Storage.DEBOUNCE_LOOPS`; Ditto's `ModeSmoother`).
+- Beams are debounced by time: a new reading must hold for `Storage.DEBOUNCE_MS` (Ditto's `ModeSmoother`).
 - **Unjam:** LT runs the rail and intake backwards and wins over everything else the rail does.
 - **Flower intake:** LB toggles down/up. It also raises itself when we reach 4, so the driver can turn straight to shoot.
 

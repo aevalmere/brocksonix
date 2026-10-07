@@ -1,20 +1,31 @@
 package org.firstinspires.ftc.teamcode.util;
 
-/** Ignores flickers: the value only changes after it reads the same new value several loops in a row. */
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+/** Ignores flickers: the value only changes after it reads the same new value for a number of milliseconds. */
 public class Debouncer {
     private boolean stable;
-    private int differentCount = 0;
+    private boolean changing = false;
+    private final ElapsedTime changingFor = new ElapsedTime();
 
     public Debouncer(boolean initial) {
         stable = initial;
     }
 
-    public boolean update(boolean raw, int loopsRequired) {
+    /** holdMs is read on every call, so it can be changed live. */
+    public boolean update(boolean raw, double holdMs) {
         if (raw == stable) {
-            differentCount = 0;
-        } else if (++differentCount >= loopsRequired) {
-            stable = raw;
-            differentCount = 0;
+            changing = false;
+        } else {
+            // The timer starts at the first reading that differs, and any reading that matches again cancels it.
+            if (!changing) {
+                changing = true;
+                changingFor.reset();
+            }
+            if (changingFor.milliseconds() >= holdMs) {
+                stable = raw;
+                changing = false;
+            }
         }
         return stable;
     }

@@ -22,7 +22,8 @@ public final class RobotState {
     public static Cell targetCell = Cell.FAR;
 
     private static Pose savedPose = null;
-    private static long savedAtMs = 0;
+    // nanoTime only counts up. currentTimeMillis can jump when the Control Hub syncs its clock.
+    private static long savedAtNanos = 0;
 
     /** Switching alliance drops the saved pose, since it is in the old alliance's frame. Picking the same one keeps it. */
     public static void setAlliance(Alliance picked) {
@@ -32,12 +33,12 @@ public final class RobotState {
 
     public static void savePose(Pose pose) {
         savedPose = pose;
-        savedAtMs = System.currentTimeMillis();
+        savedAtNanos = System.nanoTime();
     }
 
     /** The saved pose if it's recent, otherwise null. */
     public static Pose recentPose() {
-        boolean recent = savedPose != null && (System.currentTimeMillis() - savedAtMs) / 1000.0 <= MAX_SAVED_AGE_SEC;
+        boolean recent = savedPose != null && (System.nanoTime() - savedAtNanos) / 1e9 <= MAX_SAVED_AGE_SEC;
         return recent ? savedPose : null;
     }
 

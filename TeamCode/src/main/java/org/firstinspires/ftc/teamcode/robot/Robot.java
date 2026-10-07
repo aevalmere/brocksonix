@@ -33,6 +33,10 @@ import java.util.Set;
  * Test OpModes skip this class and build only the subsystems they need.
  */
 public class Robot {
+    // OpModes may call these directly: drive, the flower intake, the aim trims (turret and shooter),
+    // and setPose/relocalize. update() decides everything else (rail, door, shooter and turret targets)
+    // from scratch every loop, so a direct call there is overwritten on the next update().
+    // To change those, set shootHeld, passHeld, unjamHeld or singleBallBursts instead.
     public final Drive drive;
     public final Storage storage;
     public final Rail rail;
@@ -122,13 +126,22 @@ public class Robot {
     }
 
     public void update() {
+        // Decide shoot or pass once, so aiming and FireControl can't disagree. Shoot wins if both are held.
+        FireControl.Mode wanted = shootHeld ? FireControl.Mode.SHOOT
+                : (passHeld && FireControl.PASS_ENABLED) ? FireControl.Mode.PASS
+                : FireControl.Mode.NONE;
+
         bulkReads.clear();
         drive.update();
         storage.update();
+        // Read at the top, write at the end (the shooter.update() and turret.update() calls below),
+        // so every decision this loop uses this loop's readings, not last loop's.
+        shooter.readSensors();
+        turret.readSensors();
 
         Pose pose = drive.pose();
         poseIsNaN = isBad(pose) || isBad(drive.velocity());
-        aim = solve(pose);
+        aim = solve(pose, wanted);
 
         if (aim != null) {
             lastFeedPower = aim.feedPower;
@@ -143,7 +156,7 @@ public class Robot {
 
         ready = aim != null && aim.valid && canFire() && shooter.atSpeed() && turret.onTarget();
         boolean enoughBalls = singleBallBursts ? !storage.isEmpty() : storage.hasAtLeastTwo();
-        fireControl.update(shootHeld, passHeld, enoughBalls,
+        fireControl.update(wanted, enoughBalls,
                 ready, shooter.rpm(), shooter.effectiveTargetRpm(), door.isFullyOpen());
         shooter.setBoost(isFiring());
 
@@ -182,11 +195,11 @@ public class Robot {
         return Double.isNaN(velocity.vx) || Double.isNaN(velocity.vy) || Double.isNaN(velocity.omega);
     }
 
-    private ShotSolution solve(Pose pose) {
+    private ShotSolution solve(Pose pose, FireControl.Mode wanted) {
         if (RobotState.alliance == null) return null;
         // A NaN would send the flywheel to the top RPM and the turret to a NaN angle, so don't aim at all.
         if (poseIsNaN) return null;
-        if (passHeld && FireControl.PASS_ENABLED && !shootHeld) {
+        if (wanted == FireControl.Mode.PASS) {
             return solver.solvePass(pose, Field.passTarget(RobotState.alliance));
         }
         RobotState.targetCell = Field.cellForSide(pose.y(), RobotState.targetCell);
@@ -215,7 +228,12 @@ public class Robot {
         telemetry.addData("Alliance / cell", "%s / %s", RobotState.alliance, RobotState.targetCell);
         telemetry.addData("Fire", "%s%s", fireControl.status(), ready ? " (ready)" : "");
         if (aim != null) {
-            telemetry.addData("Aim", "%.0f in, %.0f rpm", aim.distance, aim.rpm);
+            // The real distance first. RPM and range use the led distance, which only differs while LEAD is moving the aim point.
+            if (Math.round(aim.distance) != Math.round(aim.targetDistance)) {
+                telemetry.addData("Aim", "%.0f in (with lead %.0f in), %.0f rpm", aim.targetDistance, aim.distance, aim.rpm);
+            } else {
+                telemetry.addData("Aim", "%.0f in, %.0f rpm", aim.distance, aim.rpm);
+            }
         }
         drive.addTelemetry(telemetry);
         storage.addTelemetry(telemetry);

@@ -54,17 +54,17 @@ public class FireControl {
     private int misfeeds = 0;
 
     /**
-     * Call once per loop. Shoot wins if both buttons are held.
+     * Call once per loop.
      *
+     * @param wanted      what the drivers want this loop. Robot decides it (shoot wins over pass, and pass
+     *                    counts only while PASS_ENABLED), so it is decided in one place.
      * @param enoughBalls enough balls are stored to start a burst (only checked when a burst starts)
      * @param ready       turret on target and flywheel at speed right now
      * @param rpm         flywheel speed now
      * @param targetRpm   what the flywheel is aiming for (the dip test uses its value from when the feed started)
      */
-    public void update(boolean shootHeld, boolean passHeld, boolean enoughBalls,
+    public void update(Mode wanted, boolean enoughBalls,
                        boolean ready, double rpm, double targetRpm, boolean doorFullyOpen) {
-        boolean pass = passHeld && PASS_ENABLED;
-        Mode wanted = shootHeld ? Mode.SHOOT : pass ? Mode.PASS : Mode.NONE;
         // Released mid-feed: let that ball finish first, so the door never closes on it.
         boolean finishingFeed = wanted == Mode.NONE && feeding();
         if (wanted == Mode.NONE && !finishingFeed) {
