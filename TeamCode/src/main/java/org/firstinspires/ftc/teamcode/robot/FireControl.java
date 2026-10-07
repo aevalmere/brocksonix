@@ -36,6 +36,7 @@ public class FireControl {
     public static double READY_HOLD_MS = 40;
     // TODO(6): Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
     public static double SHOT_DIP_RPM = 150;
+    // TODO(6): 400 is a guess. Watch how long a normal feed takes to show the RPM dip, then set this a bit above the slowest.
     public static double FEED_TIMEOUT_MS = 400;
     // TODO(6): Lower for faster bursts; raise if back-to-back balls still miss.
     public static double RECOVER_MS = 60;

@@ -90,6 +90,7 @@ public class MainTeleOp extends LinearOpMode {
     }
 
     private void driverOne(Gamepad pad) {
+        // Before an alliance is picked, drive as red: driving still works, and nothing fires without an alliance.
         robot.drive.drive(
                 -pad.left_stick_y,
                 -pad.left_stick_x,

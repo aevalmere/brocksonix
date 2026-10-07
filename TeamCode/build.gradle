@@ -31,6 +31,8 @@ dependencies {
 // Collects every "// TODO(step): ..." comment in TeamCode into TODO_LIST.md at the
 // repo root, sorted by step, each linked to its line. Runs before every build.
 // Step numbers match the sections of TUNING_GUIDE.md.
+// A comment with TODO in it that doesn't match the format (like "// TODO: x" or
+// "// TODO(5) x") is left out of the list and gets a warning. It never fails the build.
 tasks.register('todoList') {
     def sourceDir = file('src/main/java')
     def output = rootProject.file('TODO_LIST.md')
@@ -51,16 +53,26 @@ tasks.register('todoList') {
     ]
     inputs.dir(sourceDir)
     outputs.file(output)
+    // Always run (it's fast), so a malformed TODO warns on every build, not just the
+    // first build after it was written.
+    outputs.upToDateWhen { false }
 
     doLast {
         def todoPattern = ~/\/\/\s*TODO\((\d+)\):\s*(.*)/
+        def anyTodoPattern = ~/\/\/\s*TODO\b/
         def items = []
         sourceDir.eachFileRecurse(groovy.io.FileType.FILES) { source ->
             if (!source.name.endsWith('.java')) return
+            def path = repoRoot.relativize(source.toPath()).toString().replace('\\', '/')
             def lines = source.readLines('UTF-8')
             lines.eachWithIndex { line, i ->
                 def match = todoPattern.matcher(line)
-                if (!match.find()) return
+                if (!match.find()) {
+                    if (anyTodoPattern.matcher(line).find()) {
+                        logger.warn("todoList: malformed TODO, not in TODO_LIST.md (use // TODO(step): text) at ${path}:${i + 1}: ${line.trim()}")
+                    }
+                    return
+                }
                 def code = lines.drop(i + 1).collect { it.trim() }.find {
                     it && !it.startsWith('//') && !it.startsWith('/*') && !it.startsWith('*')
                 } ?: ''
@@ -71,7 +83,7 @@ tasks.register('todoList') {
                         step   : match.group(1) as int,
                         text   : match.group(2).trim(),
                         file   : source.name,
-                        path   : repoRoot.relativize(source.toPath()).toString().replace('\\', '/'),
+                        path   : path,
                         line   : i + 1,
                         subject: subject,
                 ]
@@ -93,7 +105,13 @@ tasks.register('todoList') {
                         out << "- [ ] [${item.file}:${item.line}](${item.path}#L${item.line})${subject}: ${item.text}\n"
                     }
                 }
-        output.text = out.toString()
+        // Compare with line endings normalized. Git on Windows may check the file out
+        // with CRLF, and rewriting it with LF would show it as modified for no reason.
+        def newText = out.toString()
+        def oldText = output.exists() ? output.getText('UTF-8').replace('\r\n', '\n') : null
+        if (newText != oldText) {
+            output.write(newText, 'UTF-8')
+        }
     }
 }
 

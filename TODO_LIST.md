@@ -2,7 +2,7 @@
 
 Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this file. Do the item, delete its TODO comment, and the list updates on the next build (or run `./gradlew todoList`). How to do each step is in TUNING_GUIDE.md.
 
-**64 left.**
+**69 left.**
 
 ## 1. Wiring and configuration
 
@@ -16,9 +16,10 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 - [ ] [Constants.java:10](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L10) `create()`: Run the Pedro Tests procedure. Push the robot 48 in. by hand and check the pose moves 48 in.
 - [ ] [TeamTuning.java:22](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L22): After pasting the Mecanum and Pinpoint tuner output into Constants, add ForesightTuner here. Add Tests after pasting the Foresight output too.
 - [ ] [Drive.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L24) `STICK_DEADBAND`: Raise if the robot creeps with the sticks let go; lower if small moves feel dead.
-- [ ] [Drive.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L26) `DRIVE_CUBIC`: Drive and adjust to taste. Higher = gentler near center, same top speed.
+- [ ] [Drive.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L26) `DRIVE_CUBIC`: Drive and adjust DRIVE_CUBIC and TURN_CUBIC to taste. Higher = gentler near center, same top speed.
 - [ ] [Drive.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L29) `HOLD_WHEN_STOPPED`: Drive around and let go. If holding feels jumpy, set false.
-- [ ] [Drive.java:40](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L40) `drive()`: Main TeleOp, red: stick up drives away from the driver, stick left to the driver's left. Check blue too.
+- [ ] [Drive.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L31) `HOLD_BELOW_SPEED`: Drive around and let go. Raise if it rolls on before holding; lower if the hold feels jumpy.
+- [ ] [Drive.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L41) `drive()`: Main TeleOp, red: stick up drives away from the driver, stick left to the driver's left. Check blue too.
 
 ## 3. Storage and rail
 
@@ -44,18 +45,22 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 - [ ] [Turret.java:38](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L38) `ENCODER_ZERO_DEG`: Point the shooter straight out the front, read the angle, put it here.
 - [ ] [Turret.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L41) `ENCODER_REVERSED`: The angle must increase when the turret turns counter-clockwise.
 - [ ] [Turret.java:43](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L43) `SERVO_REVERSED`: Turret Test, manual: stick left must turn the turret counter-clockwise (seen from above).
-- [ ] [Turret.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L46) `FAR_KP`: Aiming mode, D-pad 0 to 180: fast with a small overshoot.
-- [ ] [Turret.java:49](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L49) `CLOSE_KP`: Aiming mode, bumper nudges: settles without buzzing.
-- [ ] [Turret.java:56](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L56) `KS`: Manual mode: raise until the turret just starts to move, then use a bit less.
-- [ ] [Turret.java:59](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L59) `KV`: Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
-- [ ] [Turret.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L64) `ON_TARGET_DEG`: Largest aim error that still scores. Find it once the shooter works.
-- [ ] [Turret.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L67) `WATCHDOG_MS`: Aiming mode, D-pad 0 to 180: if a normal big move trips the watchdog, raise this time.
+- [ ] [Turret.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L46) `FAR_KP`: Aiming mode, D-pad 0 to 180: tune FAR_KP and FAR_KD for fast moves with a small overshoot.
+- [ ] [Turret.java:49](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L49) `CLOSE_KP`: Aiming mode, bumper nudges: tune CLOSE_KP and CLOSE_KD so it settles without buzzing.
+- [ ] [Turret.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L52) `CLOSE_ZONE_DEG`: Aiming mode: if it chatters near the target, adjust this.
+- [ ] [Turret.java:57](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L57) `KS`: Manual mode: raise until the turret just starts to move, then use a bit less.
+- [ ] [Turret.java:59](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L59) `KS_RAMP_DEG`: Aiming mode: if it chatters near the target, adjust this. Higher = KS fades in over a wider zone.
+- [ ] [Turret.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L61) `KV`: Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
+- [ ] [Turret.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L64) `MAX_POWER`: Lower if the gearing or wiring complains.
+- [ ] [Turret.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L67) `ON_TARGET_DEG`: Largest aim error that still scores. Find it once the shooter works.
+- [ ] [Turret.java:70](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Turret.java#L70) `WATCHDOG_MS`: Aiming mode, D-pad 0 to 180: if a normal big move trips the watchdog, raise this time.
 
 ## 6. Shooter
 
 - [ ] [FireControl.java:35](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L35) `READY_HOLD_MS`: Raise if shots go early while the turret is still settling.
 - [ ] [FireControl.java:37](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L37) `SHOT_DIP_RPM`: Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
-- [ ] [FireControl.java:40](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L40) `RECOVER_MS`: Lower for faster bursts; raise if back-to-back balls still miss.
+- [ ] [FireControl.java:39](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L39) `FEED_TIMEOUT_MS`: 400 is a guess. Watch how long a normal feed takes to show the RPM dip, then set this a bit above the slowest.
+- [ ] [FireControl.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L41) `RECOVER_MS`: Lower for faster bursts; raise if back-to-back balls still miss.
 - [ ] [Shooter.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L29) `LEFT_REVERSED`: The motors are geared together: test each alone at low power first (Shooter Test, hold Square or Circle). Both must push the shooting direction.
 - [ ] [Shooter.java:32](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L32) `ENCODER_REVERSED`: RPM must read positive while shooting. The encoder must be on the left motor's port. This flag alone sets the RPM sign, LEFT_REVERSED does not change it.
 - [ ] [Shooter.java:35](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L35) `KS`: Raise if low RPMs sit below target.
@@ -78,7 +83,7 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 - [ ] [Field.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L29) `CELL_SWITCH_BAND`: Drive across the middle. Raise it if the turret flips between cells too eagerly.
 - [ ] [Field.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L41) `CENTER_TO_INTAKE_WALL`: CAD says 203 mm. Check with a tape: intake flat on a wall, wall to turret center. Is the stowed flower intake further out?
 - [ ] [Field.java:44](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L44) `CENTER_TO_SIDE_WALL`: CAD outer frame rails say 149 mm (298 wide, not 280). Check with a tape.
-- [ ] [Field.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L67) `cornerPose()`: Relocalize in all 4 corners, drive to a taped spot, and check the pose.
+- [ ] [Field.java:70](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L70) `cornerPose()`: Relocalize in all 4 corners, drive to a taped spot, and check the pose.
 
 ## 9. Shooting while moving
 

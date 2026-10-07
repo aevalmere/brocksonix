@@ -133,7 +133,9 @@ public class Robot {
         if (aim != null) {
             lastFeedPower = aim.feedPower;
             turret.setTargetDeg(aim.turretDeg);
-            shooter.setTargetRpm(isFiring() || !storage.isEmpty() ? aim.rpm : 0);
+            // Spin up whenever a ball is stored, so the wheel is already at speed when shoot is pressed.
+            // It stays up for the whole burst too, so the wheel isn't cut while the last ball is still going through.
+            shooter.setTargetRpm((isFiring() || !storage.isEmpty()) ? aim.rpm : 0);
         } else {
             turret.setTargetDeg(0);
             shooter.setTargetRpm(0);
@@ -145,9 +147,14 @@ public class Robot {
                 ready, shooter.rpm(), shooter.effectiveTargetRpm(), door.isFullyOpen());
         shooter.setBoost(isFiring());
 
+        // Open for the whole burst, not per ball: it never closes on a ball (see FireControl),
+        // and the burst doesn't wait on the door between balls.
         if (fireControl.doorOpen()) door.open();
         else door.close();
 
+        // Rail priority: unjam always wins, so a jam can be cleared at any time. Then feed.
+        // Then stopped: the door stays open between balls, so the rail has to hold the next ball back.
+        // Collect is the default.
         if (unjamHeld) rail.reverse();
         else if (fireControl.feeding()) rail.feed(lastFeedPower);
         // After a burst, stay stopped until the door is closed, or the next ball reaches it half open.

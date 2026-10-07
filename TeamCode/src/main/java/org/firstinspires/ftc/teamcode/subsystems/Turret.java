@@ -43,22 +43,25 @@ public class Turret {
     // TODO(5): Turret Test, manual: stick left must turn the turret counter-clockwise (seen from above).
     public static boolean SERVO_REVERSED = false;
 
-    // TODO(5): Aiming mode, D-pad 0 to 180: fast with a small overshoot.
+    // TODO(5): Aiming mode, D-pad 0 to 180: tune FAR_KP and FAR_KD for fast moves with a small overshoot.
     public static double FAR_KP = 0.01;
     public static double FAR_KD = 0.0005;
-    // TODO(5): Aiming mode, bumper nudges: settles without buzzing.
+    // TODO(5): Aiming mode, bumper nudges: tune CLOSE_KP and CLOSE_KD so it settles without buzzing.
     public static double CLOSE_KP = 0.006;
     public static double CLOSE_KD = 0.0003;
+    // TODO(5): Aiming mode: if it chatters near the target, adjust this.
     /** Use CLOSE gains under this error; the band stops it flickering between sets. */
     public static double CLOSE_ZONE_DEG = 15;
     public static double CLOSE_ZONE_BAND_DEG = 2;
 
     // TODO(5): Manual mode: raise until the turret just starts to move, then use a bit less.
     public static double KS = 0.05;
+    // TODO(5): Aiming mode: if it chatters near the target, adjust this. Higher = KS fades in over a wider zone.
     public static double KS_RAMP_DEG = 5;
     // TODO(5): Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
     /** Power per degree/second of target motion. */
     public static double KV = 0.0;
+    // TODO(5): Lower if the gearing or wiring complains.
     public static double MAX_POWER = 0.8;
 
     // TODO(5): Largest aim error that still scores. Find it once the shooter works.

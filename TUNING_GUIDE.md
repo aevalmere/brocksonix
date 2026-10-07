@@ -23,6 +23,7 @@ Each item says where its value goes: `Class.FIELD`.
 - [ ] Robot forward (heading 0) is the **intake end**. If Pedro's forward is the other end, the corner poses and the aiming are 180° off.
 - [ ] `Drive.STICK_DEADBAND`, `Drive.DRIVE_CUBIC`, `Drive.TURN_CUBIC`: the stick curve. Higher cubic = finer control near the center, same top speed.
 - [ ] `Drive.HOLD_WHEN_STOPPED`: drive around and let go. If holding feels jumpy, set it to false.
+- [ ] `Drive.HOLD_BELOW_SPEED`: with the sticks let go, the robot coasts until it's slower than this (in/s), then holds its pose. Raise it if it rolls on before holding. Lower it if the hold feels jumpy.
 
 ## 3. Storage and rail (Storage Test OpMode)
 
@@ -64,7 +65,7 @@ Aiming mode (D-pad picks targets, bumpers nudge ±10°):
 
 ## 6. Shooter (Shooter Test OpMode)
 
-**Before the first spin:** the two motors are geared together. If one runs the wrong way they fight. Test each motor alone at low power first.
+**Before the first spin:** the two motors are geared together. If one runs the wrong way they fight. Test each motor alone at low power first. In Shooter Test, with the wheel off, hold Square to run only the left motor, or Circle to run only the right one (`ShooterTest.MOTOR_TEST_POWER`, 0.2 by default). Each must push the shooting direction. If one doesn't, flip its `REVERSED` flag in Panels (works live).
 
 - [ ] `Shooter.LEFT_REVERSED`, `Shooter.RIGHT_REVERSED`: both push the wheel in the shooting direction.
 - [ ] `Shooter.ENCODER_REVERSED`: RPM reads positive while shooting.
@@ -74,8 +75,9 @@ Aiming mode (D-pad picks targets, bumpers nudge ±10°):
 - [ ] `Shooter.KP`: raise it until it recovers quickly without oscillating.
 - [ ] `Shooter.BOOST_BELOW_RPM`: fire 4 balls (RB) and watch RPM between balls. Recovery should be quick, with no big overshoot.
 - [ ] `Shooter.RPM_TOLERANCE`: the largest RPM error that still scores at mid range.
-- [ ] `FireControl.SHOT_DIP_RPM`: watch RPM as a ball goes through. Set it a bit under the smallest dip, or shots won't be counted and every ball will time out as a misfeed.
-- [ ] `FireControl.RECOVER_MS`, `FireControl.READY_HOLD_MS`: lower for faster bursts, raise if back-to-back balls miss.
+- [ ] `FireControl.SHOT_DIP_RPM`: in Shooter Test, hold RB and watch RPM as a ball goes through. Set it a bit under the smallest dip, or shots won't be counted and every ball will time out as a misfeed.
+- [ ] `FireControl.FEED_TIMEOUT_MS`: 400 is a guess. In Main TeleOp (hold RB with balls loaded), watch how long a normal feed takes to show the RPM dip, then set this a bit above the slowest. Too short counts real shots as misfeeds. Too long wastes time on a real misfeed.
+- [ ] `FireControl.RECOVER_MS`, `FireControl.READY_HOLD_MS`: **tune these in Main TeleOp, not Shooter Test.** Shooter Test bypasses `FireControl` (RB just opens the door and feeds), so these have no effect there and burst recovery can't be seen there. In Main TeleOp, load balls and hold RB. Lower them for faster bursts, raise them if back-to-back balls miss.
 
 ## 7. Shot tables (`shot/ShotTables.java`)
 

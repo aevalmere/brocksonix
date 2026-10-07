@@ -23,11 +23,12 @@ import org.firstinspires.ftc.teamcode.util.DriveCurve;
 public class Drive {
     // TODO(2): Raise if the robot creeps with the sticks let go; lower if small moves feel dead.
     public static double STICK_DEADBAND = 0.05;
-    // TODO(2): Drive and adjust to taste. Higher = gentler near center, same top speed.
+    // TODO(2): Drive and adjust DRIVE_CUBIC and TURN_CUBIC to taste. Higher = gentler near center, same top speed.
     public static double DRIVE_CUBIC = 0.6;
     public static double TURN_CUBIC = 0.7;
     // TODO(2): Drive around and let go. If holding feels jumpy, set false.
     public static boolean HOLD_WHEN_STOPPED = true;
+    // TODO(2): Drive around and let go. Raise if it rolls on before holding; lower if the hold feels jumpy.
     /** Holding starts once the robot has slowed below this (inches/second). */
     public static double HOLD_BELOW_SPEED = 2;
 
@@ -60,6 +61,7 @@ public class Drive {
                 away * stretch,
                 left * stretch,
                 DriveCurve.shape(turnLeft, STICK_DEADBAND, TURN_CUBIC));
+        // Pedro rotates by -(heading + offset), so offset = -driverHeading first turns the driver's view into the field's.
         follower.manual(ManualDrive.fieldCentric(fromDriver, pose().heading(), -alliance.driverHeading()));
     }
 

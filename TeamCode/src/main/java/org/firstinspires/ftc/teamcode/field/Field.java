@@ -48,6 +48,9 @@ public final class Field {
     private Field() {}
 
     public static Pose cellTarget(Alliance alliance, Cell cell) {
+        // Only x flips for blue: the cells are fixed geometry, so only which HIVE is "ours" mirrors.
+        // Each HIVE has a far and an audience cell at these same y values. That relies on
+        // FAR_CELL_Y + AUDIENCE_CELL_Y == SIZE, so re-check the pair if you re-measure either one.
         double x = alliance == Alliance.RED ? RED_HIVE_X : SIZE - RED_HIVE_X;
         double y = cell == Cell.FAR ? FAR_CELL_Y : AUDIENCE_CELL_Y;
         return new Pose(x, y);
