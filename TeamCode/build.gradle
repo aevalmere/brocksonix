@@ -46,6 +46,8 @@ tasks.register('todoList') {
             8 : 'Field',
             9 : 'Shooting while moving',
             10: 'Driver feedback and loop time',
+            11: 'Before competition',
+            12: 'Autonomous',
     ]
     inputs.dir(sourceDir)
     outputs.file(output)
@@ -62,7 +64,7 @@ tasks.register('todoList') {
                 def code = lines.drop(i + 1).collect { it.trim() }.find {
                     it && !it.startsWith('//') && !it.startsWith('/*') && !it.startsWith('*')
                 } ?: ''
-                def field = code =~ /static\s+\S+\s+(\w+)\s*=/
+                def field = code =~ /static\s+(?:final\s+)?\S+\s+(\w+)\s*=/
                 def method = code =~ /(\w+)\s*\(/
                 def subject = field.find() ? field.group(1) : (method.find() ? method.group(1) + '()' : '')
                 items << [

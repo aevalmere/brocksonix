@@ -6,8 +6,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /**
  * Decides when to fire, one ball at a time.
  *
- * A burst only starts with at least 2 balls stored, then lasts as long as the
- * button is held. Inside a burst, every ball goes through the same three steps:
+ * A burst only starts when the caller says there are enough balls stored (TeleOp
+ * needs 2, auto can allow 1), then lasts as long as the button is held. Inside a
+ * burst, every ball goes through the same three steps:
  *
  * 1. WAIT: the shot must be ready (turret on target AND flywheel at speed)
  *    and stay ready for READY_HOLD_MS, so one lucky reading can't fire.
@@ -46,16 +47,18 @@ public class FireControl {
     private final ElapsedTime readyFor = new ElapsedTime();
     private final ElapsedTime inStep = new ElapsedTime();
     private int shots = 0;
+    private int totalShots = 0;
     private int misfeeds = 0;
 
     /**
      * Call once per loop. Shoot wins if both buttons are held.
      *
-     * @param ready     turret on target and flywheel at speed right now
-     * @param rpm       flywheel speed now
-     * @param targetRpm what the flywheel is aiming for
+     * @param enoughBalls enough balls are stored to start a burst (only checked when a burst starts)
+     * @param ready       turret on target and flywheel at speed right now
+     * @param rpm         flywheel speed now
+     * @param targetRpm   what the flywheel is aiming for
      */
-    public void update(boolean shootHeld, boolean passHeld, boolean hasAtLeastTwo,
+    public void update(boolean shootHeld, boolean passHeld, boolean enoughBalls,
                        boolean ready, double rpm, double targetRpm, boolean doorFullyOpen) {
         boolean pass = passHeld && PASS_ENABLED;
         Mode wanted = shootHeld ? Mode.SHOOT : pass ? Mode.PASS : Mode.NONE;
@@ -68,7 +71,7 @@ public class FireControl {
             return;
         }
         if (burst == Mode.NONE) {
-            if (!hasAtLeastTwo) return;
+            if (!enoughBalls) return;
             shots = 0;
             misfeeds = 0;
         }
@@ -88,6 +91,7 @@ public class FireControl {
             case FEED:
                 if (rpm < targetRpm - SHOT_DIP_RPM) {
                     shots++;
+                    totalShots++;
                     enter(Step.RECOVER);
                 } else if (inStep.milliseconds() >= FEED_TIMEOUT_MS) {
                     misfeeds++;
@@ -119,6 +123,11 @@ public class FireControl {
 
     public boolean doorOpen() {
         return doorOpen;
+    }
+
+    /** Shots counted since this object was built. Unlike the per-burst count, it never resets. */
+    public int totalShots() {
+        return totalShots;
     }
 
     public String status() {

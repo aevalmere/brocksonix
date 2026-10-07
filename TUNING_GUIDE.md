@@ -116,3 +116,17 @@ Only after stationary shots are reliable.
 - [ ] Copy every value changed in Panels back into the code.
 - [ ] Practice: a full match with both drivers, including relocalizing and switching cells.
 - [ ] Check the ROBOT.md TBDs are all filled in.
+
+## 12. Autonomous (`opmodes/auto/AutoTemplate.java`)
+
+Every pose in an auto has a `TODO(12)`. Copy `AutoTemplate` for each real auto, fill in the poses, and delete each TODO once its value is measured. The building blocks are in `robot/RobotCommands.java`.
+
+- [ ] Measure each start pose, with the robot sitting where it starts. Write it for red; the robot flips it for blue. Run it once on blue to check the flip.
+- [ ] Test the commands one at a time on the field, in this order:
+  - [ ] `driveTo` a short distance.
+  - [ ] `shoot()` with 1 ball.
+  - [ ] `shootAll()`.
+  - [ ] `shootContinuous()` standing still first. Moving needs section 9 done.
+- [ ] `RobotCommands.SHOOT_ONE_TIMEOUT_MS`, `RobotCommands.SHOOT_ALL_TIMEOUT_MS`: time a normal 1-ball shot and a full burst, then add margin. Long enough that a good shot never times out, short enough that a misfeed doesn't eat the auto.
+- [ ] `shoot()` relies on `FireControl.SHOT_DIP_RPM` from section 6. If dips aren't detected, one "shot" can push more than one ball.
+- [ ] After auto, start Main TeleOp and check there's no "POSE UNKNOWN" warning.

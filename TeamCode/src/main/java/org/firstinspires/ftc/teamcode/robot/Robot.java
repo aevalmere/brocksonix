@@ -41,6 +41,8 @@ public class Robot {
     public boolean passHeld = false;
     /** Runs the rail and intake backwards to clear a jam or spit balls out. */
     public boolean unjamHeld = false;
+    /** Auto only: lets a burst start with 1 ball stored. TeleOp leaves this off, so a burst needs 2. */
+    public boolean singleBallBursts = false;
 
     private final BulkReads bulkReads;
     private final ShotSolver solver = new ShotSolver();
@@ -76,6 +78,15 @@ public class Robot {
         poseTrusted = trusted;
     }
 
+    /**
+     * Where the robot sits when auto starts. The pose is written for red and flipped here for blue.
+     * Auto calls this once at the start. Since the pose is trusted, it is saved every loop for TeleOp.
+     */
+    public void setStartPose(Pose redPose) {
+        if (RobotState.alliance == null) return;
+        setPose(RobotState.alliance.fromRed(redPose), true);
+    }
+
     /** Snap the pose to a corner the robot is pushed into. Trims are reset, since they mostly cover pose drift. */
     public void relocalize(Corner corner) {
         if (RobotState.alliance == null) return;
@@ -86,6 +97,11 @@ public class Robot {
 
     public boolean isFiring() {
         return fireControl.isFiring();
+    }
+
+    /** Shots counted since the Robot was built. It never resets, so compare against an earlier reading. */
+    public int shotsFired() {
+        return fireControl.totalShots();
     }
 
     /** Aiming needs the alliance and a trusted pose. Without them, nothing fires. */
@@ -110,7 +126,8 @@ public class Robot {
         }
 
         ready = aim != null && aim.valid && canFire() && shooter.atSpeed() && turret.onTarget();
-        fireControl.update(shootHeld, passHeld, storage.hasAtLeastTwo(),
+        boolean enoughBalls = singleBallBursts ? !storage.isEmpty() : storage.hasAtLeastTwo();
+        fireControl.update(shootHeld, passHeld, enoughBalls,
                 ready, shooter.rpm(), shooter.effectiveTargetRpm(), door.isFullyOpen());
         shooter.setBoost(isFiring());
 
