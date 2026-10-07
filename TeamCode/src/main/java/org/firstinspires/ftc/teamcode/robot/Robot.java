@@ -119,7 +119,8 @@ public class Robot {
 
         if (unjamHeld) rail.reverse();
         else if (fireControl.feeding()) rail.feed(aim.feedPower);
-        else if (isFiring()) rail.stop();
+        // After a burst, stay stopped until the door is closed, or the next ball reaches it half open.
+        else if (isFiring() || !door.isFullyClosed()) rail.stop();
         else rail.collect(storage.slot1Occupied(), storage.isFull());
 
         if (storage.isFull() && !wasFull) flowerIntake.setDown(false);
@@ -130,7 +131,8 @@ public class Robot {
         shooter.update();
         turret.update();
 
-        RobotState.savePose(pose);
+        // A guessed pose must not be saved, or a quick restart would restore it as trusted.
+        if (poseTrusted) RobotState.savePose(pose);
     }
 
     private ShotSolution solve(Pose pose) {

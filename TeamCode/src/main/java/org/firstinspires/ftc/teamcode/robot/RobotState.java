@@ -24,6 +24,12 @@ public final class RobotState {
     private static Pose savedPose = null;
     private static long savedAtMs = 0;
 
+    /** Switching alliance drops the saved pose, since it is in the old alliance's frame. Picking the same one keeps it. */
+    public static void setAlliance(Alliance picked) {
+        if (picked != alliance) savedPose = null;
+        alliance = picked;
+    }
+
     public static void savePose(Pose pose) {
         savedPose = pose;
         savedAtMs = System.currentTimeMillis();

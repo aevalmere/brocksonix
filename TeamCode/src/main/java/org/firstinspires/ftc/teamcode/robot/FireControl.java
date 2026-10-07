@@ -18,6 +18,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *
  * The door opens on the first ready moment and stays open for the rest of the
  * burst, so it never closes on a ball. The rail is what pauses.
+ *
+ * Releasing the button ends the burst right away, except during FEED: that
+ * ball finishes first (shot seen or timeout), then the burst ends.
  */
 @Configurable
 public class FireControl {
@@ -56,7 +59,9 @@ public class FireControl {
                        boolean ready, double rpm, double targetRpm, boolean doorFullyOpen) {
         boolean pass = passHeld && PASS_ENABLED;
         Mode wanted = shootHeld ? Mode.SHOOT : pass ? Mode.PASS : Mode.NONE;
-        if (wanted == Mode.NONE) {
+        // Released mid-feed: let that ball finish first, so the door never closes on it.
+        boolean finishingFeed = wanted == Mode.NONE && feeding();
+        if (wanted == Mode.NONE && !finishingFeed) {
             burst = Mode.NONE;
             step = Step.WAIT;
             doorOpen = false;
@@ -67,7 +72,7 @@ public class FireControl {
             shots = 0;
             misfeeds = 0;
         }
-        burst = wanted;
+        if (!finishingFeed) burst = wanted;
 
         if (ready && !wasReady) readyFor.reset();
         wasReady = ready;

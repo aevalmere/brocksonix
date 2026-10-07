@@ -16,7 +16,7 @@ Each item says where its value goes: `Class.FIELD`.
 ## 2. Drivetrain and localization (Pedro)
 
 - [ ] Measure the Pinpoint pod offsets **from the turret center** (the robot's center in all our code). Write them in `ROBOT.md`.
-- [ ] Register the tuners in `pedro/Tuning.java` and run them in order: `MecanumTuner`, `PinpointTuner`, `ForesightTuner`.
+- [ ] Run the tuners in order: `MecanumTuner`, `PinpointTuner`, `ForesightTuner`. They are registered in `pedro/TeamTuning.java`; `ForesightTuner` and `Tests` get added there once the first two results are pasted into `Constants` (see the TODO in that file).
 - [ ] Paste their output into `pedro/Constants.create()`. Until this is done, Main TeleOp stops at init with an error saying so.
 - [ ] Run the Pedro `Tests` procedure (Localization, Line, Curve). Push the robot 48 in. by hand and check the pose moves 48 in.
 - [ ] Main TeleOp, red alliance: stick up drives **away from the driver**, stick left drives to the **driver's left**. Then the same on blue.
@@ -38,6 +38,7 @@ Each item says where its value goes: `Class.FIELD`.
 
 - [ ] `Door.CLOSED_POSITION`, `Door.OPEN_POSITION`.
 - [ ] `Door.OPEN_TIME_MS`: time from closed to fully open. Use slow-motion video, or start high and lower it until a ball catches the door.
+- [ ] `Door.CLOSE_TIME_MS`: time from fully open to closed. The rail waits this long after a burst before pushing the next ball toward the door. Use slow-motion video, or start high and lower it until a ball reaches the door while it's still closing.
 - [ ] `FlowerIntake.UP_POSITION`, `FlowerIntake.DOWN_POSITION`: find them on the **left** servo. The right one is reversed in code.
 - [ ] `FlowerIntake.RIGHT_REVERSED`: in Main TeleOp, LB must move both servos the same way. Flip it if they fight.
 - [ ] Check the flower intake reaches into a real FLOWER's Retrieval Opening (3.55 in. tall) and pulls POLLEN out.
@@ -100,7 +101,7 @@ All values there now are placeholders.
 Only after stationary shots are reliable.
 
 - [ ] With `ShotSolver.LEAD` and `ShotSolver.PREDICT` off: shooting while still must work everywhere.
-- [ ] Turn `LEAD` on. Drive slowly past the HIVE at a steady speed and fire. Misses that land behind the robot's motion mean the flight times are too short.
+- [ ] Turn `LEAD` on. Drive slowly past the HIVE at a steady speed and fire. A ball that lands ahead of the cell along the driving direction means the flight times are too short; one that lands behind means they are too long.
 - [ ] Turn `PREDICT` on. Tune `ShotSolver.TURRET_LATENCY_SEC`: if the turret lags behind while driving, raise it; if it aims ahead, lower it.
 - [ ] Try shooting while braking and while turning. Write down what misses for the next round of code.
 

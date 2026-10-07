@@ -44,9 +44,12 @@ public class MainTeleOp extends LinearOpMode {
 
         AllianceSelector allianceSelector = new AllianceSelector(gamepad1, gamepad2);
         Pose savedPose = RobotState.recentPose();
+        Alliance savedAlliance = RobotState.alliance;
 
         while (opModeInInit()) {
             allianceSelector.update(screen);
+            // The saved pose is in the old alliance's frame, so switching drops it.
+            if (RobotState.alliance != savedAlliance) savedPose = null;
             screen.addData("Start pose", savedPose == null
                     ? "unknown: relocalize in a corner before shooting"
                     : "from the last OpMode " + savedPose);

@@ -18,9 +18,13 @@ public class Door {
     // TODO(4): Closed to fully open. Slow-motion video, or lower it until a ball catches the door.
     /** Time for the servo to swing fully open. Feeding waits for this. */
     public static double OPEN_TIME_MS = 150;
+    // TODO(4): Fully open to closed. Slow-motion video, or lower it until a ball reaches the door while it's still closing.
+    /** Time for the servo to swing fully closed. The rail waits for this after a burst. */
+    public static double CLOSE_TIME_MS = 150;
 
     private final CachedServo servo;
     private final ElapsedTime sinceOpened = new ElapsedTime();
+    private final ElapsedTime sinceClosed = new ElapsedTime();
     private boolean open = false;
 
     public Door(HardwareMap hardwareMap) {
@@ -33,6 +37,7 @@ public class Door {
     }
 
     public void close() {
+        if (open) sinceClosed.reset();
         open = false;
     }
 
@@ -40,11 +45,15 @@ public class Door {
         return open && sinceOpened.milliseconds() >= OPEN_TIME_MS;
     }
 
+    public boolean isFullyClosed() {
+        return !open && sinceClosed.milliseconds() >= CLOSE_TIME_MS;
+    }
+
     public void update() {
         servo.setPosition(open ? OPEN_POSITION : CLOSED_POSITION);
     }
 
     public void addTelemetry(Telemetry telemetry) {
-        telemetry.addData("Door", open ? (isFullyOpen() ? "open" : "opening") : "closed");
+        telemetry.addData("Door", open ? (isFullyOpen() ? "open" : "opening") : (isFullyClosed() ? "closed" : "closing"));
     }
 }

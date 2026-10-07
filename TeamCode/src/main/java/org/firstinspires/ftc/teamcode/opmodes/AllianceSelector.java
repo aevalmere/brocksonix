@@ -14,6 +14,8 @@ import org.firstinspires.ftc.teamcode.robot.RobotState;
  *
  * Right after auto the alliance is kept, so teleop starts already picked.
  * Otherwise it starts unpicked and nothing fires until someone picks it.
+ * Switching alliance drops the pose saved by auto, since it is in the other
+ * alliance's frame: relocalize in a corner instead.
  */
 public class AllianceSelector {
     private final Gamepad gamepad1, gamepad2;
@@ -31,7 +33,7 @@ public class AllianceSelector {
     /** Call once per init loop. */
     public void update(Telemetry telemetry) {
         if (gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) {
-            RobotState.alliance = RobotState.alliance == null ? Alliance.RED : RobotState.alliance.other();
+            RobotState.setAlliance(RobotState.alliance == null ? Alliance.RED : RobotState.alliance.other());
         }
         if (RobotState.alliance != shown) {
             light(gamepad1);

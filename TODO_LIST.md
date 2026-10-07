@@ -2,7 +2,7 @@
 
 Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this file. Do the item, delete its TODO comment, and the list updates on the next build (or run `./gradlew todoList`). How to do each step is in TUNING_GUIDE.md.
 
-**52 left.**
+**55 left.**
 
 ## 1. Wiring and configuration
 
@@ -11,9 +11,10 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 ## 2. Drivetrain and localization
 
 - [ ] [Constants.java:7](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L7) `create()`: Pinpoint pod offsets from CAD are in ROBOT.md (X pod +2.54 in. left, Y pod -1.55 in. forward). Confirm with PinpointTuner.
-- [ ] [Constants.java:8](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L8) `create()`: Register MecanumTuner, PinpointTuner, ForesightTuner in Tuning.java, run them, paste the results here.
+- [ ] [Constants.java:8](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L8) `create()`: Run the tuners in TeamTuning.java (MecanumTuner, PinpointTuner, then ForesightTuner) and paste the results here.
 - [ ] [Constants.java:9](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L9) `create()`: Robot forward (heading 0) must be the intake end. Corner poses and aiming depend on it.
 - [ ] [Constants.java:10](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L10) `create()`: Run the Pedro Tests procedure. Push the robot 48 in. by hand and check the pose moves 48 in.
+- [ ] [TeamTuning.java:22](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L22): After pasting the Mecanum and Pinpoint tuner output into Constants, add ForesightTuner here. Add Tests after pasting the Foresight output too.
 - [ ] [Drive.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L24) `STICK_DEADBAND`: Raise if the robot creeps with the sticks let go; lower if small moves feel dead.
 - [ ] [Drive.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L26) `DRIVE_CUBIC`: Drive and adjust to taste. Higher = gentler near center, same top speed.
 - [ ] [Drive.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Drive.java#L29) `HOLD_WHEN_STOPPED`: Drive around and let go. If holding feels jumpy, set false.
@@ -32,6 +33,7 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 - [ ] [Door.java:15](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Door.java#L15) `OPEN_POSITION`: Find open and closed with Servo Position Finder.
 - [ ] [Door.java:18](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Door.java#L18) `OPEN_TIME_MS`: Closed to fully open. Slow-motion video, or lower it until a ball catches the door.
+- [ ] [Door.java:21](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Door.java#L21) `CLOSE_TIME_MS`: Fully open to closed. Slow-motion video, or lower it until a ball reaches the door while it's still closing.
 - [ ] [FlowerIntake.java:17](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/FlowerIntake.java#L17) `UP_POSITION`: Find up and down with Servo Position Finder, on the left servo.
 - [ ] [FlowerIntake.java:19](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/FlowerIntake.java#L19) `DOWN_POSITION`: Check it reaches into a real FLOWER's Retrieval Opening and pulls POLLEN out.
 - [ ] [FlowerIntake.java:21](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/FlowerIntake.java#L21) `RIGHT_REVERSED`: LB in Main TeleOp must move both servos the same way. Flip if they fight.
@@ -50,9 +52,9 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 ## 6. Shooter
 
-- [ ] [FireControl.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L31) `READY_HOLD_MS`: Raise if shots go early while the turret is still settling.
-- [ ] [FireControl.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L33) `SHOT_DIP_RPM`: Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
-- [ ] [FireControl.java:36](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L36) `RECOVER_MS`: Lower for faster bursts; raise if back-to-back balls still miss.
+- [ ] [FireControl.java:34](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L34) `READY_HOLD_MS`: Raise if shots go early while the turret is still settling.
+- [ ] [FireControl.java:36](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L36) `SHOT_DIP_RPM`: Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
+- [ ] [FireControl.java:39](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L39) `RECOVER_MS`: Lower for faster bursts; raise if back-to-back balls still miss.
 - [ ] [Shooter.java:25](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L25) `LEFT_REVERSED`: The motors are geared together: test each alone at low power first. Both must push the shooting direction.
 - [ ] [Shooter.java:28](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L28) `ENCODER_REVERSED`: RPM must read positive while shooting. The encoder must be on the left motor's port.
 - [ ] [Shooter.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/subsystems/Shooter.java#L31) `KS`: Raise if low RPMs sit below target.
@@ -78,8 +80,9 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 ## 9. Shooting while moving
 
-- [ ] [ShotSolver.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/shot/ShotSolver.java#L26) `LEAD`: Only after stationary shots work. Drive steadily past the HIVE and fire. Misses behind the motion = flight times too short.
-- [ ] [ShotSolver.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/shot/ShotSolver.java#L29) `TURRET_LATENCY_SEC`: With PREDICT on: if the turret lags while driving, raise it; if it aims ahead, lower it.
+- [ ] [ShotSolver.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/shot/ShotSolver.java#L26) `LEAD`: Only after stationary shots work. Turn on, drive steadily past the HIVE and fire. Lands ahead of the cell = flight times too short; behind = too long.
+- [ ] [ShotSolver.java:28](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/shot/ShotSolver.java#L28) `PREDICT`: Turn on after LEAD works.
+- [ ] [ShotSolver.java:30](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/shot/ShotSolver.java#L30) `TURRET_LATENCY_SEC`: With PREDICT on: if the turret lags while driving, raise it; if it aims ahead, lower it.
 
 ## 10. Driver feedback and loop time
 

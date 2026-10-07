@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.util.LookupTable;
 /**
  * Turns "robot is here, moving like this, target is there" into a turret
  * angle and an RPM. Built in layers, each with its own switch so it can be
- * turned off on the field:
+ * turned on or off on the field (LEAD and PREDICT start off):
  *
  * 1. Static: aim at the target, RPM from distance. Always on.
  * 2. LEAD: a ball keeps the robot's velocity, so aim at
@@ -23,9 +23,10 @@ import org.firstinspires.ftc.teamcode.util.LookupTable;
  */
 @Configurable
 public class ShotSolver {
-    // TODO(9): Only after stationary shots work. Drive steadily past the HIVE and fire. Misses behind the motion = flight times too short.
-    public static boolean LEAD = true;
-    public static boolean PREDICT = true;
+    // TODO(9): Only after stationary shots work. Turn on, drive steadily past the HIVE and fire. Lands ahead of the cell = flight times too short; behind = too long.
+    public static boolean LEAD = false;
+    // TODO(9): Turn on after LEAD works.
+    public static boolean PREDICT = false;
     // TODO(9): With PREDICT on: if the turret lags while driving, raise it; if it aims ahead, lower it.
     public static double TURRET_LATENCY_SEC = 0.08;
     public static int LEAD_ITERATIONS = 3;

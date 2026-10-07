@@ -65,6 +65,8 @@ public class Drive {
 
     public void setPose(Pose pose) {
         follower.setPose(pose);
+        // Re-hold at the new pose, or the follower drives back to the old hold target.
+        if (follower.holding()) follower.hold(pose);
     }
 
     public void update() {
