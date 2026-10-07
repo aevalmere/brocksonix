@@ -4,7 +4,7 @@ Everything the code can't know until someone measures it on the robot or the fie
 
 **The live checklist is `TODO_LIST.md`.** Every value below has a `// TODO(step): ...` comment right above it in the code, and the build collects them into `TODO_LIST.md`, sorted by step, with a link to each line. Android Studio's **TODO** tool window (View > Tool Windows > TODO) shows the same comments; click one to jump to it. When an item is done, delete its TODO comment. This guide explains how to do each step.
 
-Tunable numbers are `public static` fields. Classes marked `@Configurable` show up in **Panels** (connect to the robot's Wi-Fi and open Panels in a browser; the address is in the Panels docs), where you can change them live. Live changes are lost when the robot app restarts, so **copy every final value back into the code**.
+Tunable numbers are `public static` fields. Classes marked `@Configurable` show up in **Panels** (connect to the robot's Wi-Fi and open Panels in a browser; the address is in the Panels docs), where you can change them live. The shot tables (`ShotTables`) and the auto poses (`AutoTemplate`) are in Panels too. Live changes are lost when the robot app restarts, so **copy every final value back into the code**.
 
 Each item says where its value goes: `Class.FIELD`.
 
@@ -81,11 +81,13 @@ Aiming mode (D-pad picks targets, bumpers nudge ±10°):
 
 All values there now are placeholders.
 
+The tables can be tuned live in Panels (`ShotTables`). Panels can change numbers but can't add or remove rows, so to add a row, edit the code. Keep the distances increasing from top to bottom (Shooter Test shows a warning if they aren't). Copy the final numbers back into `ShotTables.java`.
+
 - [ ] `SHOT_RPM`: put the robot at measured distances (turret center to the upward cell's center, along the floor) about every 10 in. from 20 to 110 in. At each one, find the RPM that scores reliably and write `{distance, rpm}`.
 - [ ] Repeat a few distances with the **other** cell up to check one table works for both.
 - [ ] `SHOT_FLIGHT_TIME`: slow-motion video of shots at near, mid and far distances. Count frames from leaving the wheel to entering the cell.
 - [ ] `SHOT_FEED_POWER`: lower it at long range if back-to-back balls miss because RPM hasn't recovered.
-- [ ] Check the robot can't reach a spot closer than the table's first row. If it can, add a row.
+- [ ] Check the robot can't reach a spot closer than the table's first row. If it can, add a row (in the code).
 
 ## 8. Field (`field/Field.java`)
 
@@ -107,7 +109,9 @@ Only after stationary shots are reliable.
 
 ## 10. Driver feedback and loop time
 
-- [ ] `Feedback.FULL_RUMBLE_MS`, `Feedback.EMPTY_RUMBLE_MS`: long enough to feel, short enough not to annoy.
+- [ ] `Feedback` rumbles. There are only two, so each always means the same thing:
+  - `WARNING_*`: strong pulses when a driver warning appears (target out of range never buzzes; it's on the screen). Long enough to feel, short enough not to annoy. `WARNING_COOLDOWN_MS` stops a flickering warning from buzzing nonstop.
+  - `FULL_STRENGTH`: a soft, constant rumble while storage is full. Soft enough to drive with, strong enough to notice.
 - [ ] The gamepad light only works on PlayStation-style controllers. Check yours.
 - [ ] Watch "Loop" in telemetry with everything running. Goal: under 15 ms. Then turn telemetry off (gamepad2 Options) and check again.
 
@@ -119,7 +123,7 @@ Only after stationary shots are reliable.
 
 ## 12. Autonomous (`opmodes/auto/AutoTemplate.java`)
 
-Every pose in an auto has a `TODO(12)`. Copy `AutoTemplate` for each real auto, fill in the poses, and delete each TODO once its value is measured. The building blocks are in `robot/RobotCommands.java`.
+Every pose in an auto has a `TODO(12)`. Copy `AutoTemplate` for each real auto, fill in the poses, and delete each TODO once its value is measured. A pose is three fields (`_X`, `_Y`, `_HEADING_DEG` in degrees) so you can try it live in Panels; copy the final values back into the code. The building blocks are in `robot/RobotCommands.java`.
 
 - [ ] Measure each start pose, with the robot sitting where it starts. Write it for red; the robot flips it for blue. Run it once on blue to check the flip.
 - [ ] Test the commands one at a time on the field, in this order:

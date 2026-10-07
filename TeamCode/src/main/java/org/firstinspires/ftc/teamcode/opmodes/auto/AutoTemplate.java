@@ -4,6 +4,7 @@ import static com.pedropathing.ivy.groups.Groups.sequential;
 
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.ivy.Scheduler;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -25,6 +26,7 @@ import org.firstinspires.ftc.teamcode.robot.RobotState;
  * the right pose and alliance without relocalizing. preselectTeleOp queues up
  * Main TeleOp on the Driver Station for when auto ends.
  */
+@Configurable
 @Autonomous(name = "Auto Template", preselectTeleOp = "Main TeleOp")
 // TODO(12): Copy this file for a real auto, fill in the poses and the routine, and delete the @Disabled line.
 @Disabled
@@ -32,11 +34,16 @@ public class AutoTemplate extends LinearOpMode {
     private static final double TELEMETRY_INTERVAL_MS = 200;
 
     // ---- 1. Poses: written for red, flipped for blue ----
-    // Inches, Pedro frame (see field/Field.java). Heading is in radians, 0 faces +x.
+    // Inches, Pedro frame (see field/Field.java). Heading is in degrees, 0 faces +x, counter-clockwise is positive.
+    // These are plain numbers so Panels can edit them. runOpMode builds the Poses after init, so an edit applies to the next run.
     // TODO(12): Measure where the robot starts on the field. Center of the turret, with the robot sitting in place.
-    private static final Pose START = new Pose(8, 24, Math.PI);
+    public static double START_X = 8;
+    public static double START_Y = 24;
+    public static double START_HEADING_DEG = 180;
     // TODO(12): Pick where to shoot from and check the distance to the cell is inside the ShotTables range.
-    private static final Pose SHOOT_SPOT = new Pose(36, 48, Math.PI);
+    public static double SHOOT_X = 36;
+    public static double SHOOT_Y = 48;
+    public static double SHOOT_HEADING_DEG = 180;
 
     @Override
     public void runOpMode() {
@@ -65,13 +72,15 @@ public class AutoTemplate extends LinearOpMode {
             }
             return;
         }
-        robot.setStartPose(START);
+        Pose start = new Pose(START_X, START_Y, Math.toRadians(START_HEADING_DEG));
+        robot.setStartPose(start);
 
         // ---- 4. Routine ----
         // The other building blocks (follow, shootContinuous, sweepAndShoot, ...) are in RobotCommands.
+        Pose shootSpot = new Pose(SHOOT_X, SHOOT_Y, Math.toRadians(SHOOT_HEADING_DEG));
         // TODO(12): Replace this placeholder with the real routine.
         Scheduler.schedule(sequential(
-                commands.driveTo(SHOOT_SPOT),
+                commands.driveTo(shootSpot),
                 commands.shootAll()
         ));
 

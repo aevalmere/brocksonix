@@ -1,10 +1,21 @@
 package org.firstinspires.ftc.teamcode.shot;
 
+import com.bylazar.configurables.annotations.Configurable;
+
 /**
- * Distance tables, each row {distance to target in inches, value}, sorted by
- * distance. Values in between are interpolated. All numbers here are
- * placeholders: fill them from real shots (TUNING_GUIDE.md, step 7).
+ * Distance tables, each row {distance to target in inches, value}. Values in
+ * between are interpolated. All numbers here are placeholders: fill them from
+ * real shots (TUNING_GUIDE.md, step 7).
+ *
+ * These are the numbers to tune live in Panels. Panels edits are lost when the
+ * app restarts, so copy the final numbers back here.
+ *
+ * Panels can change the numbers but can't add or remove rows. To add a row,
+ * edit the code. Keep the distances increasing from top to bottom: the lookup
+ * assumes it, and a row out of order makes it skip rows or return a wrong value
+ * with no error. orderProblem() checks this (Shooter Test and the robot's warnings show it).
  */
+@Configurable
 public final class ShotTables {
     private ShotTables() {}
 
@@ -41,4 +52,22 @@ public final class ShotTables {
             {24, 1.0},
             {165, 1.0},
     };
+
+    /** Null if every table is in order, otherwise a message naming the first one that isn't. */
+    public static String orderProblem() {
+        if (!increasing(SHOT_RPM)) return "SHOT_RPM distances are not increasing";
+        if (!increasing(SHOT_FLIGHT_TIME)) return "SHOT_FLIGHT_TIME distances are not increasing";
+        if (!increasing(SHOT_FEED_POWER)) return "SHOT_FEED_POWER distances are not increasing";
+        if (!increasing(PASS_RPM)) return "PASS_RPM distances are not increasing";
+        if (!increasing(PASS_FEED_POWER)) return "PASS_FEED_POWER distances are not increasing";
+        return null;
+    }
+
+    private static boolean increasing(double[][] table) {
+        for (int i = 1; i < table.length; i++) {
+            // Written as "not greater" so a NaN counts as out of order too.
+            if (!(table[i][0] > table[i - 1][0])) return false;
+        }
+        return true;
+    }
 }

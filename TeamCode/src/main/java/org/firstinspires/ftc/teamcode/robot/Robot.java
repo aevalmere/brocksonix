@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.field.Field;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.shot.ShotSolution;
 import org.firstinspires.ftc.teamcode.shot.ShotSolver;
+import org.firstinspires.ftc.teamcode.shot.ShotTables;
 import org.firstinspires.ftc.teamcode.subsystems.Door;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.FlowerIntake;
@@ -20,6 +21,9 @@ import org.firstinspires.ftc.teamcode.subsystems.Storage;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.util.BulkReads;
 import org.firstinspires.ftc.teamcode.util.VoltageCache;
+
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * The whole robot. OpModes set what the drivers want (the public fields and
@@ -182,15 +186,22 @@ public class Robot {
         return solver.solveShot(pose, drive.velocity(), Field.cellTarget(RobotState.alliance, RobotState.targetCell));
     }
 
+    /** The problems active as of the last update(). It is a new set each call, so the caller may keep it. */
+    public Set<Warning> warnings() {
+        Set<Warning> active = EnumSet.noneOf(Warning.class);
+        if (RobotState.alliance == null) active.add(Warning.NO_ALLIANCE);
+        else if (!poseTrusted) active.add(Warning.POSE_UNKNOWN);
+        if (poseIsNaN) active.add(Warning.POSE_NAN);
+        if (aim != null && !aim.valid) active.add(Warning.OUT_OF_RANGE);
+        if (shooter.watchdogTripped()) active.add(Warning.SHOOTER_OFF);
+        if (turret.watchdogTripped()) active.add(Warning.TURRET_OFF);
+        if (ShotTables.orderProblem() != null) active.add(Warning.SHOT_TABLE_ORDER);
+        return active;
+    }
+
     /** Problems the drivers must see. Shown even when the rest of telemetry is off. */
     public void addWarnings(Telemetry telemetry) {
-        if (RobotState.alliance == null) telemetry.addLine("!! NO ALLIANCE: restart the OpMode and pick one in init");
-        else if (!poseTrusted) telemetry.addLine("!! POSE UNKNOWN: relocalize in a corner before shooting");
-        if (poseIsNaN) telemetry.addLine("!! POSE IS NaN: odometry glitch, not aiming");
-        if (aim != null && !aim.valid) telemetry.addLine("!! Target out of range");
-        // Each one has cut its own power, and stays off until the OpMode restarts.
-        if (shooter.watchdogTripped()) telemetry.addLine("!! SHOOTER OFF (watchdog): check the encoder, then restart the OpMode");
-        if (turret.watchdogTripped()) telemetry.addLine("!! TURRET OFF (watchdog): check the encoder and the REVERSED flags, then restart the OpMode");
+        for (Warning warning : warnings()) telemetry.addLine(warning.text);
     }
 
     public void addTelemetry(Telemetry telemetry) {

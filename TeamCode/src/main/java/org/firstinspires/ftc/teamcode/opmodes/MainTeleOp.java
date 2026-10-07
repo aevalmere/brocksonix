@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.ivy.Scheduler;
@@ -25,12 +26,15 @@ import org.firstinspires.ftc.teamcode.robot.RobotState;
  *
  * The full button map is in TELEOP_PLAN.md.
  */
+@Configurable
 @TeleOp(name = "Main TeleOp")
 public class MainTeleOp extends LinearOpMode {
     // TODO(10): Watch Loop ms with everything running, goal under 15. Check again with telemetry off (gamepad2 Options).
-    private static final double TELEMETRY_INTERVAL_MS = 200;
-    private static final double TURRET_TRIM_STEP_DEG = 2;
-    private static final double RPM_TRIM_STEP = 25;
+    public static double TELEMETRY_INTERVAL_MS = 200;
+    public static double TURRET_TRIM_STEP_DEG = 2;
+    public static double RPM_TRIM_STEP = 25;
+    /** How far RT (pass) and LT (unjam) must be pulled to count as pressed. */
+    public static double TRIGGER_THRESHOLD = 0.5;
 
     private Robot robot;
     private boolean telemetryOn = true;
@@ -72,7 +76,7 @@ public class MainTeleOp extends LinearOpMode {
             driverTwo(gamepad2);
             robot.update();
             Scheduler.execute();
-            feedback.update(robot.storage, robot.isFiring());
+            feedback.update(robot.storage, robot.warnings());
 
             if (sinceTelemetry.milliseconds() >= TELEMETRY_INTERVAL_MS) {
                 sinceTelemetry.reset();
@@ -82,6 +86,7 @@ public class MainTeleOp extends LinearOpMode {
                 screen.update();
             }
         }
+        feedback.stop();
     }
 
     private void driverOne(Gamepad pad) {
@@ -92,8 +97,8 @@ public class MainTeleOp extends LinearOpMode {
                 RobotState.alliance != null ? RobotState.alliance : Alliance.RED);
 
         robot.shootHeld = pad.right_bumper;
-        robot.passHeld = pad.right_trigger > 0.5;
-        robot.unjamHeld = pad.left_trigger > 0.5;
+        robot.passHeld = pad.right_trigger > TRIGGER_THRESHOLD;
+        robot.unjamHeld = pad.left_trigger > TRIGGER_THRESHOLD;
 
         if (pad.leftBumperWasPressed()) robot.flowerIntake.toggle();
 
