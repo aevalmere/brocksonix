@@ -20,9 +20,16 @@ import org.firstinspires.ftc.teamcode.util.VoltageCache;
  *
  * Cross: wheel on/off. D-pad up/down: ±100 RPM, left/right: ±25.
  * Right bumper (hold): open the door and feed. Rail collects otherwise.
+ *
+ * Before the first spin, with the wheel off: hold Square to run only the left
+ * motor, Circle to run only the right one, at low power. Each must push the
+ * shooting direction; if not, flip its REVERSED flag in Panels (works live).
+ * With the left motor running, RPM must read positive, or flip ENCODER_REVERSED.
  */
 @TeleOp(name = "Shooter Test", group = "Test")
 public class ShooterTest extends LinearOpMode {
+    private static final double MOTOR_TEST_POWER = 0.2;
+
     @Override
     public void runOpMode() {
         Telemetry screen = new JoinedTelemetry(PanelsTelemetry.INSTANCE.getFtcTelemetry(), telemetry);
@@ -47,7 +54,14 @@ public class ShooterTest extends LinearOpMode {
             if (gamepad1.dpadLeftWasPressed()) rpm -= 25;
 
             boolean fire = gamepad1.right_bumper;
-            shooter.setTargetRpm(on ? rpm : 0);
+            // One motor alone, open loop. Only with the wheel off, so it can't fight the closed loop.
+            boolean testLeft = !on && gamepad1.square;
+            boolean testRight = !on && gamepad1.circle;
+            if (testLeft || testRight) {
+                shooter.setOpenLoopTest(testLeft ? MOTOR_TEST_POWER : 0, testRight ? MOTOR_TEST_POWER : 0);
+            } else {
+                shooter.setTargetRpm(on ? rpm : 0);
+            }
             shooter.setBoost(fire);
             if (fire) door.open();
             else door.close();
@@ -60,6 +74,7 @@ public class ShooterTest extends LinearOpMode {
             door.update();
 
             screen.addData("Wheel (Cross)", on ? "on" : "off");
+            screen.addData("One motor (hold, wheel off)", "Square = left, Circle = right, %.1f power", MOTOR_TEST_POWER);
             screen.addData("At speed", shooter.atSpeed());
             shooter.addTelemetry(screen);
             storage.addTelemetry(screen);

@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -33,41 +32,49 @@ public class Rail {
     private String state = "stopped";
 
     public Rail(HardwareMap hardwareMap) {
-        intake = motor(hardwareMap, HardwareNames.INTAKE_MOTOR, INTAKE_REVERSED);
-        transfer = motor(hardwareMap, HardwareNames.TRANSFER_MOTOR, TRANSFER_REVERSED);
+        intake = motor(hardwareMap, HardwareNames.INTAKE_MOTOR);
+        transfer = motor(hardwareMap, HardwareNames.TRANSFER_MOTOR);
     }
 
-    private static CachedMotor motor(HardwareMap hardwareMap, String name, boolean reversed) {
+    /** The motors stay FORWARD. The REVERSED flags are applied in setIntake/setTransfer so they work live in Panels. */
+    private static CachedMotor motor(HardwareMap hardwareMap, String name) {
         DcMotorEx motor = hardwareMap.get(DcMotorEx.class, name);
-        motor.setDirection(reversed ? DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         return new CachedMotor(motor);
     }
 
+    private void setIntake(double power) {
+        intake.setPower(INTAKE_REVERSED ? -power : power);
+    }
+
+    private void setTransfer(double power) {
+        transfer.setPower(TRANSFER_REVERSED ? -power : power);
+    }
+
     /** Normal collecting: pull balls in until full, and hold the front ball against the door. */
     public void collect(boolean slot1Occupied, boolean full) {
-        intake.setPower(full ? 0 : INTAKE_POWER);
-        transfer.setPower(slot1Occupied ? TRANSFER_HOLD_POWER : TRANSFER_INTAKE_POWER);
+        setIntake(full ? 0 : INTAKE_POWER);
+        setTransfer(slot1Occupied ? TRANSFER_HOLD_POWER : TRANSFER_INTAKE_POWER);
         state = full ? "full" : "collecting";
     }
 
     /** Push balls through the open door into the shooter. */
     public void feed(double power) {
-        intake.setPower(power);
-        transfer.setPower(power);
+        setIntake(power);
+        setTransfer(power);
         state = "feeding";
     }
 
     public void reverse() {
-        intake.setPower(REVERSE_POWER);
-        transfer.setPower(REVERSE_POWER);
+        setIntake(REVERSE_POWER);
+        setTransfer(REVERSE_POWER);
         state = "reversing";
     }
 
     public void stop() {
-        intake.setPower(0);
-        transfer.setPower(0);
+        setIntake(0);
+        setTransfer(0);
         state = "stopped";
     }
 

@@ -26,9 +26,8 @@ public class FlowerIntake {
 
     public FlowerIntake(HardwareMap hardwareMap) {
         left = new CachedServo(hardwareMap.get(Servo.class, HardwareNames.FLOWER_LEFT_SERVO));
-        Servo rightServo = hardwareMap.get(Servo.class, HardwareNames.FLOWER_RIGHT_SERVO);
-        rightServo.setDirection(RIGHT_REVERSED ? Servo.Direction.REVERSE : Servo.Direction.FORWARD);
-        right = new CachedServo(rightServo);
+        // Stays FORWARD. RIGHT_REVERSED is applied in update() so it works live in Panels.
+        right = new CachedServo(hardwareMap.get(Servo.class, HardwareNames.FLOWER_RIGHT_SERVO));
     }
 
     public void toggle() {
@@ -46,7 +45,8 @@ public class FlowerIntake {
     public void update() {
         double position = down ? DOWN_POSITION : UP_POSITION;
         left.setPosition(position);
-        right.setPosition(position);
+        // A reversed servo mirrors the position around the middle, so send 1 - position.
+        right.setPosition(RIGHT_REVERSED ? 1 - position : position);
     }
 
     public void addTelemetry(Telemetry telemetry) {

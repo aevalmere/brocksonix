@@ -25,6 +25,10 @@ import org.firstinspires.ftc.teamcode.util.VoltageCache;
  *   kP * error + kD * error rate     (two gain sets: FAR when the error is big, CLOSE to settle)
  *   + kS toward the target           (ramped in near zero so it doesn't buzz)
  *   + kV * how fast the target moves (cancels the robot turning underneath the turret)
+ *
+ * Safety: if the turret pushes at full power and the error doesn't shrink (encoder
+ * unplugged or stuck, or SERVO_REVERSED and ENCODER_REVERSED disagree), a watchdog
+ * cuts the power until the OpMode restarts. Ask it with watchdogTripped().
  */
 @Configurable
 public class Turret {
@@ -60,10 +64,26 @@ public class Turret {
     // TODO(5): Largest aim error that still scores. Find it once the shooter works.
     public static double ON_TARGET_DEG = 3;
 
+    // TODO(5): Aiming mode, D-pad 0 to 180: if a normal big move trips the watchdog, raise this time.
+    /** The watchdog trips if the turret stays at full power this long and the error hasn't shrunk. */
+    public static double WATCHDOG_MS = 1500;
+
+    // Panels can set a tunable to 0; dividing by less than this would give NaN or Infinity.
+    private static final double MIN_DIVISOR = 0.1;
+    // "Full power" for the watchdog: this fraction of MAX_POWER or more.
+    private static final double NEAR_MAX_POWER = 0.95;
+    // The error must shrink by at least this much per watchdog window, or it counts as stuck.
+    // The margin keeps a turret jittering around 180 degrees off from passing by luck.
+    private static final double MIN_PROGRESS_DEG = 10;
+    // If the target moves more than this during a watchdog window, the window doesn't count
+    // (the robot is turning, so a stuck error is not proof of a fault).
+    private static final double TARGET_MOVED_DEG = 20;
+
     private final CachedCRServo servo;
     private final AnalogInput encoder;
     private final VoltageCache voltage;
     private final ElapsedTime loopTimer = new ElapsedTime();
+    private final ElapsedTime fullPowerTimer = new ElapsedTime();
 
     private double targetDeg = 0;
     private double lastTargetDeg = 0;
@@ -74,6 +94,10 @@ public class Turret {
     private boolean closeGains = false;
     private double power = 0;
     private Double manualPower = null;
+    private boolean wasFullPower = false;
+    private double errorAtFullPowerStart = 0;
+    private double targetMovedDeg = 0;
+    private boolean watchdogTripped = false;
 
     public Turret(HardwareMap hardwareMap, VoltageCache voltage) {
         this.voltage = voltage;
@@ -110,8 +134,14 @@ public class Turret {
         return errorDeg;
     }
 
+    /** False once the watchdog has tripped: a turret that is switched off isn't aimed. */
     public boolean onTarget() {
-        return Math.abs(errorDeg) < ON_TARGET_DEG;
+        return !watchdogTripped && Math.abs(errorDeg) < ON_TARGET_DEG;
+    }
+
+    /** True once the turret was cut off for running at full power without closing the error. Stays true until the OpMode restarts. */
+    public boolean watchdogTripped() {
+        return watchdogTripped;
     }
 
     public double encoderVolts() {
@@ -119,7 +149,7 @@ public class Turret {
     }
 
     private double readAngle() {
-        double raw = encoder.getVoltage() / ENCODER_FULL_TURN_VOLTS * 360;
+        double raw = encoder.getVoltage() / Math.max(ENCODER_FULL_TURN_VOLTS, MIN_DIVISOR) * 360;
         if (ENCODER_REVERSED) raw = -raw;
         return Angles.wrapDegrees(raw - ENCODER_ZERO_DEG);
     }
@@ -131,7 +161,8 @@ public class Turret {
         angleDeg = readAngle();
         double aimDeg = targetDeg + trimDeg;
         errorDeg = Angles.wrapDegrees(aimDeg - angleDeg);
-        double targetRate = Angles.wrapDegrees(targetDeg - lastTargetDeg) / dt;
+        double targetStep = Angles.wrapDegrees(targetDeg - lastTargetDeg);
+        double targetRate = targetStep / dt;
         double errorRate = (errorDeg - lastErrorDeg) / dt;
         lastTargetDeg = targetDeg;
         lastErrorDeg = errorDeg;
@@ -142,15 +173,72 @@ public class Turret {
         double kP = closeGains ? CLOSE_KP : FAR_KP;
         double kD = closeGains ? CLOSE_KD : FAR_KD;
 
-        double staticPush = Math.signum(errorDeg) * KS * Math.min(absError / KS_RAMP_DEG, 1);
+        double staticPush = Math.signum(errorDeg) * KS * Math.min(absError / Math.max(KS_RAMP_DEG, MIN_DIVISOR), 1);
         double raw = kP * errorDeg + kD * errorRate + staticPush + KV * targetRate;
 
         if (manualPower != null) {
+            // Tuning: the person on the stick is the safety, so the watchdog neither counts nor blocks this.
             power = manualPower;
+            wasFullPower = false;
+        } else if (watchdogTripped) {
+            power = 0;
         } else {
             power = Range.clip(raw * voltage.compensation(), -MAX_POWER, MAX_POWER);
+            // Range.clip lets NaN through (NaN target, bad Panels value). Never send that to the servo.
+            if (Double.isNaN(power)) power = 0;
+            checkWatchdog(absError, targetStep);
+            if (watchdogTripped) power = 0;
         }
         servo.setPower(SERVO_REVERSED ? -power : power);
+    }
+
+    /**
+     * Trips if the turret has been at full power for WATCHDOG_MS and the error is not
+     * smaller than when full power started. That catches both runaways:
+     *   - encoder unplugged or stuck: the angle never changes, so neither does the error.
+     *   - SERVO_REVERSED and ENCODER_REVERSED disagreeing: positive feedback, the error
+     *     grows to about 180 and stays there.
+     * It looks at the size of the error, not at whether the angle moved, because the
+     * angle wraps and a runaway turret moves a lot.
+     *
+     * A normal big move (D-pad 0 to 180) can't trip it. A healthy turret at full power
+     * closes tens of degrees every fraction of a second, so the error is much smaller
+     * than at the start long before WATCHDOG_MS. Full power also ends once the error
+     * gets small. And every time a window passes with progress, a new window starts from
+     * the current error, so even a slow move is fine as long as it keeps closing in.
+     *
+     * It never trips on a window where the target moved more than TARGET_MOVED_DEG (the
+     * robot is spinning faster than the turret can follow). The faults we want happen with
+     * the target still. We add up the wrapped steps, so a spin of a full turn still counts.
+     */
+    private void checkWatchdog(double absError, double targetStep) {
+        // power != 0 matters if MAX_POWER is set to 0: no power at all isn't "full power".
+        boolean fullPower = power != 0 && Math.abs(power) >= NEAR_MAX_POWER * MAX_POWER;
+        if (!fullPower) {
+            wasFullPower = false;
+            return;
+        }
+        if (!wasFullPower) {
+            wasFullPower = true;
+            startFullPowerWindow(absError);
+        } else {
+            targetMovedDeg += targetStep;
+            if (fullPowerTimer.milliseconds() > WATCHDOG_MS) {
+                boolean closedIn = absError <= errorAtFullPowerStart - MIN_PROGRESS_DEG;
+                boolean targetMoved = Math.abs(targetMovedDeg) > TARGET_MOVED_DEG;
+                if (closedIn || targetMoved) {
+                    startFullPowerWindow(absError);
+                } else {
+                    watchdogTripped = true;
+                }
+            }
+        }
+    }
+
+    private void startFullPowerWindow(double absError) {
+        fullPowerTimer.reset();
+        errorAtFullPowerStart = absError;
+        targetMovedDeg = 0;
     }
 
     public void stop() {
@@ -161,5 +249,8 @@ public class Turret {
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addData("Turret angle", "%.1f -> %.1f (trim %+.1f)", angleDeg, targetDeg + trimDeg, trimDeg);
         telemetry.addData("Turret error / power", "%.1f / %.2f %s", errorDeg, power, closeGains ? "close" : "far");
+        if (watchdogTripped) {
+            telemetry.addData("Turret WATCHDOG", "TRIPPED: full power but the error did not shrink. Turret is off. Check the encoder wiring and the two REVERSED flags, then restart the OpMode.");
+        }
     }
 }

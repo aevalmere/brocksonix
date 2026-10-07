@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.robot;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
+import com.pedropathing.math.Velocity;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -49,6 +50,13 @@ public class Robot {
     private final FireControl fireControl = new FireControl();
 
     private ShotSolution aim;
+    /**
+     * Feed power from the last good aim. aim can go null in the middle of a feed
+     * (NaN pose), and a ball that is already moving still needs a power to be pushed with.
+     */
+    private double lastFeedPower = 0;
+    /** The pose or velocity had a NaN this loop (odometry glitch). Nothing is aimed or saved while true. */
+    private boolean poseIsNaN = false;
     private boolean ready = false;
     private boolean wasFull = false;
     /** False until the pose is known: a recent saved pose, or a relocalize. Nothing fires while false. */
@@ -115,9 +123,11 @@ public class Robot {
         storage.update();
 
         Pose pose = drive.pose();
+        poseIsNaN = isBad(pose) || isBad(drive.velocity());
         aim = solve(pose);
 
         if (aim != null) {
+            lastFeedPower = aim.feedPower;
             turret.setTargetDeg(aim.turretDeg);
             shooter.setTargetRpm(isFiring() || !storage.isEmpty() ? aim.rpm : 0);
         } else {
@@ -135,7 +145,7 @@ public class Robot {
         else door.close();
 
         if (unjamHeld) rail.reverse();
-        else if (fireControl.feeding()) rail.feed(aim.feedPower);
+        else if (fireControl.feeding()) rail.feed(lastFeedPower);
         // After a burst, stay stopped until the door is closed, or the next ball reaches it half open.
         else if (isFiring() || !door.isFullyClosed()) rail.stop();
         else rail.collect(storage.slot1Occupied(), storage.isFull());
@@ -149,11 +159,22 @@ public class Robot {
         turret.update();
 
         // A guessed pose must not be saved, or a quick restart would restore it as trusted.
-        if (poseTrusted) RobotState.savePose(pose);
+        // A NaN pose must not be saved either, or TeleOp would restore it as trusted.
+        if (poseTrusted && !poseIsNaN) RobotState.savePose(pose);
+    }
+
+    private static boolean isBad(Pose pose) {
+        return Double.isNaN(pose.x()) || Double.isNaN(pose.y()) || Double.isNaN(pose.heading());
+    }
+
+    private static boolean isBad(Velocity velocity) {
+        return Double.isNaN(velocity.vx) || Double.isNaN(velocity.vy) || Double.isNaN(velocity.omega);
     }
 
     private ShotSolution solve(Pose pose) {
         if (RobotState.alliance == null) return null;
+        // A NaN would send the flywheel to the top RPM and the turret to a NaN angle, so don't aim at all.
+        if (poseIsNaN) return null;
         if (passHeld && FireControl.PASS_ENABLED && !shootHeld) {
             return solver.solvePass(pose, Field.passTarget(RobotState.alliance));
         }
@@ -165,7 +186,11 @@ public class Robot {
     public void addWarnings(Telemetry telemetry) {
         if (RobotState.alliance == null) telemetry.addLine("!! NO ALLIANCE: restart the OpMode and pick one in init");
         else if (!poseTrusted) telemetry.addLine("!! POSE UNKNOWN: relocalize in a corner before shooting");
+        if (poseIsNaN) telemetry.addLine("!! POSE IS NaN: odometry glitch, not aiming");
         if (aim != null && !aim.valid) telemetry.addLine("!! Target out of range");
+        // Each one has cut its own power, and stays off until the OpMode restarts.
+        if (shooter.watchdogTripped()) telemetry.addLine("!! SHOOTER OFF (watchdog): check the encoder, then restart the OpMode");
+        if (turret.watchdogTripped()) telemetry.addLine("!! TURRET OFF (watchdog): check the encoder and the REVERSED flags, then restart the OpMode");
     }
 
     public void addTelemetry(Telemetry telemetry) {

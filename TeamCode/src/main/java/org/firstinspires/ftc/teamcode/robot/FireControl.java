@@ -44,6 +44,8 @@ public class FireControl {
     private Step step = Step.WAIT;
     private boolean doorOpen = false;
     private boolean wasReady = false;
+    /** The target RPM from the moment the current feed started. The live target moves while the robot drives. */
+    private double feedTargetRpm = 0;
     private final ElapsedTime readyFor = new ElapsedTime();
     private final ElapsedTime inStep = new ElapsedTime();
     private int shots = 0;
@@ -56,7 +58,7 @@ public class FireControl {
      * @param enoughBalls enough balls are stored to start a burst (only checked when a burst starts)
      * @param ready       turret on target and flywheel at speed right now
      * @param rpm         flywheel speed now
-     * @param targetRpm   what the flywheel is aiming for
+     * @param targetRpm   what the flywheel is aiming for (the dip test uses its value from when the feed started)
      */
     public void update(boolean shootHeld, boolean passHeld, boolean enoughBalls,
                        boolean ready, double rpm, double targetRpm, boolean doorFullyOpen) {
@@ -68,6 +70,8 @@ public class FireControl {
             burst = Mode.NONE;
             step = Step.WAIT;
             doorOpen = false;
+            // Or the next burst's first ball skips the READY_HOLD_MS wait if this one ended while ready.
+            wasReady = false;
             return;
         }
         if (burst == Mode.NONE) {
@@ -85,11 +89,15 @@ public class FireControl {
             case WAIT:
                 if (steadyReady) {
                     doorOpen = true;
-                    if (doorFullyOpen) enter(Step.FEED);
+                    if (doorFullyOpen) {
+                        // Latch it: a target that changes while driving could fake a dip.
+                        feedTargetRpm = targetRpm;
+                        enter(Step.FEED);
+                    }
                 }
                 break;
             case FEED:
-                if (rpm < targetRpm - SHOT_DIP_RPM) {
+                if (rpm < feedTargetRpm - SHOT_DIP_RPM) {
                     shots++;
                     totalShots++;
                     enter(Step.RECOVER);
