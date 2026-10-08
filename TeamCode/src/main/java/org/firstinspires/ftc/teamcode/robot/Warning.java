@@ -7,7 +7,8 @@ package org.firstinspires.ftc.teamcode.robot;
  */
 public enum Warning {
     NO_ALLIANCE("!! NO ALLIANCE: restart the OpMode and pick one in init"),
-    POSE_UNKNOWN("!! POSE UNKNOWN: relocalize in a corner before shooting"),
+    // TeleOp guesses the heading until then, so field-centric driving can be off too.
+    POSE_UNKNOWN("!! POSE UNKNOWN: relocalize in a corner before shooting. Driving assumes the intake faced you at start"),
     POSE_NAN("!! POSE IS NaN: odometry glitch, not aiming"),
     OUT_OF_RANGE("!! Target out of range"),
     // Each of these has cut its own power, and stays off until the OpMode restarts.

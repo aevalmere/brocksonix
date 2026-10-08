@@ -13,10 +13,11 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.opmodes.AllianceSelector;
+import org.firstinspires.ftc.teamcode.driver.AllianceSelector;
+import org.firstinspires.ftc.teamcode.opmodes.teleop.MainTeleOp;
 import org.firstinspires.ftc.teamcode.robot.Robot;
-import org.firstinspires.ftc.teamcode.robot.RobotCommands;
 import org.firstinspires.ftc.teamcode.robot.RobotState;
+import org.firstinspires.ftc.teamcode.robot.commands.RobotCommands;
 
 /**
  * A skeleton to copy for a real autonomous. It has one placeholder in each
@@ -76,12 +77,13 @@ public class AutoTemplate extends LinearOpMode {
         robot.setStartPose(start);
 
         // ---- 4. Routine ----
-        // The other building blocks (follow, shootContinuous, sweepAndShoot, ...) are in RobotCommands.
+        // The other building blocks (follow, shootAll, shootContinuous, sweepAndShoot, ...) are in RobotCommands.
+        // To retry anything else until a check passes, wrap it in a Retry (robot/commands/Retry.java).
         Pose shootSpot = new Pose(SHOOT_X, SHOOT_Y, Math.toRadians(SHOOT_HEADING_DEG));
         // TODO(12): Replace this placeholder with the real routine.
         Scheduler.schedule(sequential(
                 commands.driveTo(shootSpot),
-                commands.shootAll()
+                commands.shootAllWithRetry()
         ));
 
         // ---- 5. Loop ----
@@ -91,12 +93,16 @@ public class AutoTemplate extends LinearOpMode {
             Scheduler.execute();
             robot.update();
 
-            if (sinceTelemetry.milliseconds() >= TELEMETRY_INTERVAL_MS) {
+            // MainTeleOp.FULL_TELEMETRY switches the auto's telemetry too.
+            if (MainTeleOp.FULL_TELEMETRY || sinceTelemetry.milliseconds() >= TELEMETRY_INTERVAL_MS) {
                 sinceTelemetry.reset();
                 robot.addWarnings(screen);
-                robot.addTelemetry(screen);
+                if (MainTeleOp.FULL_TELEMETRY) robot.addTelemetry(screen);
                 screen.update();
             }
         }
+        // Auto usually ends in the middle of a drive. This puts back any path speed limit,
+        // so it can't slow down the next OpMode.
+        robot.stop();
     }
 }

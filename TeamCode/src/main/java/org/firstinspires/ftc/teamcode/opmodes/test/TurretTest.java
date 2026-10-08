@@ -6,9 +6,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
-import org.firstinspires.ftc.teamcode.util.BulkReads;
-import org.firstinspires.ftc.teamcode.util.VoltageCache;
+import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
+import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Turret;
 
 /**
  * Turret setup and tuning. Change gains live in Panels (Turret) and watch the

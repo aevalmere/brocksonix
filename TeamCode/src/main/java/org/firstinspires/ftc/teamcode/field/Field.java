@@ -9,22 +9,38 @@ import com.pedropathing.math.Pose;
  * Standing where the audience stands: (0, 0) is the near-left corner (red
  * alliance wall and audience wall), +x points toward the blue wall, +y away
  * from the audience. Heading 0 faces +x and counter-clockwise is positive.
+ * The field is 141.5 x 141.5, so its center is (70.75, 70.75).
  *
- * Values come from Competition Manual Section 9 (TU02). See TELEOP_PLAN.md,
- * "Field coordinates", for where each number came from.
+ * This is exactly Pedro Visualizer's frame (visualizer.pedropathing.com, BIOBUZZ
+ * field): same corner, same directions, same headings, same 141.5 size, and its
+ * picture has red on the left and the audience at the bottom like ours. So a
+ * point copies over 1:1, no scaling. Example: red's FLOWER on the far wall is at
+ * (47.3, 141.5) in the visualizer and here.
+ *
+ * For blue, write the red pose and let Alliance.fromRed spin it. Don't use the
+ * visualizer's "mirror" export: it flips left to right, but the BIOBUZZ field
+ * is a 180° spin.
+ *
+ * Positions follow Pedro Visualizer, and sizes come from Competition Manual
+ * Section 9 (TU03). Both were checked against the official field CAD (141.06
+ * wide; the manual says about 144). See TELEOP_PLAN.md, "Field coordinates",
+ * for where each number came from.
  */
 @Configurable
 public final class Field {
-    public static final double SIZE = 144;
+    public static final double SIZE = 141.5;
 
-    // TODO(8): On a real field, measure from the red wall to the red HIVE's center line.
-    /** Red HIVE center line. Blue's is mirrored across the field center. */
-    public static double RED_HIVE_X = 59.25;
-    // TODO(8): On a real field, measure from the audience wall to the upward cell's opening center, once with each cell up.
-    /** Center of the upward cell when the far cell is up. Computed from Figure 9-10. */
-    public static double FAR_CELL_Y = 85.4;
-    /** Center of the upward cell when the audience cell is up. Computed from Figure 9-10. */
-    public static double AUDIENCE_CELL_Y = 58.6;
+    /** Red HIVE center line: the field center minus 12.75 (Figure 9-10: the HIVES are 25.5 apart). Blue's is mirrored across the center. */
+    public static double RED_HIVE_X = 58.0;
+    /**
+     * Center of the upward cell's opening when the far cell is up: 70.75 + 16.5.
+     * The opening is the cell's outer end, tilted 30°, from 53.5 to 65.6 in. up
+     * (Figures 9-9 to 9-11), and its center is 16.5 in. from the HIVE center along
+     * y (official field CAD; Pedro Visualizer agrees).
+     */
+    public static double FAR_CELL_Y = 87.25;
+    /** Center of the upward cell's opening when the audience cell is up: 70.75 - 16.5. */
+    public static double AUDIENCE_CELL_Y = 54.25;
 
     // TODO(8): Drive across the middle. Raise it if the turret flips between cells too eagerly.
     /**
@@ -34,9 +50,12 @@ public final class Field {
      */
     public static double CELL_SWITCH_BAND = 6;
 
-    /** Where a pass lands, written for red. Placeholder: passing is on hold until the variable hood. */
+    /**
+     * Where a pass lands, written for red: in front of the middle of our LOADING
+     * ZONE (y 94.5 to 117.6). Placeholder: passing is on hold until the variable hood.
+     */
     public static double PASS_TARGET_RED_X = 24;
-    public static double PASS_TARGET_RED_Y = 108;
+    public static double PASS_TARGET_RED_Y = 106;
 
     // TODO(8): CAD says 203 mm. Check with a tape: intake flat on a wall, wall to turret center. Is the stowed flower intake further out?
     /** Robot center to the intake surface that touches a wall. */

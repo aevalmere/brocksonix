@@ -13,7 +13,8 @@ What matters for this robot, from the Competition Manual (TU03):
 - **Preload:** each robot starts the match touching 4 POLLEN (10.3.4).
 - **HIVE:** in the center of the field. Each alliance's HIVE has 2 CELLS on a pivot 43.95 in. above the tiles. The upward-facing CELL opening is about 20 in. wide by 14 in. tall by 12 in. deep, with its bottom 53.5 in. and its top 65.6 in. above the tiles (Figure 9-10). The HIVE tips during the match, so which of the 2 CELLS faces up changes. Launching enough POLLEN into it tips the HIVE (20 pts in AUTO or TELEOP). Each CELL has a 4-tag AprilTag cluster (36h11, 3.25 in.) on its underside, facing down (9.6, 9.9).
 - **FLOWERS:** 4 total, mounted on the perimeter wall, each staged with 4 POLLEN. POLLEN may only be removed through the Retrieval Opening at the bottom, about 3.55 in. tall by 3.57 in. deep (9.7, G418). Driving into a FLOWER and touching the POLLEN inside is allowed.
-- **GARDEN:** 4 POLLEN staged in a line in each alliance's corner.
+- **GARDEN:** 4 POLLEN staged in a line from each alliance's corner, touching the wall (red: the audience wall) (10.3.1).
+- **Field:** the code uses Pedro Visualizer's 141.5 x 141.5 in., so visualizer points copy 1:1. The official field CAD is 141.06 in. inside, wall to wall, and the manual says about 144 (9.2). Below this robot's 12.74 in. height, the only things on the field are the HIVE frame's foot bars and legs and the 4 FLOWERS. Positions are in `TELEOP_PLAN.md`, "Field coordinates".
 - **Size:** 18 x 18 x 18 in. (457 mm cube) at the start (R102). Once the match starts, it may expand to 18 x 24 in. (457 x 610 mm) and 29 in. (737 mm) tall, and the limit must be mechanical, not software (R105).
 - **Actuator limit:** 8 motors and 8 servos max (R503). This robot uses **8 motors** (at the limit) and **4 servos**.
 - **Match:** 30 s AUTO, 8 s transition, 2:00 TELEOP.
@@ -46,7 +47,9 @@ What matters for this robot, from the Competition Manual (TU03):
 
 | Measurement | Value |
 |-------------|-------|
+| Height (CAD) | 323.5 (12.73597 in.), `FieldZones.ROBOT_HEIGHT` |
 | Chassis width | 280 (CAD bottom view measures about 298 across the outer frame rails; check which one touches a wall) |
+| Intake width | Same as the chassis, so it picks up POLLEN against a wall |
 | Chassis length, including wedges | 318 |
 | Wedge length (front only) | 27.19241 |
 | Chassis length, without wedges | 290.80759 |

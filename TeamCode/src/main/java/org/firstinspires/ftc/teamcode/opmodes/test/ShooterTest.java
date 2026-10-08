@@ -7,13 +7,13 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.shot.ShotTables;
-import org.firstinspires.ftc.teamcode.subsystems.Door;
-import org.firstinspires.ftc.teamcode.subsystems.Rail;
-import org.firstinspires.ftc.teamcode.subsystems.Shooter;
-import org.firstinspires.ftc.teamcode.subsystems.Storage;
-import org.firstinspires.ftc.teamcode.util.BulkReads;
-import org.firstinspires.ftc.teamcode.util.VoltageCache;
+import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
+import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
+import org.firstinspires.ftc.teamcode.robot.shot.ShotTables;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
 
 /**
  * Flywheel tuning and filling the shot tables. Put the robot a measured
