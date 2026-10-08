@@ -23,7 +23,7 @@ JUnit 4 tests live in `TeamCode/src/test/java/org/firstinspires/ftc/teamcode/aga
 - `FtcRobotController/`: SDK app module. Treat as upstream; don't modify. Its `external/samples` folder holds example OpModes to copy from.
 - `TeamCode/`: all team code. `TeamCode/build.gradle` pulls in `build.common.gradle` (shared Android config, don't edit) and `build.dependencies.gradle` (where libraries are added).
 - `build.dependencies.gradle`: FTC SDK 12.0.0 artifacts plus Pedro libraries from `https://repo.dairy.foundation/releases/`: `com.pedropathing:revhub`, `com.pedropathing:tuning`, and `com.pedropathing.ivy:pedro` (Ivy command scheduler, 1.1.1); Panels (`com.bylazar:fullpanels`) from `https://mymaven.bylazar.com/releases`.
-- `ROBOT.md` (hardware), `TELEOP_PLAN.md` (controls, warnings, field coordinates), `TUNING_GUIDE.md` (how to measure/tune, by step), `TODO_LIST.md` (generated, see below), `SOFTWARE_INNOVATIONS.md` (short list for judges). Design notes live in the comment at the top of each class, not in a separate doc.
+- `ROBOT.md` (hardware), `TELEOP_PLAN.md` (controls, warnings, field coordinates), `TUNING_GUIDE.md` (how to measure/tune, by step), `TODO_LIST.md` (generated, see below), `SOFTWARE_INNOVATIONS.md` (what is new in our software and how it works, for judges). Design notes live in the comment at the top of each class, not in a separate doc.
 
 ## Robot code (`teamcode/`)
 
