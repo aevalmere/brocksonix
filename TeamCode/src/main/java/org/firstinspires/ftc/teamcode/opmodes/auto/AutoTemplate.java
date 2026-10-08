@@ -29,7 +29,7 @@ import org.firstinspires.ftc.teamcode.robot.commands.RobotCommands;
  */
 @Configurable
 @Autonomous(name = "Auto Template", preselectTeleOp = "Main TeleOp")
-// TODO(12): Copy this file for a real auto, fill in the poses and the routine, and delete the @Disabled line.
+// TODO(9): Copy this file for a real auto, fill in the poses and the routine, and delete the @Disabled line.
 @Disabled
 public class AutoTemplate extends LinearOpMode {
     private static final double TELEMETRY_INTERVAL_MS = 200;
@@ -37,11 +37,11 @@ public class AutoTemplate extends LinearOpMode {
     // ---- 1. Poses: written for red, flipped for blue ----
     // Inches, Pedro frame (see field/Field.java). Heading is in degrees, 0 faces +x, counter-clockwise is positive.
     // These are plain numbers so Panels can edit them. runOpMode builds the Poses after init, so an edit applies to the next run.
-    // TODO(12): Measure where the robot starts on the field. Center of the turret, with the robot sitting in place.
+    // TODO(9): Measure where the robot starts on the field. Center of the turret, with the robot sitting in place.
     public static double START_X = 8;
     public static double START_Y = 24;
     public static double START_HEADING_DEG = 180;
-    // TODO(12): Pick where to shoot from and check the distance to the cell is inside the ShotTables range.
+    // TODO(9): Pick where to shoot from and check the distance to the cell is inside the ShotTables range.
     public static double SHOOT_X = 36;
     public static double SHOOT_Y = 48;
     public static double SHOOT_HEADING_DEG = 180;
@@ -80,7 +80,7 @@ public class AutoTemplate extends LinearOpMode {
         // The other building blocks (follow, shootAll, shootContinuous, sweepAndShoot, ...) are in RobotCommands.
         // To retry anything else until a check passes, wrap it in a Retry (robot/commands/Retry.java).
         Pose shootSpot = new Pose(SHOOT_X, SHOOT_Y, Math.toRadians(SHOOT_HEADING_DEG));
-        // TODO(12): Replace this placeholder with the real routine.
+        // TODO(9): Replace this placeholder with the real routine.
         Scheduler.schedule(sequential(
                 commands.driveTo(shootSpot),
                 commands.shootAllWithRetry()

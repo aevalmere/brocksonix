@@ -33,7 +33,7 @@ public class TeamTuning {
     //               hardwareMap -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig),
     //               hardwareMap -> new Mecanum(hardwareMap, Constants.drivetrainConfig));
     //   }
-    // TODO(2): Then add DriveModelTuner the same way (code below). It measures the numbers agateflow/DriveModel needs.
+    // TODO(13): Add DriveModelTuner the same way as ForesightTuner (code below). It measures the numbers agateflow/DriveModel needs.
     //   import org.firstinspires.ftc.teamcode.pedro.procedures.DriveModelTuner;
     //   @Tuner
     //   public static Procedure driveModelTuner() {

@@ -32,7 +32,7 @@ Every tunable is a non-final `public static` field in a `@Configurable` class, r
 
 ### Tuning checklist built from the code
 
-Anything that still needs measuring has a `// TODO(step): what to do` comment right above it, where the step is the `TUNING_GUIDE.md` section. The `todoList` Gradle task runs before every build and rewrites `TODO_LIST.md`, grouped by step, with a link to each line and the field it sits on. A TODO written any other way gets a build warning, so nothing drops off the list by accident.
+Anything that still needs measuring has a `// TODO(step): what to do` comment right above it, where the step is the `TUNING_GUIDE.md` section. The steps are numbered in order of importance and grouped into four phases: the bare minimum for TeleOp, a first auto, making both better, then AgateFlow. The `todoList` Gradle task runs before every build and rewrites `TODO_LIST.md` in that order, with a count per phase, a link to each line and the field it sits on. A TODO written any other way, or with a step that doesn't exist, gets a build warning, so nothing drops off the list by accident.
 
 ## 2. Shooting
 

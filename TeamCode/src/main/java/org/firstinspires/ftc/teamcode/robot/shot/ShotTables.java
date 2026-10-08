@@ -28,7 +28,7 @@ public final class ShotTables {
             {110, 4600},
     };
 
-    // TODO(7): Slow-motion video of shots at near, mid and far distances.
+    // TODO(11): Slow-motion video of shots at near, mid and far distances.
     /** Seconds from leaving the shooter to reaching the cell. */
     public static double[][] SHOT_FLIGHT_TIME = {
             {20, 0.45},

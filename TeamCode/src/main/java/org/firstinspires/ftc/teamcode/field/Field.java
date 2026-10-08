@@ -42,7 +42,7 @@ public final class Field {
     /** Center of the upward cell's opening when the audience cell is up: 70.75 - 16.5. */
     public static double AUDIENCE_CELL_Y = 54.25;
 
-    // TODO(8): Drive across the middle. Raise it if the turret flips between cells too eagerly.
+    // TODO(12): Drive across the middle. Raise it if the turret flips between cells too eagerly.
     /**
      * The robot aims at the cell on its own half (far or audience). Within this
      * many inches of the center line it keeps the current cell, so it doesn't

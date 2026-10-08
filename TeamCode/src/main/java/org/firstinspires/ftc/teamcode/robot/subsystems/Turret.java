@@ -81,7 +81,7 @@ public class Turret {
     public static double KS = 0.05;
     // TODO(5): Aiming mode: if it chatters near the target, adjust this. Higher = KS fades in over a wider zone.
     public static double KS_RAMP_DEG = 5;
-    // TODO(5): Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
+    // TODO(11): Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
     /** Power per degree/second of target motion. */
     public static double KV = 0.0;
     // TODO(5): Lower if the gearing or wiring complains.

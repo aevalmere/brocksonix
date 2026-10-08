@@ -33,7 +33,7 @@ import com.pedropathing.math.Matrix;
 @Configurable
 public final class DriveModel {
     // ---- From DriveModelTuner (pedro/procedures). Until then these are guesses. ----
-    // TODO(2): Run DriveModelTuner (after ForesightTuner) and paste its output over these.
+    // TODO(13): Run DriveModelTuner (after ForesightTuner) and paste its output over these.
     /** Top forward speed per battery volt at full power, inches/second/volt. 0: use Foresight's max forward velocity / TUNED_VOLTS. */
     public static double FORWARD_SPEED_PER_VOLT = 0;
     /** Same for strafing. 0: use Foresight's max strafe velocity / TUNED_VOLTS. */
@@ -48,13 +48,13 @@ public final class DriveModel {
     public static double BATTERY_OHMS = 0.10;
 
     // ---- Guesses to check ----
-    // TODO(2): Write down the battery voltage while ForesightTuner runs.
+    // TODO(2): Write down the battery voltage while ForesightTuner runs. It is for AgateFlow (step 13), but now is the only time to read it without rerunning the tuner.
     /** Battery volts while ForesightTuner measured its max velocities and gains. */
     public static double TUNED_VOLTS = 12.5;
     /** One drive motor's winding resistance, ohms. goBILDA 6000 RPM: 12 V / 9.2 A stall = 1.3. */
     public static double MOTOR_OHMS = 1.3;
     public static int DRIVE_MOTORS = 4;
-    // TODO(2): Drive full power forward from a stop on the field tiles. If the wheels spin, lower this until the estimate matches.
+    // TODO(13): Drive full power forward from a stop on the field tiles. If the wheels spin, lower this until the estimate matches.
     /** Most acceleration (in/s²) the wheels can grip with, any direction. About 0.8 g. */
     public static double TRACTION_ACCEL = 300;
     /** Time from reaching the end of a path until the follower is settled and says it is done. */

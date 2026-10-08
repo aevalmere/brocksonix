@@ -34,9 +34,9 @@ public class MainTeleOp extends LinearOpMode {
      * true: every value, every loop, so Panels shows live values while tuning.
      * false: only the warnings and loop time, every TELEMETRY_INTERVAL_MS. Autos use this too.
      */
-    // TODO(11): Set to false before competition.
+    // TODO(10): Set to false before competition.
     public static boolean FULL_TELEMETRY = true;
-    // TODO(10): Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.
+    // TODO(12): Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.
     public static double TELEMETRY_INTERVAL_MS = 200;
     public static double TURRET_TRIM_STEP_DEG = 2;
     public static double RPM_TRIM_STEP = 25;

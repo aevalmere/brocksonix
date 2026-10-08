@@ -95,7 +95,7 @@ public class Shooter {
     private static DcMotorEx motor(HardwareMap hardwareMap, String name) {
         DcMotorEx motor = hardwareMap.get(DcMotorEx.class, name);
         motor.setDirection(DcMotorSimple.Direction.FORWARD);
-        // TODO(6): After a trim-down the wheel coasts (FLOAT) and atSpeed() blocks shots until it slows. Time a 100 to 200 RPM coast-down; if it blocks shots, tell the programmers to add braking or a small reverse power.
+        // TODO(12): After a trim-down the wheel coasts (FLOAT) and atSpeed() blocks shots until it slows. Time a 100 to 200 RPM coast-down; if it blocks shots, tell the programmers to add braking or a small reverse power.
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         return motor;

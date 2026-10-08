@@ -37,15 +37,15 @@ import java.util.function.DoubleSupplier;
  */
 @Configurable
 public class AgateFlowCommands {
-    // TODO(12): Watch a few autos: raise if a drive times out close to its target, lower if a stuck robot waits too long.
+    // TODO(15): Watch a few autos: raise if a drive times out close to its target, lower if a stuck robot waits too long.
     /**
      * A route times out this many times its first estimate, plus TIMEOUT_EXTRA_SECONDS,
      * after its first plan is ready. Then the robot holds and the command ends.
      */
     public static double TIMEOUT_SCALE = 1.5;
-    // TODO(12): Check together with TIMEOUT_SCALE on the robot.
+    // TODO(15): Check together with TIMEOUT_SCALE on the robot.
     public static double TIMEOUT_EXTRA_SECONDS = 1.0;
-    // TODO(12): Check on the robot with something pushing it off its path: the drive should still end.
+    // TODO(15): Check on the robot with something pushing it off its path: the drive should still end.
     /**
      * A replan for a push can move the timeout later, but at most this many seconds
      * past the first one, so a route that keeps replanning still ends.
@@ -63,7 +63,7 @@ public class AgateFlowCommands {
      * up to this many seconds more before it times out, seconds. A stuck one stops at once.
      */
     public static double MAX_OVERTIME_SECONDS = 3.0;
-    // TODO(12): In a test OpMode, add a vision zone 15 in. in front of the robot while it drives at full speed. It should stop short and straight, and the battery reading shouldn't drop under 9 V. Lower this if the wheels skid or the hub browns out.
+    // TODO(15): In a test OpMode, add a vision zone 15 in. in front of the robot while it drives at full speed. It should stop short and straight, and the battery reading shouldn't drop under 9 V. Lower this if the wheels skid or the hub browns out.
     /**
      * Reverse power, 0 to 1, that DriveRoute brakes with when something new shows up
      * close ahead, until the robot is nearly still (then it holds). It only slows the

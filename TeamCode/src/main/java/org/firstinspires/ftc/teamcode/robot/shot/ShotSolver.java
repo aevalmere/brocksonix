@@ -23,11 +23,11 @@ import org.firstinspires.ftc.teamcode.util.LookupTable;
  */
 @Configurable
 public class ShotSolver {
-    // TODO(9): Only after stationary shots work. Turn on, drive steadily past the HIVE and fire. Lands ahead of the cell = flight times too short; behind = too long.
+    // TODO(11): Only after stationary shots work. Turn on, drive steadily past the HIVE and fire. Lands ahead of the cell = flight times too short; behind = too long.
     public static boolean LEAD = false;
-    // TODO(9): Turn on after LEAD works.
+    // TODO(11): Turn on after LEAD works.
     public static boolean PREDICT = false;
-    // TODO(9): With PREDICT on: if the turret lags while driving, raise it; if it aims ahead, lower it.
+    // TODO(11): With PREDICT on: if the turret lags while driving, raise it; if it aims ahead, lower it.
     public static double TURRET_LATENCY_SEC = 0.08;
     public static int LEAD_ITERATIONS = 3;
 

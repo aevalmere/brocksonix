@@ -30,9 +30,11 @@ dependencies {
 
 // Collects every "// TODO(step): ..." comment in TeamCode into TODO_LIST.md at the
 // repo root, sorted by step, each linked to its line. Runs before every build.
-// Step numbers match the sections of TUNING_GUIDE.md.
+// Step numbers match the sections of TUNING_GUIDE.md, and they are in order of
+// importance: the phases below group them, most important first.
 // A comment with TODO in it that doesn't match the format (like "// TODO: x" or
-// "// TODO(5) x") is left out of the list and gets a warning. It never fails the build.
+// "// TODO(5) x"), or names a step that doesn't exist, is left out of the list and
+// gets a warning. It never fails the build.
 tasks.register('todoList') {
     def sourceDir = file('src/main/java')
     def output = rootProject.file('TODO_LIST.md')
@@ -45,11 +47,21 @@ tasks.register('todoList') {
             5 : 'Turret',
             6 : 'Shooter',
             7 : 'Shot tables',
-            8 : 'Field',
-            9 : 'Shooting while moving',
-            10: 'Driver feedback and loop time',
-            11: 'Before competition',
-            12: 'Autonomous',
+            8 : 'Field and relocalizing',
+            9 : 'First autonomous',
+            10: 'Before competition',
+            11: 'Shooting while moving',
+            12: 'Driver feel, feedback and loop time',
+            13: 'AgateFlow setup',
+            14: 'Pickups: FLOWERS, GARDEN and floor POLLEN',
+            15: 'AgateFlow on the field',
+    ]
+    // Same phases as TUNING_GUIDE.md.
+    def phases = [
+            [first: 1, last: 8, title: 'Phase 1: TeleOp, bare minimum'],
+            [first: 9, last: 10, title: 'Phase 2: Autonomous and competition'],
+            [first: 11, last: 12, title: 'Phase 3: Make it better'],
+            [first: 13, last: 15, title: 'Phase 4: AgateFlow and auto pickups'],
     ]
     inputs.dir(sourceDir)
     outputs.file(output)
@@ -73,6 +85,11 @@ tasks.register('todoList') {
                     }
                     return
                 }
+                def step = match.group(1) as int
+                if (!stepNames.containsKey(step)) {
+                    logger.warn("todoList: TODO with unknown step ${step}, not in TODO_LIST.md (steps are 1 to ${stepNames.size()}, see TUNING_GUIDE.md) at ${path}:${i + 1}: ${line.trim()}")
+                    return
+                }
                 def code = lines.drop(i + 1).collect { it.trim() }.find {
                     it && !it.startsWith('//') && !it.startsWith('/*') && !it.startsWith('*')
                 } ?: ''
@@ -80,7 +97,7 @@ tasks.register('todoList') {
                 def method = code =~ /(\w+)\s*\(/
                 def subject = field.find() ? field.group(1) : (method.find() ? method.group(1) + '()' : '')
                 items << [
-                        step   : match.group(1) as int,
+                        step   : step,
                         text   : match.group(2).trim(),
                         file   : source.name,
                         path   : path,
@@ -95,16 +112,24 @@ tasks.register('todoList') {
         out << 'Generated from the `// TODO(step): ...` comments in TeamCode. Don\'t edit this file. '
         out << 'Do the item, delete its TODO comment, and the list updates on the next build '
         out << '(or run `./gradlew todoList`). How to do each step is in TUNING_GUIDE.md.\n\n'
+        out << 'Most important first: work from the top down. Phase 1 gets the robot playing TeleOp, '
+        out << 'phase 2 adds a scoring auto, phase 3 makes both better, phase 4 adds AgateFlow and auto pickups.\n\n'
         out << "**${items.size()} left.**\n"
-        items.sort { a, b -> a.step <=> b.step ?: a.path <=> b.path ?: a.line <=> b.line }
+        def byStep = items.sort { a, b -> a.step <=> b.step ?: a.path <=> b.path ?: a.line <=> b.line }
                 .groupBy { it.step }
-                .each { step, stepItems ->
-                    out << "\n## ${step}. ${stepNames[step] ?: 'Other'}\n\n"
-                    stepItems.each { item ->
-                        def subject = item.subject ? " `${item.subject}`" : ''
-                        out << "- [ ] [${item.file}:${item.line}](${item.path}#L${item.line})${subject}: ${item.text}\n"
-                    }
+        phases.each { phase ->
+            def steps = byStep.keySet().findAll { it >= phase.first && it <= phase.last }.sort()
+            def count = steps.sum { byStep[it].size() } ?: 0
+            out << "\n## ${phase.title} (${count} left)\n"
+            if (count == 0) out << '\nAll done.\n'
+            steps.each { step ->
+                out << "\n### ${step}. ${stepNames[step]}\n\n"
+                byStep[step].each { item ->
+                    def subject = item.subject ? " `${item.subject}`" : ''
+                    out << "- [ ] [${item.file}:${item.line}](${item.path}#L${item.line})${subject}: ${item.text}\n"
                 }
+            }
+        }
         // Compare with line endings normalized. Git on Windows may check the file out
         // with CRLF, and rewriting it with LF would show it as modified for no reason.
         def newText = out.toString()

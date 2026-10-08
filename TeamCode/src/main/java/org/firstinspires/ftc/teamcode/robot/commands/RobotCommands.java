@@ -38,15 +38,15 @@ import java.util.function.DoubleSupplier;
  */
 @Configurable
 public class RobotCommands {
-    // TODO(12): Time a normal 1-ball shot, then add margin. Long enough that a good shot never times out, short enough that a misfeed doesn't eat the auto.
+    // TODO(9): Time a normal 1-ball shot, then add margin. Long enough that a good shot never times out, short enough that a misfeed doesn't eat the auto.
     public static double SHOOT_ONE_TIMEOUT_MS = 1500;
-    // TODO(12): Time a full burst the same way.
+    // TODO(9): Time a full burst the same way.
     public static double SHOOT_ALL_TIMEOUT_MS = 3000;
-    // TODO(12): Jam a ball on purpose and run shootAllWithRetry. Raise until the retry frees it, but balls must not come out of the intake.
+    // TODO(9): Jam a ball on purpose and run shootAllWithRetry. Raise until the retry frees it, but balls must not come out of the intake.
     public static double RETRY_UNJAM_MS = 200;
-    // TODO(12): Each retry can cost RETRY_UNJAM_MS + SHOOT_ALL_TIMEOUT_MS. Set to 0 if retries never fix anything.
+    // TODO(9): Each retry can cost RETRY_UNJAM_MS + SHOOT_ALL_TIMEOUT_MS. Set to 0 if retries never fix anything.
     public static int SHOOT_RETRIES = 1;
-    // TODO(8): Time how long the flower intake takes to come all the way up (film it). Set this a little longer.
+    // TODO(14): Time how long the flower intake takes to come all the way up (film it). Set this a little longer.
     /** flowerUp() waits this long for the flower intake to get up, ms, so a drive after it starts with the intake up. */
     public static double FLOWER_RAISE_MS = 400;
 

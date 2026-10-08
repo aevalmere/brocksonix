@@ -25,7 +25,7 @@ import java.util.Set;
 @Configurable
 public class Feedback {
     // Strengths are 0 to 1. Times are in ms.
-    // TODO(10): Warning buzz: strong and unmistakable, long enough to feel, short enough not to annoy. Raise the cooldown if a flickering warning still annoys.
+    // TODO(12): Warning buzz: strong and unmistakable, long enough to feel, short enough not to annoy. Raise the cooldown if a flickering warning still annoys.
     public static double WARNING_STRENGTH = 1.0;
     public static int WARNING_PULSE_MS = 150;
     public static int WARNING_GAP_MS = 100;
@@ -33,7 +33,7 @@ public class Feedback {
     /** A warning that goes away and comes back sooner than this does not buzz again. */
     public static int WARNING_COOLDOWN_MS = 3000;
 
-    // TODO(10): Full rumble: soft enough to drive with, strong enough to notice. The gamepad light only works on PlayStation controllers.
+    // TODO(12): Full rumble: soft enough to drive with, strong enough to notice. The gamepad light only works on PlayStation controllers.
     public static double FULL_STRENGTH = 0.25;
 
     private static final Warning[] ALL_WARNINGS = Warning.values();

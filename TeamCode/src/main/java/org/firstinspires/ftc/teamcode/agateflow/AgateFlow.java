@@ -67,10 +67,10 @@ import java.util.Map;
  */
 @Configurable
 public final class AgateFlow {
-    // TODO(8): Measure the farthest point of the robot from the turret center (wedge tips, intake). A circle this big must cover the whole robot.
+    // TODO(13): Measure the farthest point of the robot from the turret center (wedge tips, intake). A circle this big must cover the whole robot.
     /** Circle around the turret center that covers the whole robot, inches. */
     public static double ROBOT_RADIUS = 10;
-    // TODO(8): Copy the measured Field.CENTER_TO_INTAKE_WALL into ROBOT_FRONT and CENTER_TO_SIDE_WALL into ROBOT_HALF_WIDTH; tape the turret center to the chassis back for ROBOT_BACK.
+    // TODO(13): Copy the measured Field.CENTER_TO_INTAKE_WALL into ROBOT_FRONT and CENTER_TO_SIDE_WALL into ROBOT_HALF_WIDTH; tape the turret center to the chassis back for ROBOT_BACK.
     /**
      * The robot's outline around the point the localizer tracks, flower intake up
      * (how ParkGuard and every drive with it up go), inches, from CAD (ROBOT.md).
@@ -89,7 +89,7 @@ public final class AgateFlow {
      * things closer side-on than front-on, or with the ROBOT_RADIUS circle (false).
      */
     public static boolean USE_OUTLINE = true;
-    // TODO(12): Raise it if rubbing a wall slows the robot down or drags its heading round.
+    // TODO(15): Raise it if rubbing a wall slows the robot down or drags its heading round.
     /**
      * How close the robot's outline may come to the four field walls, inches. Any
      * part may touch them (0): the intake, the sides, the back. Other zones keep
@@ -97,17 +97,17 @@ public final class AgateFlow {
      * ROBOT_HALF_WIDTH from it side-on, ROBOT_BACK back-on, ROBOT_FRONT front-on.
      */
     public static double WALL_GAP = 0;
-    // TODO(12): Lower it if the odometry pods skip or the robot jolts when it reaches a wall; raise it if wall runs are slow.
+    // TODO(15): Lower it if the odometry pods skip or the robot jolts when it reaches a wall; raise it if wall runs are slow.
     /**
      * Fastest the robot may move into a wall (along the wall's normal) where its
      * outline reaches one, in/s. It slides along a wall or eases onto it, never
      * slams into it. AgateFlow puts a speed limit before the contact if needed.
      */
     public static double WALL_CONTACT_SPEED = 10;
-    // TODO(12): Raise if the robot brushes zones on planned paths, lower if paths go needlessly wide.
+    // TODO(15): Raise if the robot brushes zones on planned paths, lower if paths go needlessly wide.
     /** Extra room past ROBOT_RADIUS on top of what AgateFlow predicts, inches. */
     public static double SAFETY_MARGIN = 2;
-    // TODO(8): The smallest distance from the turret center to the robot's outside (the back is about 5.7 in.).
+    // TODO(13): The smallest distance from the turret center to the robot's outside (the back is about 5.7 in.).
     /** Closer than this to a zone the robot's body is in it. Targets closer than this are moved out. */
     public static double CONTACT_RADIUS = 5.5;
     /** Extra room around zone corners in the first search, so corners can be rounded wide and taken fast, inches. */
@@ -137,7 +137,7 @@ public final class AgateFlow {
      * far, inches.
      */
     public static double MAX_END_HOLD = 24;
-    // TODO(8): Time how long the flower intake takes to come up, and set this to how far the robot backs away from a FLOWER in that time.
+    // TODO(14): Time how long the flower intake takes to come up, and set this to how far the robot backs away from a FLOWER in that time.
     /**
      * After a Route.flowerIntakeDown stretch the intake is still coming up for a moment:
      * the next stretch is planned with it down (reaching IntakePoses.FLOWER_INTAKE_REACH
@@ -167,12 +167,12 @@ public final class AgateFlow {
     public static boolean MOVE_TARGETS_OUT_OF_ZONES = true;
 
     // ---- Picking up (Route.pickUp, see Pickup) ----
-    // TODO(8): Drive into a POLLEN at rising speeds; set this to the fastest that still picks it up every time.
+    // TODO(14): Drive into a POLLEN at rising speeds; set this to the fastest that still picks it up every time.
     /** Speed limit at each pickup, from PICKUP_RUN before it to PICKUP_EXIT after it, in/s. */
     public static double PICKUP_SPEED = 30;
     /** Half the intake's width, inches: it is as wide as the chassis (280 mm, ROBOT.md). */
     public static double INTAKE_HALF_WIDTH = 5.51;
-    // TODO(8): Drive slowly over a POLLEN and measure how far past the intake's front edge it is when the intake grabs it.
+    // TODO(14): Drive slowly over a POLLEN and measure how far past the intake's front edge it is when the intake grabs it.
     /** A target this far past the intake front counts as picked up, inches. Passes aim 1 in. (MotionModel.ARRIVED_INCHES) deeper. */
     public static double INTAKE_DEPTH = 2;
     /** POLLEN radius, inches (2.8 in. balls, ROBOT.md). */

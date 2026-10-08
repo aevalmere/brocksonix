@@ -13,7 +13,7 @@ import com.bylazar.configurables.annotations.Configurable;
  */
 @Configurable
 public final class EtaCalibration {
-    // TODO(12): After a few autos with AgateFlow, copy the learned TIME_SCALE from Panels into the code here.
+    // TODO(15): After a few autos with AgateFlow, copy the learned TIME_SCALE from Panels into the code here.
     /** Real time / predicted time. Estimates are multiplied by this. */
     public static double TIME_SCALE = 1.0;
     /** Learn from each finished leg. Turn off to keep TIME_SCALE fixed. */
