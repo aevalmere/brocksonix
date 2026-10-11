@@ -102,11 +102,6 @@ public final class IntakePoses {
         return new Pose(Field.CENTER_TO_INTAKE_WALL + GARDEN_END_GAP, gardenLaneY(), Math.PI);
     }
 
-    /** Direction to drive from gardenStartPose() to gardenEndPose(): toward the red wall, in degrees. */
-    public static double gardenTravelDegrees() {
-        return 180;
-    }
-
     private static double gardenLaneY() {
         return Field.CENTER_TO_SIDE_WALL + GARDEN_WALL_GAP;
     }

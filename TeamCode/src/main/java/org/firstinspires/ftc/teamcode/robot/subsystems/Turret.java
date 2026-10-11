@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.robot.hardware.CachedCRServo;
 import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
 import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
 import org.firstinspires.ftc.teamcode.util.Angles;
+import org.firstinspires.ftc.teamcode.util.PIDF;
 
 /**
  * Infinite-rotation turret: an Axon in CR mode, geared so the turret turns
@@ -21,10 +22,23 @@ import org.firstinspires.ftc.teamcode.util.Angles;
  * robot's front, counter-clockwise positive. Because the turret spins
  * forever, it always takes the shortest way to the target.
  *
- * Control, all scaled for battery voltage:
- *   kP * error + kD * error rate     (two gain sets: FAR when the error is big, CLOSE to settle)
- *   + kS toward the target           (ramped in near zero so it doesn't buzz)
- *   + kV * how fast the target moves (cancels the robot turning underneath the turret)
+ * Control: our own PIDF (util/PIDF, its top comment explains each part) plus a KS push.
+ * Every gain is power at 12 V: the sum is multiplied by the battery voltage
+ * compensation, then clipped to MAX_POWER.
+ *   P: kP * error                       (two gain sets: FAR when the error is big, CLOSE to settle)
+ *   I: KI * the error added up over time. Only under I_ZONE_DEG, never more than I_MAX_POWER
+ *      (before the voltage compensation, like every gain), and it stops adding up while the
+ *      power is at MAX_POWER. It starts again from 0 when the turret crosses the target, when
+ *      the target jumps, in manual mode, while the watchdog has it off and while the stuck check
+ *      rests. While the stuck check tests, it holds still (the test needs its push to go on).
+ *   D: kD * (target speed - turret speed) (FAR/CLOSE too). It uses the turret's measured speed,
+ *      so a target jump (D-pad, switching cells), a trim change or the angle wrapping past 180
+ *      can't kick it. D_FILTER smooths the turret speed.
+ *   F: KV * how fast the target moves   (cancels the robot turning underneath the turret).
+ *      The target speed is smoothed (TARGET_RATE_FILTER), capped (MAX_TARGET_RATE_DEG_PER_SEC),
+ *      and 0 in a loop where the target jumps more than TARGET_JUMP_DEG.
+ *   + KS toward the target              (ramped in near zero so it doesn't buzz)
+ * Telemetry shows each part ("Turret P / I / D / F / KS") for tuning.
  *
  * Safety. Ask watchdogTripped() whether the turret is off until the OpMode restarts.
  *   - Wrong way: it turns against its own push, more than WRONG_WAY_DEG overall. That is
@@ -58,6 +72,15 @@ public class Turret {
     // TODO(5): Turret Test, manual: turn slowly through full turns. Use the highest clean volts before it drops to 0.
     /** Encoder output at a full turn. The ELC's top end is noisy; Meta-Infinity used 3.2 V. Measure ours. */
     public static double ENCODER_FULL_TURN_VOLTS = 3.2;
+    // TODO(5): Turret Test, manual, same slow turns: the lowest clean volts just after it drops. Leave 0 if it reads 0.000 there.
+    /**
+     * Encoder output just after it drops: the start of a turn, where ENCODER_FULL_TURN_VOLTS is
+     * the end. With both measured, one turn reads exactly 360 degrees, so the angle doesn't jump
+     * where the output wraps. Both are measured, not taken from AnalogInput.getMaxVoltage(): that
+     * is the most the hub port can read, not the encoder's range. Set both before
+     * ENCODER_ZERO_DEG: changing them moves every angle a little.
+     */
+    public static double ENCODER_MIN_VOLTS = 0;
     // TODO(5): Point the shooter straight out the front, read the angle, put it here.
     /** Raw encoder angle when the shooter points straight out the front. */
     public static double ENCODER_ZERO_DEG = 0;
@@ -77,6 +100,19 @@ public class Turret {
     public static double CLOSE_ZONE_DEG = 15;
     public static double CLOSE_ZONE_BAND_DEG = 2;
 
+    // TODO(5): Aiming mode, bumper nudges: if it stops a degree or two short of the target and stays there, raise KI until it closes the gap without overshoot. If it never stops short, leave it at 0.
+    /** Power per degree-second of error. Only near the target (I_ZONE_DEG), capped at I_MAX_POWER. 0 = off. */
+    public static double KI = 0;
+    // TODO(5): Aiming mode, with KI on: set this a little above the biggest gap where it used to stop short, so KI only works near the target.
+    /** KI only adds up the error while the error is under this. */
+    public static double I_ZONE_DEG = 5;
+    // TODO(5): Aiming mode, with KI on: start a little above KS. Lower it if KI makes the turret jump past the target.
+    /** The most power the KI part may add (before the voltage compensation, like every gain here). */
+    public static double I_MAX_POWER = 0.1;
+    // TODO(5): Aiming mode: only if the turret buzzes or "Turret P / I / D / F / KS" shows D jittering while it holds still, raise this toward 0.5. Too high and it overshoots more.
+    /** Smooths the turret speed that D uses: 0 = no smoothing, closer to 1 = smoother but slower to react. */
+    public static double D_FILTER = 0;
+
     // TODO(5): Manual mode (KS isn't used there): push the stick slowly, note the power where the turret starts to move, set KS a bit below it.
     public static double KS = 0.05;
     // TODO(5): Aiming mode: if it chatters near the target, adjust this. Higher = KS fades in over a wider zone.
@@ -84,6 +120,12 @@ public class Turret {
     // TODO(11): Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
     /** Power per degree/second of target motion. */
     public static double KV = 0.0;
+    // TODO(11): Main TeleOp, while tuning KV: if the turret jerks when the robot starts or stops turning, raise this toward 0.8. 0 = no smoothing.
+    /** Smooths the target speed that KV and D use: 0 = no smoothing, closer to 1 = smoother but slower to react. */
+    public static double TARGET_RATE_FILTER = 0.5;
+    // TODO(11): Time a full-stick spin in place (degrees divided by seconds) and set this a little above it.
+    /** The target speed is capped here, so a quick target step (like switching cells) can't send one huge push. */
+    public static double MAX_TARGET_RATE_DEG_PER_SEC = 720;
     // TODO(5): Lower if the gearing or wiring complains.
     public static double MAX_POWER = 0.8;
 
@@ -131,8 +173,13 @@ public class Turret {
     // (about 0.3 s when the target is near).
     private static final double WRONG_WAY_DEG = 90;
     // Faster than the turret can turn. A reading that jumps more than this in one loop is a bad reading
-    // (the encoder's noisy top end), so that loop doesn't count. Then one bad reading can't trip it.
+    // (the encoder's noisy top end), so that loop doesn't count. Then one bad reading can't trip it,
+    // and D keeps last loop's turret speed instead of a made-up one.
     private static final double TOO_FAST_DEG_PER_SEC = 2000;
+    // A target that moves more than this in one loop jumped (D-pad, switching cells or alliance) instead of
+    // moving: its speed counts as 0 that loop, so KV and D don't send one huge push, and KI starts again.
+    // The robot turning moves the target only a few degrees per loop.
+    private static final double TARGET_JUMP_DEG = 30;
 
     private enum StuckStep { WATCH, TEST, REST }
 
@@ -143,13 +190,16 @@ public class Turret {
     private final ElapsedTime fullPowerTimer = new ElapsedTime();
     private final ElapsedTime stuckTimer = new ElapsedTime();
     private final ElapsedTime stillTimer = new ElapsedTime();
+    // true: angles in degrees that wrap around.
+    private final PIDF pidf = new PIDF(true);
 
     private double targetDeg = 0;
     private double lastTargetDeg = 0;
     private double trimDeg = 0;
     private double angleDeg = 0;
-    private double lastErrorDeg = 0;
     private boolean closeGains = false;
+    // The KS push of the last update(), for telemetry.
+    private double staticPush = 0;
     private double power = 0;
     private Double manualPower = null;
     private boolean wasFullPower = false;
@@ -226,7 +276,8 @@ public class Turret {
     }
 
     private double readAngle() {
-        double raw = encoder.getVoltage() / Math.max(ENCODER_FULL_TURN_VOLTS, MIN_DIVISOR) * 360;
+        double span = Math.max(ENCODER_FULL_TURN_VOLTS - ENCODER_MIN_VOLTS, MIN_DIVISOR);
+        double raw = (encoder.getVoltage() - ENCODER_MIN_VOLTS) / span * 360;
         if (ENCODER_REVERSED) raw = -raw;
         return Angles.wrapDegrees(raw - ENCODER_ZERO_DEG);
     }
@@ -240,13 +291,12 @@ public class Turret {
     public void update() {
         double dt = Math.max(loopTimer.seconds(), 1e-3);
         loopTimer.reset();
+        double compensation = voltage.compensation();
 
         double errorDeg = errorDeg();
+        // The raw target step, for the watchdog. The controller works out its own, smoothed target speed.
         double targetStep = Angles.wrapDegrees(targetDeg - lastTargetDeg);
-        double targetRate = targetStep / dt;
-        double errorRate = (errorDeg - lastErrorDeg) / dt;
         lastTargetDeg = targetDeg;
-        lastErrorDeg = errorDeg;
 
         // How far the turret turned since last loop, for the wrong-way check.
         double turnedDeg = Angles.wrapDegrees(angleDeg - angleLastLoop);
@@ -258,12 +308,26 @@ public class Turret {
         double kP = closeGains ? CLOSE_KP : FAR_KP;
         double kD = closeGains ? CLOSE_KD : FAR_KD;
 
-        double staticPush = Math.signum(errorDeg) * KS * Math.min(absError / Math.max(KS_RAMP_DEG, MIN_DIVISOR), 1);
-        double raw = kP * errorDeg + kD * errorRate + staticPush + KV * targetRate;
+        staticPush = Math.signum(errorDeg) * KS * Math.min(absError / Math.max(KS_RAMP_DEG, MIN_DIVISOR), 1);
+        // This loop's Panels values, so edits apply at once and FAR/CLOSE can switch.
+        pidf.setGains(kP, KI, kD, KV);
+        pidf.setIntegralLimits(I_ZONE_DEG, I_MAX_POWER);
+        pidf.setFilters(D_FILTER, TARGET_RATE_FILTER);
+        pidf.setTargetRateLimits(TARGET_JUMP_DEG, MAX_TARGET_RATE_DEG_PER_SEC);
+        pidf.setMaxMeasuredRate(TOO_FAST_DEG_PER_SEC);
+        // The output gets multiplied by the compensation below, so before that, MAX_POWER is this much.
+        pidf.setOutputLimit(MAX_POWER / compensation);
+        // While the stuck check tests, its push sets the power, so KI stops adding up. It isn't emptied:
+        // the test only goes on while the controller still pushes at KS or more, and near the target
+        // that push comes from KI.
+        pidf.setIntegralPaused(stuckStep == StuckStep.TEST);
+        // The trim goes in apart from the target, so a trim change doesn't count as the target moving.
+        double raw = pidf.update(targetDeg, trimDeg, angleDeg, staticPush, dt);
 
         if (manualPower != null) {
             // Tuning: the person on the stick is the safety, so the watchdog neither counts nor blocks this.
             power = manualPower;
+            pidf.resetIntegral();
             wasFullPower = false;
             stuckStep = StuckStep.WATCH;
             watching = false;
@@ -272,15 +336,18 @@ public class Turret {
             wrongWayDeg = 0;
         } else if (watchdogTripped) {
             power = 0;
+            pidf.resetIntegral();
         } else {
             // Last loop's push moved the turret between last loop's reading and this one.
             checkWrongWay(turnedDeg, dt);
-            power = Range.clip(raw * voltage.compensation(), -MAX_POWER, MAX_POWER);
+            power = Range.clip(raw * compensation, -MAX_POWER, MAX_POWER);
             // Range.clip lets NaN through (NaN target, bad Panels value). Never send that to the servo.
             if (Double.isNaN(power)) power = 0;
             // The stuck check may push harder or rest, so it goes first: the full-power check
             // must look at the power that is really sent.
             power = checkStuck(power);
+            // While the stuck check rests, the power is 0 whatever the controller wants, so KI must not build up.
+            if (stuckStep == StuckStep.REST) pidf.resetIntegral();
             checkWatchdog(absError, targetStep);
             if (watchdogTripped) power = 0;
         }
@@ -473,14 +540,12 @@ public class Turret {
         tripReason = reason;
     }
 
-    public void stop() {
-        power = 0;
-        servo.setPower(0);
-    }
-
     public void addTelemetry(Telemetry telemetry) {
         telemetry.addData("Turret angle", "%.1f -> %.1f (trim %+.1f)", angleDeg, targetDeg + trimDeg, trimDeg);
         telemetry.addData("Turret error / power", "%.1f / %.2f %s", errorDeg(), power, closeGains ? "close" : "far");
+        // The controller's parts, at 12 V (before the voltage compensation, the clip and the safety checks).
+        telemetry.addData("Turret P / I / D / F / KS", "%.3f / %.3f / %.3f / %.3f / %.3f",
+                pidf.lastP(), pidf.lastI(), pidf.lastD(), pidf.lastF(), staticPush);
         if (watchdogTripped) {
             telemetry.addData("Turret WATCHDOG", "TRIPPED: " + tripReason + ". Turret is off. Check the encoder wiring and the two REVERSED flags, then restart the OpMode.");
         } else if (stuckStep != StuckStep.WATCH || failedTests > 0) {

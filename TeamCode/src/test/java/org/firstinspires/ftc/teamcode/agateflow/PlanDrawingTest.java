@@ -32,17 +32,16 @@ import java.util.List;
  */
 public class PlanDrawingTest {
     private static final Pose SHOOT = new Pose(36, 48, Math.PI);
-    private double timeLimit;
+    private TestRobot.Saved saved;
 
     @Before
     public void noTimeLimit() {
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
+        saved = TestRobot.save();
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
+        saved.restore();
     }
 
     @Test

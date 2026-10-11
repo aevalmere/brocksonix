@@ -45,6 +45,8 @@ public class AutoTemplate extends LinearOpMode {
     public static double SHOOT_X = 36;
     public static double SHOOT_Y = 48;
     public static double SHOOT_HEADING_DEG = 180;
+    // TODO(9): Time the drive to the shooting spot, then add margin. Pedro never gives up on a path by itself, so without a limit a blocked robot waits there all auto.
+    public static double DRIVE_TIMEOUT_MS = 4000;
 
     @Override
     public void runOpMode() {
@@ -82,7 +84,7 @@ public class AutoTemplate extends LinearOpMode {
         Pose shootSpot = new Pose(SHOOT_X, SHOOT_Y, Math.toRadians(SHOOT_HEADING_DEG));
         // TODO(9): Replace this placeholder with the real routine.
         Scheduler.schedule(sequential(
-                commands.driveTo(shootSpot),
+                commands.driveTo(shootSpot, DRIVE_TIMEOUT_MS),
                 commands.shootAllWithRetry()
         ));
 

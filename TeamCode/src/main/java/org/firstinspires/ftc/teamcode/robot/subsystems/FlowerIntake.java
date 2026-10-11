@@ -11,6 +11,9 @@ import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
 /**
  * Two mirrored servos that lower an arm into a FLOWER's Retrieval Opening.
  * The right servo is reversed, so both take the same position number.
+ *
+ * It is up at Start, then moves only when told: LB in Main TeleOp, the commands
+ * in auto (RobotCommands). Full storage doesn't raise it.
  */
 @Configurable
 public class FlowerIntake {

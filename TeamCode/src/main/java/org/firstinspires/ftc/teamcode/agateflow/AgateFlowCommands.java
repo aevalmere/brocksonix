@@ -29,7 +29,8 @@ import java.util.function.DoubleSupplier;
  * Planning runs on one background thread, so the loop never waits for it. Until
  * the first plan is ready the robot stays as it was (holding, or finishing the
  * last path). To have nothing to wait for at the start of auto, call
- * DriveRoute.planFrom(startPose) in init.
+ * DriveRoute.planFrom(startPose) in init. A ParkGuard shares the thread, but
+ * waits with its park estimates while a drive's plan is being made.
  *
  * Vision: put what the camera sees in map() with map().setZones("vision", zones)
  * (safe from the camera thread), and give targets with Route.toLive(...). A
@@ -51,6 +52,7 @@ public class AgateFlowCommands {
      * past the first one, so a route that keeps replanning still ends.
      */
     public static double REPLAN_EXTRA_SECONDS = 5.0;
+    // TODO(15): In a test OpMode, drop a vision zone in the robot's way a few times in one drive. It should go round each one and still end.
     /**
      * A replan for a detour around something new in the way gets as long as its own
      * estimate says (TIMEOUT_SCALE x estimate + TIMEOUT_EXTRA_SECONDS), past the cap
@@ -58,9 +60,10 @@ public class AgateFlowCommands {
      * blocks still ends.
      */
     public static int MAX_DETOURS = 3;
+    // TODO(15): Watch drives that run past their deadline: raise this if one still closing in on its stop gives up, lower it if a crawling robot holds up the auto.
     /**
      * Past its deadline, a drive that is still getting closer to its stop goes on for
-     * up to this many seconds more before it times out, seconds. A stuck one stops at once.
+     * up to this many seconds more before it times out. A stuck one stops at once.
      */
     public static double MAX_OVERTIME_SECONDS = 3.0;
     // TODO(15): In a test OpMode, add a vision zone 15 in. in front of the robot while it drives at full speed. It should stop short and straight, and the battery reading shouldn't drop under 9 V. Lower this if the wheels skid or the hub browns out.
@@ -75,14 +78,18 @@ public class AgateFlowCommands {
      * to about 7.4 V at 1 (a brownout risk), 10.3 V at 0.5 and 11.8 V at 0.2.
      */
     public static double STOP_BRAKING_POWER = 0.5;
+    // TODO(15): Push the robot off its path by hand while it drives: it should replan once it is this far off, and not from normal wobble.
     /** Replan when the robot is this far from where it was predicted to be, inches (it got pushed). */
     public static double REPLAN_OFF_PATH = 8;
     /** Check for replanning at most this often, ms. */
     public static double REPLAN_EVERY_MS = 250;
     public static boolean REPLAN = true;
 
-    /** One planning thread for the whole app, so OpModes starting and stopping don't pile up threads. */
-    private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(task -> {
+    /**
+     * One planning thread for the whole app, so OpModes starting and stopping don't
+     * pile up threads. It runs plans one at a time, in the order they were asked for.
+     */
+    static final ExecutorService WORKER = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "AgateFlow");
         thread.setDaemon(true);
         return thread;
@@ -93,6 +100,8 @@ public class AgateFlowCommands {
     private final FieldMap map = new FieldMap();
     private final AgateFlow agateFlow;
     private final DoubleSupplier batteryVolts;
+    /** The newest plan a DriveRoute asked for (see planDrive). */
+    private Future<Plan> drivePlan;
 
     /**
      * @param follower     the robot's follower
@@ -103,7 +112,7 @@ public class AgateFlowCommands {
         this.follower = follower;
         this.batteryVolts = batteryVolts;
         this.drive = drive;
-        agateFlow = new AgateFlow(map, follower);
+        agateFlow = new AgateFlow(map);
         // Made in init, while the follower is idle: a good time to read Foresight's gains (see DriveModel.readGains).
         DriveModel.capture(follower);
     }
@@ -165,5 +174,20 @@ public class AgateFlowCommands {
         final double volts = batteryVolts.getAsDouble();
         final Route asked = route.askLivePosesNow();
         return WORKER.submit(() -> agateFlow.plan(start, velocity, asked, alliance, volts, settings));
+    }
+
+    /** planLater for a DriveRoute's plan or replan, remembered so ParkGuard can let it go first. */
+    Future<Plan> planDrive(Pose start, Velocity velocity, Route route, Alliance alliance) {
+        drivePlan = planLater(start, velocity, route, alliance);
+        return drivePlan;
+    }
+
+    /**
+     * True while a DriveRoute's plan is being made or waits its turn on the planning
+     * thread. ParkGuard doesn't ask for a park estimate then, so the drive's plan
+     * doesn't queue behind one.
+     */
+    boolean drivePlanPending() {
+        return drivePlan != null && !drivePlan.isDone();
     }
 }

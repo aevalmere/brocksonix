@@ -6,6 +6,7 @@ import com.pedropathing.controllers.Controller;
 import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.drivetrain.Drivetrain;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.ivy.Scheduler;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.localization.MotionState;
 import com.pedropathing.math.Matrix;
@@ -17,10 +18,13 @@ import com.pedropathing.paths.Path;
 
 import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.FieldZones;
+import org.firstinspires.ftc.teamcode.robot.RobotState;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.function.LongSupplier;
 
 /**
  * A simulated mecanum robot for the tests: Pedro's real Follower and Foresight
@@ -28,6 +32,10 @@ import java.util.Map;
  * constants, battery sag, grip, momentum), on a virtual clock (10 ms steps, as fast
  * as the computer goes, so the tests are repeatable). Foresight is set up the way
  * ForesightTuner would set it up on this drivetrain.
+ *
+ * Commands (DriveRoute, ParkGuard) run on it with useVirtualClock() and loop(): their
+ * timers read the virtual clock, and each loop waits for the plans it asked for, so
+ * a plan is ready the next loop however fast the computer is.
  */
 final class TestRobot {
     static final double VOLTS = 12.5, FORWARD = 70, STRAFE = 55, STEP = 0.01;
@@ -38,6 +46,87 @@ final class TestRobot {
     final Wheels wheels = new Wheels();
     final Body body = new Body(wheels);
     final Follower follower;
+    /** The virtual clock, nanoseconds. step() moves it on 10 ms. Starts well away from 0, like System.nanoTime. */
+    long nanos = 1_000_000_000_000L;
+
+    /**
+     * Every static setting the tests change (Panels tunables, the alliance, the clock),
+     * as it was when save() made it. restore() puts them back, so one test can't change
+     * the next.
+     */
+    static final class Saved {
+        private final double planTimeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
+        private final double headingGain = DriveModel.HEADING_GAIN;
+        private final double forwardNear = DriveModel.FORWARD_KP_NEAR, forwardFar = DriveModel.FORWARD_KP_FAR;
+        private final double strafeNear = DriveModel.STRAFE_KP_NEAR, strafeFar = DriveModel.STRAFE_KP_FAR;
+        private final double timeScale = EtaCalibration.TIME_SCALE, learnFilter = EtaCalibration.LEARN_FILTER;
+        private final double minLearnSeconds = EtaCalibration.MIN_LEARN_SECONDS;
+        private final boolean learn = EtaCalibration.LEARN;
+        private final boolean replan = AgateFlowCommands.REPLAN;
+        private final double timeoutScale = AgateFlowCommands.TIMEOUT_SCALE, timeoutExtra = AgateFlowCommands.TIMEOUT_EXTRA_SECONDS;
+        private final double replanExtra = AgateFlowCommands.REPLAN_EXTRA_SECONDS, overtime = AgateFlowCommands.MAX_OVERTIME_SECONDS;
+        private final double replanEvery = AgateFlowCommands.REPLAN_EVERY_MS, offPath = AgateFlowCommands.REPLAN_OFF_PATH;
+        private final int maxDetours = AgateFlowCommands.MAX_DETOURS;
+        private final double parkMargin = ParkGuard.MARGIN_SECONDS, parkRefresh = ParkGuard.REFRESH_MS;
+        private final double parkFallback = ParkGuard.FALLBACK_SECONDS;
+        private final Alliance alliance = RobotState.alliance;
+        private final LongSupplier clock = DriveRoute.NOW;
+
+        void restore() {
+            AgateFlow.PLAN_TIME_LIMIT_MS = planTimeLimit;
+            DriveModel.HEADING_GAIN = headingGain;
+            DriveModel.FORWARD_KP_NEAR = forwardNear;
+            DriveModel.FORWARD_KP_FAR = forwardFar;
+            DriveModel.STRAFE_KP_NEAR = strafeNear;
+            DriveModel.STRAFE_KP_FAR = strafeFar;
+            EtaCalibration.TIME_SCALE = timeScale;
+            EtaCalibration.LEARN_FILTER = learnFilter;
+            EtaCalibration.MIN_LEARN_SECONDS = minLearnSeconds;
+            EtaCalibration.LEARN = learn;
+            AgateFlowCommands.REPLAN = replan;
+            AgateFlowCommands.TIMEOUT_SCALE = timeoutScale;
+            AgateFlowCommands.TIMEOUT_EXTRA_SECONDS = timeoutExtra;
+            AgateFlowCommands.REPLAN_EXTRA_SECONDS = replanExtra;
+            AgateFlowCommands.MAX_OVERTIME_SECONDS = overtime;
+            AgateFlowCommands.REPLAN_EVERY_MS = replanEvery;
+            AgateFlowCommands.REPLAN_OFF_PATH = offPath;
+            AgateFlowCommands.MAX_DETOURS = maxDetours;
+            ParkGuard.MARGIN_SECONDS = parkMargin;
+            ParkGuard.REFRESH_MS = parkRefresh;
+            ParkGuard.FALLBACK_SECONDS = parkFallback;
+            RobotState.alliance = alliance;
+            DriveRoute.NOW = clock;
+            DriveModel.forgetReadings();
+            Scheduler.reset();
+        }
+    }
+
+    /**
+     * Call in @Before, and restore() what it returns in @After. Saves the static
+     * settings (see Saved), turns off the planning time limit so plans don't depend
+     * on how fast the computer is, forgets what DriveModel read from earlier
+     * followers, and empties the Ivy scheduler.
+     */
+    static Saved save() {
+        Saved saved = new Saved();
+        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
+        DriveModel.forgetReadings();
+        Scheduler.reset();
+        return saved;
+    }
+
+    /**
+     * Waits until the planning thread has made every plan asked for so far. It makes
+     * them one at a time, in order, so an empty task finishing means the ones before
+     * it are done.
+     */
+    static void waitForPlans() {
+        try {
+            AgateFlowCommands.WORKER.submit(() -> { }).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     TestRobot() {
         // AgateFlow works the translational kP out the way ForesightTuner does (0 = not copied in).
@@ -67,11 +156,11 @@ final class TestRobot {
         });
     }
 
-    /** An AgateFlow on the real field (FieldZones) with this robot's follower. */
+    /** An AgateFlow on the real field (FieldZones). plan() gives it this robot's follower. */
     AgateFlow agateFlow() {
         FieldMap map = new FieldMap();
         map.setZones("field", FieldZones.zones());
-        return new AgateFlow(map, follower);
+        return new AgateFlow(map);
     }
 
     Plan plan(AgateFlow agateFlow, Pose start, Route route, Alliance alliance) {
@@ -86,8 +175,30 @@ final class TestRobot {
         follower.setPose(pose);
     }
 
+    /** 10 ms of driving, and the virtual clock moves on 10 ms. */
     void step() {
         follower.update(STEP);
+        nanos += Math.round(STEP * 1e9);
+    }
+
+    /** DriveRoute, Estimate and ParkGuard time things with this robot's virtual clock (until Saved.restore()). */
+    void useVirtualClock() {
+        DriveRoute.NOW = () -> nanos;
+    }
+
+    /**
+     * One OpMode loop, like an auto's: Scheduler.execute(), then wait for any plan it
+     * asked for (the clock stands still meanwhile), then 10 ms of driving.
+     */
+    void loop() {
+        Scheduler.execute();
+        waitForPlans();
+        step();
+    }
+
+    /** Seconds on the virtual clock. */
+    double seconds() {
+        return nanos / 1e9;
     }
 
     Pose pose() {

@@ -28,27 +28,19 @@ import java.util.List;
  */
 public class FlowerIntakeStretchTest {
     private static final Pose SHOOT = new Pose(36, 48, Math.PI);
-    private double timeLimit;
-    private boolean replan;
-    private Alliance alliance;
+    private TestRobot.Saved saved;
 
     @Before
     public void setUp() {
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
-        replan = AgateFlowCommands.REPLAN;
-        alliance = RobotState.alliance;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
+        saved = TestRobot.save();
         AgateFlowCommands.REPLAN = false;
+        EtaCalibration.LEARN = false;
         RobotState.alliance = Alliance.RED;
-        Scheduler.reset();
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
-        AgateFlowCommands.REPLAN = replan;
-        RobotState.alliance = alliance;
-        Scheduler.reset();
+        saved.restore();
     }
 
     /** One loop of the drive: where the robot was and what the drive said. */
@@ -64,8 +56,9 @@ public class FlowerIntakeStretchTest {
     }
 
     /** Drives the route from start like withFlowerIntake does, recording flowerIntakeDown() each loop the plan is known. */
-    private static List<Sample> drive(Pose start, Route route, DriveRoute[] made) throws InterruptedException {
+    private static List<Sample> drive(Pose start, Route route, DriveRoute[] made) {
         final TestRobot robot = new TestRobot();
+        robot.useVirtualClock();
         robot.place(start);
         AgateFlowCommands agateFlow = new AgateFlowCommands(robot.follower, () -> TestRobot.VOLTS, new Object());
         final DriveRoute drive = agateFlow.driveTo(route);
@@ -77,18 +70,14 @@ public class FlowerIntakeStretchTest {
         }).requiring(new Object());
         Command group = Groups.deadline(drive, follow);
         Scheduler.schedule(group);
-        for (int i = 0; i < 20000 && Scheduler.isScheduled(group); i++) {
-            Scheduler.execute();
-            robot.step();
-            // Planning runs on its own thread in real time: don't run the clock on while waiting.
-            if (drive.status() == DriveRoute.Status.PLANNING) Thread.sleep(1);
-        }
+        // Each loop waits for the plan it asked for, on the virtual clock, so the computer's speed doesn't matter.
+        for (int i = 0; i < 20000 && Scheduler.isScheduled(group); i++) robot.loop();
         assertEquals(drive.problem(), DriveRoute.Status.ARRIVED, drive.status());
         return samples;
     }
 
     @Test
-    public void downOnlyOnTheMarkedStretch() throws InterruptedException {
+    public void downOnlyOnTheMarkedStretch() {
         Pose through = new Pose(25, 80, 0);
         Pose flower = IntakePoses.flowerPose(Flower.ALLIANCE_WALL);
         DriveRoute[] drive = new DriveRoute[1];
@@ -117,7 +106,7 @@ public class FlowerIntakeStretchTest {
     }
 
     @Test
-    public void staysDownAfterArrivingOnAMarkedStretch() throws InterruptedException {
+    public void staysDownAfterArrivingOnAMarkedStretch() {
         DriveRoute[] drive = new DriveRoute[1];
         List<Sample> samples = drive(SHOOT, new Route().to(IntakePoses.flowerPose(Flower.ALLIANCE_WALL))
                 .approach(IntakePoses.flowerTravelDegrees(Flower.ALLIANCE_WALL), IntakePoses.FLOWER_APPROACH).flowerIntakeDown(), drive);

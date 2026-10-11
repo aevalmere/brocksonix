@@ -4,6 +4,7 @@ import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
@@ -14,7 +15,8 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Turret;
  * Turret setup and tuning. Change gains live in Panels (Turret) and watch the
  * error settle.
  *
- * Cross: switch between manual (left stick X drives the servo) and aiming.
+ * Cross: switch between manual (left stick X drives the servo, up to
+ * Turret.MAX_POWER) and aiming.
  * D-pad: aim at 0 (up), 90 (left), -90 (right), 180 (down).
  * Bumpers: nudge the target ±10°.
  */
@@ -29,6 +31,8 @@ public class TurretTest extends LinearOpMode {
         double target = 0;
 
         waitForStart();
+        // "WasPressed" remembers presses made during init, which would fire on the first loop.
+        gamepad1.resetEdgeDetection();
         while (opModeIsActive()) {
             bulkReads.clear();
             turret.readSensors();
@@ -41,7 +45,9 @@ public class TurretTest extends LinearOpMode {
             if (gamepad1.leftBumperWasPressed()) target += 10;
             if (gamepad1.rightBumperWasPressed()) target -= 10;
 
-            turret.setManualPower(manual ? (double) -gamepad1.left_stick_x : null);
+            // Capped like aiming mode, so the stick never pushes harder than MAX_POWER.
+            double stick = Range.clip(-gamepad1.left_stick_x, -Turret.MAX_POWER, Turret.MAX_POWER);
+            turret.setManualPower(manual ? (Double) stick : null);
             turret.setTargetDeg(target);
             turret.update();
 

@@ -26,6 +26,8 @@ public class Rail {
     // TODO(3): Lowest power that keeps a ball seated on the closed door without the motor straining.
     /** Once a ball sits against the closed door, push gently so the motor doesn't stall. */
     public static double TRANSFER_HOLD_POWER = 0.15;
+    // TODO(3): Storage Test, hold Circle with balls loaded: they must back out without flying out of the intake. Lower it (toward 0) if they do.
+    /** Unjam power, negative: balls move away from the door. */
     public static double REVERSE_POWER = -1.0;
 
     private final CachedMotor intake, transfer;

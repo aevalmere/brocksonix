@@ -25,7 +25,7 @@ public final class Estimate {
     /** Field pose and alliance the plan was made from. */
     final Pose from;
     final Alliance alliance;
-    private final long madeAtNanos = System.nanoTime();
+    private final long madeAtNanos = DriveRoute.NOW.getAsLong();
 
     Estimate(Route route, Future<Plan> future, Pose from, Alliance alliance) {
         this.route = route;
@@ -54,13 +54,8 @@ public final class Estimate {
         return plan != null && plan.ok() ? plan.seconds() : Double.NaN;
     }
 
-    /** Where the robot was when this was asked, field coordinates. */
-    public Pose from() {
-        return from;
-    }
-
     /** Seconds since this was asked. */
     public double age() {
-        return (System.nanoTime() - madeAtNanos) / 1e9;
+        return (DriveRoute.NOW.getAsLong() - madeAtNanos) / 1e9;
     }
 }

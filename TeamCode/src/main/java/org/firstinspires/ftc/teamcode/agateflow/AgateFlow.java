@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.agateflow;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.config.Modifier;
-import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.math.Vector2D;
 import com.pedropathing.math.Velocity;
@@ -70,7 +69,7 @@ public final class AgateFlow {
     // TODO(13): Measure the farthest point of the robot from the turret center (wedge tips, intake). A circle this big must cover the whole robot.
     /** Circle around the turret center that covers the whole robot, inches. */
     public static double ROBOT_RADIUS = 10;
-    // TODO(13): Copy the measured Field.CENTER_TO_INTAKE_WALL into ROBOT_FRONT and CENTER_TO_SIDE_WALL into ROBOT_HALF_WIDTH; tape the turret center to the chassis back for ROBOT_BACK.
+    // TODO(13): Confirm ROBOT_FRONT and ROBOT_HALF_WIDTH equal the measured Field.CENTER_TO_INTAKE_WALL and CENTER_TO_SIDE_WALL (step 8), and tape the turret center to the chassis back for ROBOT_BACK.
     /**
      * The robot's outline around the point the localizer tracks, flower intake up
      * (how ParkGuard and every drive with it up go), inches, from CAD (ROBOT.md).
@@ -80,10 +79,14 @@ public final class AgateFlow {
      * (145.4 mm). Half width: the outer frame rails (298 mm across; the chassis
      * plate is 280 mm, so this is the wider one). ROBOT_RADIUS must still cover
      * all four corners (now 9.9 in.).
+     *
+     * Front and half width are the same distances relocalizing uses, so they start
+     * from Field's numbers (step 8) instead of copies. They are read when the app
+     * starts: a Panels edit to Field doesn't reach them, so edit these too.
      */
-    public static double ROBOT_FRONT = 7.99;
+    public static double ROBOT_FRONT = Field.CENTER_TO_INTAKE_WALL;
     public static double ROBOT_BACK = 5.72;
-    public static double ROBOT_HALF_WIDTH = 5.87;
+    public static double ROBOT_HALF_WIDTH = Field.CENTER_TO_SIDE_WALL;
     /**
      * Check the predicted path with the robot's outline (true), so it may pass
      * things closer side-on than front-on, or with the ROBOT_RADIUS circle (false).
@@ -161,6 +164,7 @@ public final class AgateFlow {
      * itself (it says so in Plan.notes). 0: never.
      */
     public static double NEAR_MISS_FRACTION = 0.25;
+    // TODO(13): Run the AgateFlow Benchmark on the Control Hub. Raise this if many plans hit it and come out slower than on the desktop; lower it if replans come back too late while driving.
     /** Stop trying more candidate routes after this long (at least one is always tried), ms. AgateFlowCommands plans in the background, so the loop doesn't wait. */
     public static double PLAN_TIME_LIMIT_MS = 100;
     /** Move a target that is inside (or touching) a zone to the nearest free spot. False: refuse to plan instead. */
@@ -170,6 +174,7 @@ public final class AgateFlow {
     // TODO(14): Drive into a POLLEN at rising speeds; set this to the fastest that still picks it up every time.
     /** Speed limit at each pickup, from PICKUP_RUN before it to PICKUP_EXIT after it, in/s. */
     public static double PICKUP_SPEED = 30;
+    // TODO(14): Measure the intake's opening across (where a POLLEN gets grabbed) and set this to half of it.
     /** Half the intake's width, inches: it is as wide as the chassis (280 mm, ROBOT.md). */
     public static double INTAKE_HALF_WIDTH = 5.51;
     // TODO(14): Drive slowly over a POLLEN and measure how far past the intake's front edge it is when the intake grabs it.
@@ -177,10 +182,13 @@ public final class AgateFlow {
     public static double INTAKE_DEPTH = 2;
     /** POLLEN radius, inches (2.8 in. balls, ROBOT.md). */
     public static double BALL_RADIUS = 1.4;
+    // TODO(14): Pick up POLLEN that sits at an angle to the robot's way in. Raise this if the intake hits them crooked and misses, lower it if pickUp routes are slow.
     /** Straight run into each pickup, inches, so the intake meets the targets square. */
     public static double PICKUP_RUN = 12;
+    // TODO(14): Watch a pickUp route: raise this if the robot speeds up before the POLLEN is all the way in, lower it if it stays slow for long after.
     /** The pickup speed limit stays on this far past each pickup, inches (Foresight looks ahead, so it would speed up early). */
     public static double PICKUP_EXIT = 4;
+    // TODO(14): Run pickUp routes on the field: raise this if POLLEN gets missed at the intake's edges, lower it if Plan.skipped() leaves out ones the intake could get.
     /**
      * Planning aims to bring each target at least this far inside the intake's sides,
      * inches, to allow for the prediction being off a little. If the predicted path
@@ -198,18 +206,12 @@ public final class AgateFlow {
     private static final double ARRIVED = 0.5;
 
     private final FieldMap map;
-    private final Follower follower;
     private final VisibilityGraph[] graphs = new VisibilityGraph[4];
     private int nextGraphSlot = 0;
 
-    /**
-     * @param follower the robot's follower: its Foresight config gives the brake
-     *                 model and enforces speed limits. Null plans with
-     *                 DriveModel's fallbacks and no speed limits (for testing).
-     */
-    public AgateFlow(FieldMap map, Follower follower) {
+    /** Plans around the zones in this map. The robot's follower comes in each plan's DriveModel. */
+    public AgateFlow(FieldMap map) {
         this.map = map;
-        this.follower = follower;
     }
 
     public FieldMap map() {
@@ -217,20 +219,18 @@ public final class AgateFlow {
     }
 
     /**
-     * Plans the whole route from this pose and velocity.
+     * Plans the whole route from this pose and velocity, with drive settings already
+     * read (DriveModel.capture, on the main thread). It may run on any thread, but only
+     * one thread at a time may use an AgateFlow. A Route's live poses (toLive,
+     * pickUpLive) are asked for on the thread that calls this; AgateFlowCommands asks
+     * them on the main thread first (Route.askLivePosesNow), so call it that way.
      *
      * @param velocity     field-frame velocity (follower.velocity())
      * @param alliance     flips the route's red poses for blue
      * @param batteryVolts the hub's battery reading with the drive idle (for the time estimate)
-     */
-    public Plan plan(Pose start, Velocity velocity, Route route, Alliance alliance, double batteryVolts) {
-        return plan(start, velocity, route, alliance, batteryVolts, DriveModel.capture(follower));
-    }
-
-    /**
-     * Same, with drive settings already read (DriveModel.capture). Use this one off
-     * the main thread: capture on the main thread, then plan anywhere. Only one
-     * thread at a time may use an AgateFlow.
+     * @param model        DriveModel.capture(follower): its Foresight config gives the brake
+     *                     model and enforces speed limits. capture(null) plans with
+     *                     DriveModel's fallbacks and no speed limits.
      */
     public Plan plan(Pose start, Velocity velocity, Route route, Alliance alliance, double batteryVolts, DriveModel model) {
         long began = System.nanoTime();
@@ -285,6 +285,7 @@ public final class AgateFlow {
         job.volts = volts;
         job.deadline = began + (long) (PLAN_TIME_LIMIT_MS * 1e6);
         job.notes = notes;
+        job.routeStartFlowerDown = route.startFlowerDown;
 
         double vx = bad(velocity.vx) ? 0 : velocity.vx, vy = bad(velocity.vy) ? 0 : velocity.vy;
         List<Waypoint.Resolved> targets = new ArrayList<>();
@@ -338,7 +339,7 @@ public final class AgateFlow {
             job.startHeading = heading;
             job.startVx = vx;
             job.startVy = vy;
-            job.startFlowerDown = first > 0 && targets.get(first - 1).flowerDown;
+            job.startFlowerDown = first > 0 ? targets.get(first - 1).flowerDown : job.routeStartFlowerDown;
             job.targets = targets.subList(first, last + 1);
             int legCount = legs.size();
             String problem = planLeg(job, legs);
@@ -649,6 +650,8 @@ public final class AgateFlow {
         double startX, startY, startHeading, startVx, startVy;
         /** The leg starts where a Route.flowerIntakeDown stretch ended (the intake is still coming up). */
         boolean startFlowerDown;
+        /** The route's first leg starts that way too (Route.startFlowerDown: a replan or park drive from a FLOWER). */
+        boolean routeStartFlowerDown;
         List<Waypoint.Resolved> targets;
     }
 
@@ -806,7 +809,8 @@ public final class AgateFlow {
         ClearanceRule[] rules = new ClearanceRule[k];
         for (int j = 0; j < k; j++) {
             if (Geometry.length(targets.get(j).x - ax[j], targets.get(j).y - ay[j]) < ARRIVED) {
-                return "Waypoints " + j + " and " + (j + 1) + " of this leg are at the same spot";
+                return j == 0 ? "The first waypoint of this leg is where the leg starts"
+                        : "Waypoints " + j + " and " + (j + 1) + " of this leg are at the same spot";
             }
             double radius = targets.get(j).contact ? CONTACT_RADIUS : job.safe;
             // The first stretch starts where the robot is, facing the way it really faces (so turning in place counts).
@@ -942,7 +946,7 @@ public final class AgateFlow {
             if (choice.best == null && j > 0 && !targets.get(j - 1).stop
                     && job.snap.clearance(targets.get(j - 1).x, targets.get(j - 1).y) >= ROBOT_RADIUS + ClearanceRule.END_SLACK) {
                 // No safe way on from the through-waypoint before this stretch at speed: stop there
-                // instead and let planRoute redo the leg. Only where there's room to turn in place.
+                // instead and let planTargets redo the leg. Only where there's room to turn in place.
                 targets.get(j - 1).stop = true;
                 return null;
             }
@@ -953,7 +957,7 @@ public final class AgateFlow {
             if (j > 0) {
                 double[] in = chosen.get(j - 1).endDirection(), out = choice.stretch.startDirection();
                 if (in[0] * out[0] + in[1] * out[1] < Math.cos(Math.toRadians(20))) {
-                    // Still a sharp kink at the through-waypoint: make it a stop and let planRoute redo the leg.
+                    // Still a sharp kink at the through-waypoint: make it a stop and let planTargets redo the leg.
                     targets.get(j - 1).stop = true;
                     return null;
                 }
@@ -1938,7 +1942,6 @@ public final class AgateFlow {
         List<Waypoint> waypoints = new ArrayList<>();
         double[] waypointAt = new double[e.stretches.size()];
         double along = 0;
-        int limited = 0;
         for (int j = 0; j < e.stretches.size(); j++) {
             Stretch stretch = e.stretches.get(j);
             List<Path> piecePaths = new ArrayList<>();
@@ -1947,7 +1950,6 @@ public final class AgateFlow {
                 if (piece.cap != Double.POSITIVE_INFINITY && job.model.foresight != null) {
                     double cap = Math.min(piece.cap, job.model.speedLimit);
                     modifiers = Collections.singletonList(job.model.foresight.config.maxVelocityConstraint.at(cap));
-                    if (piece.cap < piece.ownCap) limited++;
                 }
                 piecePaths.add(new AtomicPath(piece.curve, null, modifiers));
                 segments.add(piece.curve);
@@ -1992,7 +1994,7 @@ public final class AgateFlow {
                     e.track.x[i], e.track.y[i], -e.check.worstSlack, zone == null ? "a zone" : zone.name));
         }
         return new Leg(path, new Pose(stop.x, stop.y, endHeading), e.profile.seconds, e.track.length(),
-                e.profile.topSpeed, e.profile.lowestVolts, e.profile.peakAmps, e.check.worstSlack, limited,
+                e.profile.topSpeed, e.profile.lowestVolts, e.profile.peakAmps, e.check.worstSlack,
                 e.driven, e.profile, segments.toArray(new Curve[0]), segmentStart, waypoints, waypointAt, e.check.path, e.check.heading,
                 e.check.speed);
     }
@@ -2053,7 +2055,7 @@ public final class AgateFlow {
         double turn = Math.abs(signed);
         double seconds = turn / (job.volts * model.turnPerVolt) + (turn > 0.01 ? model.turnTau : 0) + model.settleSeconds;
         return new Leg(null, new Pose(stop.x, stop.y, goal), seconds, 0, 0, job.volts, 0,
-                Double.POSITIVE_INFINITY, 0, null, null, new Curve[0], new double[0],
+                Double.POSITIVE_INFINITY, null, null, new Curve[0], new double[0],
                 Collections.singletonList(stop.source), new double[]{0}, new double[0], new double[0], new double[0]);
     }
 

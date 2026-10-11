@@ -21,7 +21,13 @@ public class CachedCRServo {
         }
     }
 
+    /**
+     * The CR servo itself, for what this class doesn't wrap. A call through it (setDirection,
+     * a new PWM range) changes what a power does, so the cache is cleared: the next setPower()
+     * always goes out, even if it repeats the last one.
+     */
     public CRServo raw() {
+        last = Double.NaN;
         return servo;
     }
 }

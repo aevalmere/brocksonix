@@ -23,6 +23,9 @@ import java.util.Locale;
  * PlanDrawing.toPanels(drive.plan(), agateFlow.map(), follower.pose());
  * </pre>
  *
+ * Panels is for practice only: Competition Manual R704.D bans it at events, so
+ * a match OpMode must work without this drawing (see util/PanelsSettings).
+ *
  * Colors (they show on Panels' dark field picture and on a light one): zones
  * and the field's edge, where the walls start, magenta; the planned path blue;
  * the predicted path green; the robot's outline orange with its intake end

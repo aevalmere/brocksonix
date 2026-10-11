@@ -21,15 +21,11 @@ import org.junit.Test;
  */
 public class DriveModelTest {
     private static final double EPS = 1e-9;
-    private double heading, forwardNear, forwardFar, strafeNear, strafeFar;
+    private TestRobot.Saved saved;
 
     @Before
     public void fallbacksThatStandOut() {
-        heading = DriveModel.HEADING_GAIN;
-        forwardNear = DriveModel.FORWARD_KP_NEAR;
-        forwardFar = DriveModel.FORWARD_KP_FAR;
-        strafeNear = DriveModel.STRAFE_KP_NEAR;
-        strafeFar = DriveModel.STRAFE_KP_FAR;
+        saved = TestRobot.save();
         DriveModel.HEADING_GAIN = 9.1;
         DriveModel.FORWARD_KP_NEAR = 9.2;
         DriveModel.FORWARD_KP_FAR = 9.3;
@@ -39,11 +35,7 @@ public class DriveModelTest {
 
     @After
     public void putBack() {
-        DriveModel.HEADING_GAIN = heading;
-        DriveModel.FORWARD_KP_NEAR = forwardNear;
-        DriveModel.FORWARD_KP_FAR = forwardFar;
-        DriveModel.STRAFE_KP_NEAR = strafeNear;
-        DriveModel.STRAFE_KP_FAR = strafeFar;
+        saved.restore();
     }
 
     /** TestRobot's Foresight setup with these three controllers. */

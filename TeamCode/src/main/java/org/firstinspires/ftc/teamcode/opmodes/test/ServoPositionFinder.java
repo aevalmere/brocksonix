@@ -8,7 +8,8 @@ import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
 
 /**
  * Finds servo positions (door open/closed, flower intake up/down). Move one
- * servo at a time and copy the number into Door or FlowerIntake.
+ * servo at a time and copy the number into Door or FlowerIntake. The coax hood
+ * servo isn't here: Coax Hood Test finds its numbers (raw servo, Circle).
  *
  * D-pad left/right: pick a servo. D-pad up/down: ±0.01. Bumpers: ±0.05.
  * Servos don't move until you press something, so nothing jumps at start.
@@ -32,6 +33,8 @@ public class ServoPositionFinder extends LinearOpMode {
         int selected = 0;
 
         waitForStart();
+        // "WasPressed" remembers presses made during init, which would move a servo on the first loop.
+        gamepad1.resetEdgeDetection();
         while (opModeIsActive()) {
             if (gamepad1.dpadRightWasPressed()) selected = (selected + 1) % NAMES.length;
             if (gamepad1.dpadLeftWasPressed()) selected = (selected + NAMES.length - 1) % NAMES.length;

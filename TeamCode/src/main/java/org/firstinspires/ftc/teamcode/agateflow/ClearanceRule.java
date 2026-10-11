@@ -14,9 +14,10 @@ import java.util.List;
  * end and grows by {@code slope} inches per inch of travel, up to the normal one.
  * So the robot may leave a wall at an angle, but can't run along it.
  *
- * The robot may drift END_SLACK past an end while it settles, but never to
- * under ROBOT_RADIUS from a zone it was at least ROBOT_RADIUS from there: an
- * end in the safety margin only lets the robot into the margin, not the robot.
+ * The robot may drift END_SLACK past an end while it settles, but never closer
+ * than ROBOT_RADIUS to a zone it was at least ROBOT_RADIUS from at that end: an
+ * end inside the safety margin lets the robot into the margin, not inside
+ * ROBOT_RADIUS.
  *
  * slack(x, y) treats the robot as a circle. slack(x, y, heading) uses its real
  * outline, a rectangle (ROBOT_FRONT, ROBOT_BACK, ROBOT_HALF_WIDTH around the
@@ -171,12 +172,9 @@ final class ClearanceRule {
 
     /**
      * How far the robot's outline reaches from its center toward a zone that is in
-     * direction (towardX, towardY) (a unit vector), when it faces {@code heading}.
+     * direction (towardX, towardY) (a unit vector), when it faces {@code heading}
+     * and reaches {@code front} ahead.
      */
-    double reach(double towardX, double towardY, double heading) {
-        return reach(towardX, towardY, heading, front);
-    }
-
     private double reach(double towardX, double towardY, double heading, double front) {
         double c = Math.cos(heading), s = Math.sin(heading);
         double ahead = towardX * c + towardY * s, side = -towardX * s + towardY * c;
@@ -270,11 +268,6 @@ final class ClearanceRule {
             need = Math.min(need, endDistance[zone] + slope * Geometry.length(x - endX, y - endY));
         }
         return need;
-    }
-
-    /** How far the center stays from zone i with the circle, away from the ends (the searches grow the zones this much). */
-    double circleNeed(int zone) {
-        return circleNeed[zone];
     }
 
     /**

@@ -38,8 +38,14 @@ public class MainTeleOp extends LinearOpMode {
     public static boolean FULL_TELEMETRY = true;
     // TODO(12): Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.
     public static double TELEMETRY_INTERVAL_MS = 200;
+    // TODO(12): Driver 2 practice: one press should fix a typical miss. Raise if it takes several presses, lower if one press overshoots.
     public static double TURRET_TRIM_STEP_DEG = 2;
+    // TODO(12): Same as the turret trim, for shots that land short or long (static hood).
     public static double RPM_TRIM_STEP = 25;
+    // TODO(16): Main TeleOp, COAX: one press should fix a typical high or low miss. Raise if it takes several presses, lower if one overshoots.
+    /** Coax hood: D-pad up/down trims the hood angle instead of the RPM, since the hood re-solves for any RPM. */
+    public static double HOOD_TRIM_STEP_DEG = 0.5;
+    // TODO(12): Raise it if a resting finger fires RT or LT; lower it if a full pull doesn't register.
     /** How far RT (pass) and LT (unjam) must be pulled to count as pressed. */
     public static double TRIGGER_THRESHOLD = 0.5;
 
@@ -66,6 +72,10 @@ public class MainTeleOp extends LinearOpMode {
                     : "from the last OpMode " + savedPose);
             screen.update();
         }
+        // "WasPressed" remembers presses made during init, which would fire on the first loop
+        // (a relocalize, an intake toggle, a trim). Start with none.
+        gamepad1.resetEdgeDetection();
+        gamepad2.resetEdgeDetection();
 
         if (savedPose != null) {
             robot.setPose(savedPose, true);
@@ -123,7 +133,14 @@ public class MainTeleOp extends LinearOpMode {
     private void driverTwo(Gamepad pad) {
         if (pad.dpadLeftWasPressed()) robot.turret.addTrim(TURRET_TRIM_STEP_DEG);
         if (pad.dpadRightWasPressed()) robot.turret.addTrim(-TURRET_TRIM_STEP_DEG);
-        if (pad.dpadUpWasPressed()) robot.shooter.addTrim(RPM_TRIM_STEP);
-        if (pad.dpadDownWasPressed()) robot.shooter.addTrim(-RPM_TRIM_STEP);
+        // With the coax hood an RPM trim does nothing useful: the hood just re-solves for the new speed.
+        // So up/down trims the hood there. Steeper mostly means higher at the cell.
+        if (robot.usingCoaxHood()) {
+            if (pad.dpadUpWasPressed()) robot.coaxHood.addTrim(HOOD_TRIM_STEP_DEG);
+            if (pad.dpadDownWasPressed()) robot.coaxHood.addTrim(-HOOD_TRIM_STEP_DEG);
+        } else {
+            if (pad.dpadUpWasPressed()) robot.shooter.addTrim(RPM_TRIM_STEP);
+            if (pad.dpadDownWasPressed()) robot.shooter.addTrim(-RPM_TRIM_STEP);
+        }
     }
 }

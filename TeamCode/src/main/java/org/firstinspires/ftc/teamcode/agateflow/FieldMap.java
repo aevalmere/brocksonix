@@ -51,10 +51,6 @@ public final class FieldMap {
         rebuild();
     }
 
-    public synchronized void clearZones(String source) {
-        setZones(source, Collections.<Zone>emptyList());
-    }
-
     /** All zones right now, walls included. It never changes, so one plan can use it throughout. */
     public Snapshot snapshot() {
         return snapshot;

@@ -36,8 +36,6 @@ public final class Leg {
      * AgateFlow.NEAR_MISS_FRACTION and Plan.notes).
      */
     public final double worstRoom;
-    /** Segments AgateFlow gave a speed limit so the robot doesn't cut a corner into a zone. */
-    public final int speedLimitedSegments;
 
     final Track track;
     final MotionModel.Profile profile;
@@ -55,7 +53,7 @@ public final class Leg {
     final double[] predictedSpeed;
 
     Leg(Path path, Pose end, double seconds, double length, double topSpeed, double lowestVolts, double peakAmps,
-        double worstRoom, int speedLimitedSegments, Track track, MotionModel.Profile profile,
+        double worstRoom, Track track, MotionModel.Profile profile,
         Curve[] segments, double[] segmentStart, List<Waypoint> waypoints, double[] waypointAt, double[] predictedPath,
         double[] predictedHeading, double[] predictedSpeed) {
         this.path = path;
@@ -66,7 +64,6 @@ public final class Leg {
         this.lowestVolts = lowestVolts;
         this.peakAmps = peakAmps;
         this.worstRoom = worstRoom;
-        this.speedLimitedSegments = speedLimitedSegments;
         this.track = track;
         this.profile = profile;
         this.segments = segments;
@@ -127,16 +124,5 @@ public final class Leg {
     /** Predicted seconds from Foresight's handoff (path done, holding the end) until the robot is at the stop. */
     double settleSeconds() {
         return profile == null ? 0 : profile.seconds - profile.handoffSeconds;
-    }
-
-    /** Predicted speed at this distance along the leg, inches/second. */
-    public double predictedSpeedAt(double distance) {
-        if (track == null) return 0;
-        return profile.speed[track.indexAtPlanned(distance)];
-    }
-
-    /** Where Foresight is predicted to really drive, as x, y pairs (for drawing). Empty for a turn in place. */
-    public double[] predictedPath() {
-        return predictedPath.clone();
     }
 }

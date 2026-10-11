@@ -10,6 +10,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
 import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
 import org.firstinspires.ftc.teamcode.robot.shot.ShotTables;
+import org.firstinspires.ftc.teamcode.robot.subsystems.CoaxHood;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
@@ -27,6 +28,9 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
  * motor, Circle to run only the right one, at low power. Each must push the
  * shooting direction; if not, flip its REVERSED flag in Panels (works live).
  * With the left motor running, RPM must read positive, or flip ENCODER_REVERSED.
+ *
+ * With the coax hood on the robot, it holds CoaxHood.STATIC_LAUNCH_DEG, like Main
+ * TeleOp with Robot.HOOD = STATIC, so the SHOT_RPM rows found here fit the static tables.
  */
 @Configurable
 @TeleOp(name = "Shooter Test", group = "Test")
@@ -49,10 +53,14 @@ public class ShooterTest extends LinearOpMode {
         Door door = new Door(hardwareMap);
         Rail rail = new Rail(hardwareMap);
         Storage storage = new Storage(hardwareMap);
+        // Optional, like in Robot: null when the configuration has no hood servo.
+        CoaxHood hood = CoaxHood.isConfigured(hardwareMap) ? new CoaxHood(hardwareMap) : null;
         boolean on = false;
         double rpm = 3000;
 
         waitForStart();
+        // "WasPressed" remembers presses made during init: Cross would turn the wheel on at start.
+        gamepad1.resetEdgeDetection();
         while (opModeIsActive()) {
             bulkReads.clear();
             shooter.readSensors();
@@ -83,6 +91,11 @@ public class ShooterTest extends LinearOpMode {
 
             shooter.update();
             door.update();
+            if (hood != null) {
+                // Every loop, so a Panels edit to STATIC_LAUNCH_DEG moves it live.
+                hood.setTargetDeg(CoaxHood.STATIC_LAUNCH_DEG);
+                hood.update();
+            }
 
             String tableProblem = ShotTables.orderProblem();
             if (tableProblem != null) screen.addLine("!! " + tableProblem + " (fix in Panels, ShotTables)");
@@ -91,6 +104,10 @@ public class ShooterTest extends LinearOpMode {
             screen.addData("At speed", shooter.atSpeed());
             shooter.addTelemetry(screen);
             storage.addTelemetry(screen);
+            if (hood != null) {
+                screen.addLine("Coax hood: holding STATIC_LAUNCH_DEG. Wait for \"at target\" before firing.");
+                hood.addTelemetry(screen);
+            }
             screen.addData("Battery", "%.2f V", voltage.get());
             screen.update();
         }

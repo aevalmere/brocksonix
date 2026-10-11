@@ -12,12 +12,19 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.robot.hardware.CachedMotor;
 import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
 import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
+import org.firstinspires.ftc.teamcode.util.PIDF;
 
 /**
- * Two coupled motors on one flywheel, fixed launch angle, so RPM is the only
- * thing that changes how far a ball goes. Speed comes from the left motor's encoder.
+ * Two coupled motors on one flywheel. Speed comes from the left motor's encoder.
+ * With the static hood, RPM is the only thing that changes how far a ball goes.
+ * With the coax hood, the hood angle is solved from averageRpm(), the speed the
+ * wheel really has, so the wheel doesn't have to be exactly at target.
  *
- * Normal control: power = kS + kV * target + kP * error, scaled for battery voltage.
+ * Normal control: power = kS + kV * target + kP * error + kA * how fast the target
+ * changes, scaled for battery voltage. The kA part pushes the wheel along while the
+ * target changes as the robot drives closer or farther, so it doesn't lag behind. It
+ * is 0 when the target holds still, so it never biases a shot. It is GNCE Ditto's
+ * FLYWHEEL_ACCEL_KFF: https://github.com/GNCE/DECODEv2-Ditto/blob/c78b5268930d55c6d5a59c23922d9a8baf9f96e6/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/config/subsystems/Shooter.java
  * While a burst is firing, "boost" switches to full power whenever the wheel
  * drops below target, so it recovers between balls as fast as possible.
  *
@@ -43,10 +50,27 @@ public class Shooter {
     public static double KV = 1.0 / 6000;
     // TODO(6): Raise until it recovers fast without oscillating.
     public static double KP = 0.0005;
+    // TODO(11): Main TeleOp: drive straight toward and away from the HIVE while watching Shooter RPM. Raise from 0 until the wheel keeps up with the target without overshooting it.
+    /** Power per RPM-per-second that the target changes. */
+    public static double KA = 0;
+    // TODO(11): Raise (smoother) if the kA part jumps around; lower if it reacts too late.
+    /** Smoothing for the target-change estimate: 0 = none, closer to 1 = smoother but later (same as the turret's filters). */
+    public static double TARGET_RATE_FILTER = 0.7;
+    // TODO(11): With KA on, drive full speed straight at the HIVE and watch "target changing" in telemetry. Set this a little above the biggest number you see.
+    /** Limit on the target-change estimate, in RPM per second. */
+    public static double MAX_TARGET_RATE = 8000;
 
-    // TODO(6): Largest RPM error that still scores at mid range.
-    /** The shot is allowed when the wheel is within this many RPM of target. */
-    public static double RPM_TOLERANCE = 75;
+    // TODO(16): Coax hood: if the hood shakes with the wheel's speed reading, raise it. Each sample is one loop; more = steadier but later.
+    /** Loops averaged for averageRpm(), the speed the coax hood solves with. The average runs about half that many loops late. */
+    public static int AVERAGE_SAMPLES = 3;
+
+    // TODO(6): Largest RPM error that still scores at mid range. Not under 90: the RPM reading moves in steps of about 43.
+    /**
+     * The shot is allowed when the wheel is within this many RPM of target. At least 2 steps of
+     * the RPM reading (2 x 43 = 86, see TICKS_PER_REV), so one step of reading noise can't flip
+     * atSpeed() on and off. FireControl.READY_HOLD_MS then makes it hold before a burst starts.
+     */
+    public static double RPM_TOLERANCE = 90;
     // TODO(6): Fire 4 balls: quick recovery between balls, no big overshoot.
     /** In boost, full power whenever the wheel is more than this far below target. */
     public static double BOOST_BELOW_RPM = 50;
@@ -62,21 +86,37 @@ public class Shooter {
     public static double WATCHDOG_MS = 500;
     public static double WATCHDOG_MIN_RPM = 100;
 
+    // Encoder counts per turn of a bare goBILDA 6000 RPM motor. The wheel is driven 1:1 (ROBOT.md),
+    // so motor RPM is wheel RPM; a belt or gears between them would need their ratio in readSensors().
+    // getVelocity() is ticks per second over the hub's last 50 ms, so it moves in steps of
+    // 20 ticks/s: 20 * 60 / 28 = about 43 RPM per step. Full speed is 2800 ticks/s, far under
+    // 32767, where the hub's 16-bit velocity would wrap around.
     private static final double TICKS_PER_REV = 28;
     // Finer than the 0.01 default. KV is 1/6000, so 0.01 power is about 60 RPM of feedforward
     // and small KV edits in Panels would look dead.
     private static final double MIN_POWER_CHANGE = 0.002;
+    // A target change bigger than this in one loop is a jump (spin-up from 0, shoot to pass),
+    // not the robot driving, so it doesn't feed the kA estimate. Trim presses are left out too.
+    private static final double TARGET_JUMP_RPM = 200;
+    // Room for AVERAGE_SAMPLES; Panels values above this are capped.
+    private static final int MAX_AVERAGE_SAMPLES = 20;
 
     private final CachedMotor left, right;
     private final DcMotorEx encoderMotor;
     private final VoltageCache voltage;
     private final ElapsedTime runawayFor = new ElapsedTime();
+    private final ElapsedTime loopTimer = new ElapsedTime();
+    private final double[] recentRpm = new double[MAX_AVERAGE_SAMPLES];
+    private int recentCount = 0;
+    private int recentNext = 0;
 
     private double targetRpm = 0;
     private double trimRpm = 0;
     private boolean boost = false;
     private double rpm = 0;
     private double power = 0;
+    private double lastTarget = 0;
+    private double targetRate = 0;
     private boolean openLoop = false;
     private double openLeftPower = 0;
     private double openRightPower = 0;
@@ -95,7 +135,7 @@ public class Shooter {
     private static DcMotorEx motor(HardwareMap hardwareMap, String name) {
         DcMotorEx motor = hardwareMap.get(DcMotorEx.class, name);
         motor.setDirection(DcMotorSimple.Direction.FORWARD);
-        // TODO(12): After a trim-down the wheel coasts (FLOAT) and atSpeed() blocks shots until it slows. Time a 100 to 200 RPM coast-down; if it blocks shots, tell the programmers to add braking or a small reverse power.
+        // TODO(6): Shooter Test, wheel on: D-pad down once or twice and time the 100 to 200 RPM coast-down. Driving toward the HIVE and trimming down both lower the target, and atSpeed() holds off a burst until the wheel gets there. If that takes too long, tell the programmers to add braking or a small reverse power.
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         return motor;
@@ -137,6 +177,20 @@ public class Shooter {
         return rpm;
     }
 
+    /**
+     * The average of the last AVERAGE_SAMPLES readings: steadier than rpm(), a loop or so later.
+     * The coax hood solves with it, like GNCE Ditto's ShotPlanner.addRpmSample (they averaged 8).
+     */
+    public double averageRpm() {
+        int samples = Math.min(Math.max(AVERAGE_SAMPLES, 1), Math.min(recentCount, MAX_AVERAGE_SAMPLES));
+        if (samples == 0) return rpm;
+        double sum = 0;
+        for (int i = 1; i <= samples; i++) {
+            sum += recentRpm[(recentNext - i + MAX_AVERAGE_SAMPLES) % MAX_AVERAGE_SAMPLES];
+        }
+        return sum / samples;
+    }
+
     public boolean atSpeed() {
         double target = effectiveTargetRpm();
         return target > 0 && Math.abs(rpm - target) < RPM_TOLERANCE;
@@ -151,10 +205,17 @@ public class Shooter {
     public void readSensors() {
         double ticksPerSecond = encoderMotor.getVelocity();
         rpm = (ENCODER_REVERSED ? -ticksPerSecond : ticksPerSecond) * 60 / TICKS_PER_REV;
+        recentRpm[recentNext] = rpm;
+        recentNext = (recentNext + 1) % MAX_AVERAGE_SAMPLES;
+        recentCount = Math.min(recentCount + 1, MAX_AVERAGE_SAMPLES);
     }
 
     /** Works out the motor power from the rpm that readSensors() read, and writes it. Call it at the end of the loop. */
     public void update() {
+        double dt = loopTimer.seconds();
+        loopTimer.reset();
+        updateTargetRate(dt);
+
         double leftPower;
         double rightPower;
         if (openLoop) {
@@ -168,8 +229,10 @@ public class Shooter {
             } else if (boost && rpm < target - BOOST_BELOW_RPM) {
                 power = 1;
             } else {
-                double raw = KS + KV * target + KP * (target - rpm);
+                double raw = KS + KV * target + KP * (target - rpm) + KA * targetRate;
                 power = Range.clip(raw * voltage.compensation(), 0, 1);
+                // Range.clip lets NaN through (a bad Panels value). Never send that to the motors.
+                if (Double.isNaN(power)) power = 0;
             }
             checkWatchdog();
             leftPower = power;
@@ -183,6 +246,21 @@ public class Shooter {
         }
         left.setPower(LEFT_REVERSED ? -leftPower : leftPower);
         right.setPower(RIGHT_REVERSED ? -rightPower : rightPower);
+    }
+
+    /** How fast the target RPM is changing, smoothed, for the kA part. Jumps and odd loop times count as no change. */
+    private void updateTargetRate(double dt) {
+        // Without the trim, like the turret: a trim press isn't the robot driving.
+        double target = Math.max(targetRpm, 0);
+        double step = target - lastTarget;
+        lastTarget = target;
+        double rawRate = 0;
+        if (dt > 0.001 && dt < 0.1 && Math.abs(step) < TARGET_JUMP_RPM) {
+            rawRate = Range.clip(step / dt, -MAX_TARGET_RATE, MAX_TARGET_RATE);
+        }
+        targetRate = PIDF.smooth(targetRate, rawRate, TARGET_RATE_FILTER);
+        // A NaN from a bad Panels value would stay in targetRate for good.
+        if (Double.isNaN(targetRate)) targetRate = 0;
     }
 
     /** Trips when the power stays high but the wheel does not turn forward. */
@@ -199,7 +277,7 @@ public class Shooter {
         if (openLoop) {
             telemetry.addData("Shooter power", "open-loop test, left %.2f right %.2f", openLeftPower, openRightPower);
         } else {
-            telemetry.addData("Shooter power", "%.2f%s", power, boost ? " boost" : "");
+            telemetry.addData("Shooter power", "%.2f%s (target changing %+.0f rpm/s)", power, boost ? " boost" : "", targetRate);
         }
         if (watchdogTripped) {
             telemetry.addData("SHOOTER OFF", "Power was over %.2f for %.0f ms but RPM stayed under %.0f. "

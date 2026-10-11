@@ -6,7 +6,7 @@ Items marked **TBD** are not decided or not yet measured. All dimensions are in 
 
 ## Game context (BIOBUZZ)
 
-What matters for this robot, from the Competition Manual (TU03):
+What matters for this robot, from the Competition Manual, version TU04 (2026-10-08). The field sizes were read in Section 9 at TU03 and checked against the official field CAD.
 
 - **Scoring element:** POLLEN. Yellow polyethylene balls, about 2.8 in. (7.1 cm), not perfectly round, and sizes vary (9.8). This robot handles **POLLEN only** and does not handle NECTAR (3.6 in. red/blue balls).
 - **Possession limit:** a robot may not control more than 4 scoring elements at once (G407). This robot stores at most 4, so it is at the limit by design.
@@ -16,32 +16,34 @@ What matters for this robot, from the Competition Manual (TU03):
 - **GARDEN:** 4 POLLEN staged in a line from each alliance's corner, touching the wall (red: the audience wall) (10.3.1).
 - **Field:** the code uses Pedro Visualizer's 141.5 x 141.5 in., so visualizer points copy 1:1. The official field CAD is 141.06 in. inside, wall to wall, and the manual says about 144 (9.2). Below this robot's 12.74 in. height, the only things on the field are the HIVE frame's foot bars and legs and the 4 FLOWERS. Positions are in `TELEOP_PLAN.md`, "Field coordinates".
 - **Size:** 18 x 18 x 18 in. (457 mm cube) at the start (R102). Once the match starts, it may expand to 18 x 24 in. (457 x 610 mm) and 29 in. (737 mm) tall, and the limit must be mechanical, not software (R105).
-- **Actuator limit:** 8 motors and 8 servos max (R503). This robot uses **8 motors** (at the limit) and **4 servos**.
-- **Match:** 30 s AUTO, 8 s transition, 2:00 TELEOP.
+- **Actuator limit:** 8 motors and 8 servos max (R503; last season allowed 10 servos). This robot uses **8 motors** (at the limit) and **4 servos** (5 with the coax hood). We count the turret's CR servo as a servo.
+- **Match:** 30 s AUTO, 8 s transition, 2:00 TELEOP (10.4). There is no named ENDGAME. The only 60 s marks are G426's limit on NECTAR, which this robot doesn't handle, and the field's 1:00 sound cue, "FLOWER Ownership Unlocked" (Table 9-1). The code has no match timer.
 
 ## Hardware summary
 
-| Qty | Part | Device | Hub / port | Notes |
-|-----|------|--------|------------|-------|
-| 4 | Drivetrain | goBILDA 6000 RPM bare motor, 10:105 reduction | TBD | Mecanum, 104 mm GripForce wheels |
-| 1 | Intake | goBILDA 6000 RPM bare motor, geared to about 4700 RPM | TBD | Intake end of the rail, 38.1 mm wheels |
-| 1 | Transfer | goBILDA 6000 RPM bare motor, 20:32 reduction | TBD | Door end of the rail, 48 mm wheels |
-| 2 | Shooter | goBILDA 6000 RPM bare motor, with encoder | TBD | Mechanically coupled, mounted opposite each other |
-| 1 | Turret | Axon servo, CR mode | TBD (hub servo port, 5 V) | Infinite rotation, 1:2 gearing (turret turns 2x per servo turn) |
-| 1 | Turret encoder | East Loop Components ELC Encoder V2 | TBD (analog port) | On the turret; analog absolute output used |
-| 2 | Flower intake | SWYFT Slim servo | TBD (hub servo port, 5 V) | Mounted opposite each other, mirrored |
-| 1 | Door | SWYFT Slim servo | TBD (hub servo port, 5 V) | End of the rail, before the shooter |
-| 2 | Transfer break beams | Adafruit 3 mm IR break beam | TBD (digital port) | Slots 1 and 2 |
-| 1 | Intake break beam | Adafruit 3 mm IR break beam | TBD (digital port) | Slot 4, trips only when all 4 are stored |
-| 1 | Localization | goBILDA Pinpoint V2 | TBD (I2C) | goBILDA 4-bar odometry pods |
+| Qty | Part | Device | Configuration name | Hub / port | Notes |
+|-----|------|--------|--------------------|------------|-------|
+| 4 | Drivetrain | goBILDA 6000 RPM bare motor, 10:105 reduction | `frontLeft`, `frontRight`, `backLeft`, `backRight` | TBD | Mecanum, 104 mm GripForce wheels |
+| 1 | Intake | goBILDA 6000 RPM bare motor, geared to about 4700 RPM | `intake` | TBD | Intake end of the rail, 38.1 mm wheels |
+| 1 | Transfer | goBILDA 6000 RPM bare motor, 20:32 reduction | `transfer` | TBD | Door end of the rail, 48 mm wheels |
+| 2 | Shooter | goBILDA 6000 RPM bare motor, with encoder | `shooterLeft`, `shooterRight` | TBD | Mechanically coupled, mounted opposite each other. The speed is read from `shooterLeft`'s encoder port |
+| 1 | Turret | Axon servo (model TBD), CR mode | `turret` | TBD (hub servo port, 5 V) | Infinite rotation, 1:2 gearing (turret turns 2x per servo turn) |
+| 1 | Turret encoder | East Loop Components ELC Encoder V2 | `turretEncoder` | TBD (analog port) | On the turret; analog absolute output used |
+| 2 | Flower intake | SWYFT Slim servo | `flowerLeft`, `flowerRight` | TBD (hub servo port, 5 V) | Mounted opposite each other, mirrored |
+| 1 | Door | SWYFT Slim servo | `door` | TBD (hub servo port, 5 V) | End of the rail, before the shooter |
+| 1 | Coax hood (coming, optional) | Positional servo, type TBD | `hood` | TBD (hub servo port, 5 V) | Turns the hood around the flywheel axle, gear ratio TBD. The robot runs without it |
+| 2 | Transfer break beams | Adafruit 3 mm IR break beam | `beamSlot1`, `beamSlot2` | TBD (digital port) | Slots 1 and 2 |
+| 1 | Intake break beam | Adafruit 3 mm IR break beam | `beamFull` | TBD (digital port) | Slot 4, trips only when all 4 are stored |
+| 1 | Localization | goBILDA Pinpoint V2 | `pinpoint` | TBD (I2C) | goBILDA 4-bar odometry pods |
 
-**Motors:** 8 of 8 allowed. **Servos:** 4 of 8 allowed.
+**Motors:** 8 of 8 allowed (R503): 4 drive, intake, transfer, 2 shooter. Adding a motor means taking one out. **Servos:** 4 of 8 allowed (turret, door, 2 flower intake), 5 of 8 with the coax hood. The configuration names are the constants in `robot/hardware/HardwareNames.java`; the Driver Station configuration must use them exactly.
 
 ## Control system
 
 - REV Control Hub plus REV Expansion Hub.
 - All servos run straight off hub servo ports at 5 V. There is no servo power module.
 - Port assignments: TBD.
+- At events, only the Driver Station app may send data over the robot's Wi-Fi, so Panels stays off for the whole event (R704.D). How to check: `TUNING_GUIDE.md`, step 10.
 
 ## Dimensions
 
@@ -94,11 +96,13 @@ SWYFT Slim servo at the end of the rail. Closed, it stops the slot 1 ball from r
 - Two goBILDA 6000 RPM bare motors, mechanically coupled and mounted opposite each other, which is why they spin in opposite directions. Both have encoders.
 - One 72 mm shooter wheel, driven 1:1 (6000 RPM free, about 22.6 m/s surface speed).
 - 48 mm counter-roller geared off the same two motors to 9000 RPM (about 22.6 m/s surface speed, same as the wheel).
-- Fixed launch angle (no adjustable hood). A variable hood is planned, but not soon. Passing (RT) waits for it.
+- Fixed launch angle for now (static hood). A coax hood is coming: it pivots around the flywheel axle, turned by one servo through gearing (servo and gear ratio TBD), so the launch angle can change. The code supports both: `Robot.HOOD` picks STATIC or COAX. Passing (RT) waits for the coax hood.
 - Full power is expected to be far more than needed, so the shooter should normally run well below its free speed.
 
 ### Turret
-- Axon servo in continuous rotation (CR) mode, powered at 5 V from the hub.
+- Axon servo (model TBD) in continuous rotation (CR) mode, powered at 5 V from the hub.
+- Current: an Axon MINI MK2 stalls at 3.2 A at 4.8 V, more than the hub's 2 A per pair of servo ports. Don't put another servo on the same port pair as the turret servo, or power it through a servo power module.
+- Pulse range: no code sets a PWM range, so the turret servo gets the pulse range of the device type picked for its port in the Driver Station configuration. If the Axon's CR mode uses a narrower range than that port sends, the turret reaches full speed well before full power, and part of `Turret.MAX_POWER` (0.8) does nothing. Check in Turret Test manual mode (the stick is capped at `MAX_POWER` there too): if the turret stops getting faster past about half stick, check the configuration's device type and the Axon's own settings.
 - 1:2 gearing: the turret turns 2 revolutions for every 1 servo revolution (geared up, not down).
 - Rotation is infinite, so there are no hard stops and no cable wind-up limit.
 - Center of rotation is the center of the chassis (wedges excluded).
@@ -143,3 +147,5 @@ Break beams are Adafruit 3 mm IR break beam sensors (separate emitter and receiv
 - Hub and port assignment for every device
 - Exact intake gear ratio (about 4700 RPM at the wheel)
 - Pinpoint pod mounting offsets
+- Coax hood servo type and gear ratio
+- Turret Axon servo model (its stall current and CR pulse range, see Turret)

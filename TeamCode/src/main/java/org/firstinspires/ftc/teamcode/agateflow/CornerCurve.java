@@ -18,7 +18,7 @@ import com.pedropathing.paths.curves.Curve;
  * It is faster than Pedro's BezierCurve: points come from a plain polynomial,
  * and length lookups from a table built once.
  */
-public final class CornerCurve implements Curve {
+final class CornerCurve implements Curve {
     /** Corner angles (degrees of turn) the shape table was found at. */
     private static final double[] SHAPE_ANGLE = {0, 30, 60, 90, 120, 150, 180};
     /** Second and third control points, as fractions of the run-in length from the corner. */
@@ -36,7 +36,7 @@ public final class CornerCurve implements Curve {
     private final double length;
 
     /** Control points as x, y pairs (12 numbers). */
-    public CornerCurve(double[] controls) {
+    CornerCurve(double[] controls) {
         // Bernstein to power basis for degree 5.
         double[][] m = {
                 {1, 0, 0, 0, 0, 0},
@@ -64,8 +64,8 @@ public final class CornerCurve implements Curve {
      * leaving along (outX, outY) (both unit length). The curve starts {@code runIn}
      * inches before the corner and ends {@code runIn} inches after it.
      */
-    public static CornerCurve at(double cornerX, double cornerY, double inX, double inY,
-                                 double outX, double outY, double runIn) {
+    static CornerCurve at(double cornerX, double cornerY, double inX, double inY,
+                          double outX, double outY, double runIn) {
         return new CornerCurve(controls(cornerX, cornerY, inX, inY, outX, outY, runIn));
     }
 

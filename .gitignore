@@ -79,3 +79,6 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+# AI assistant files (skill pack, runtime state, research): local only, never committed
+.claude/
+research/

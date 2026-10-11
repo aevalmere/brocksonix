@@ -24,18 +24,18 @@ import java.util.List;
  * wall right before a stop is finished earlier (holdEnd).
  */
 public class OutlineFitTest {
-    private double timeLimit, endHold;
+    private TestRobot.Saved saved;
+    private double endHold;
 
     @Before
     public void noTimeLimit() {
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
+        saved = TestRobot.save();
         endHold = AgateFlow.MAX_END_HOLD;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
+        saved.restore();
         AgateFlow.MAX_END_HOLD = endHold;
     }
 

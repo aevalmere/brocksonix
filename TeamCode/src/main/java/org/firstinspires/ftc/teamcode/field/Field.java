@@ -50,9 +50,10 @@ public final class Field {
      */
     public static double CELL_SWITCH_BAND = 6;
 
+    // TODO(16): Once passing is on (FireControl.PASS_ENABLED): pick where passes should land in our LOADING ZONE, set X and Y, and check real passes land there.
     /**
      * Where a pass lands, written for red: in front of the middle of our LOADING
-     * ZONE (y 94.5 to 117.6). Placeholder: passing is on hold until the variable hood.
+     * ZONE (y 94.5 to 117.6). Placeholder: passing is on hold until the coax hood is on the robot.
      */
     public static double PASS_TARGET_RED_X = 24;
     public static double PASS_TARGET_RED_Y = 106;

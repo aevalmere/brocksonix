@@ -41,6 +41,13 @@ import java.util.function.Supplier;
  */
 public final class Route {
     private final List<Waypoint> waypoints = new ArrayList<>();
+    /**
+     * The drive starts with the flower intake down and still coming up (a replan
+     * just after a flowerIntakeDown stop, or parking from a FLOWER): AgateFlow plans
+     * the start like leaving a flowerIntakeDown stop, backing out with the intake
+     * reaching ahead for FLOWER_INTAKE_RAISE_RUN.
+     */
+    boolean startFlowerDown = false;
 
     /** Drive to the pose and stop there. */
     public Route to(Pose redPose) {
@@ -184,17 +191,24 @@ public final class Route {
         return waypoints.isEmpty();
     }
 
-    /** A route made of these waypoints (AgateFlow uses it to replan what's left). */
-    static Route of(List<Waypoint> waypoints) {
+    /** A route made of these waypoints (DriveRoute uses it to replan what's left). */
+    static Route of(List<Waypoint> waypoints, boolean startFlowerDown) {
         Route route = new Route();
         route.waypoints.addAll(waypoints);
+        route.startFlowerDown = startFlowerDown;
         return route;
+    }
+
+    /** This route, starting with the flower intake down (still coming up) or not. See startFlowerDown. */
+    Route startingFlowerDown(boolean down) {
+        return down == startFlowerDown ? this : of(waypoints, down);
     }
 
     /** This route with every live pose asked for now (see Waypoint.askNow). Call on the main thread. */
     Route askLivePosesNow() {
         Route asked = new Route();
         for (Waypoint waypoint : waypoints) asked.waypoints.add(waypoint.askNow());
+        asked.startFlowerDown = startFlowerDown;
         return asked;
     }
 

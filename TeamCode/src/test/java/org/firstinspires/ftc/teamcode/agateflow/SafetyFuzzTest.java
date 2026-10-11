@@ -25,17 +25,16 @@ import java.util.Random;
  */
 public class SafetyFuzzTest {
     private static final int SCENES = 40, DRIVEN = 12;
-    private double timeLimit;
+    private TestRobot.Saved saved;
 
     @Before
     public void noTimeLimit() {
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
+        saved = TestRobot.save();
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
+        saved.restore();
     }
 
     @Test
@@ -89,7 +88,7 @@ public class SafetyFuzzTest {
             FieldMap fieldMap = new FieldMap();
             fieldMap.setZones("field", FieldZones.zones());
             fieldMap.setZones("extra", fieldExtra);
-            AgateFlow agateFlow = new AgateFlow(fieldMap, robot.follower);
+            AgateFlow agateFlow = new AgateFlow(fieldMap);
             Plan plan = agateFlow.plan(fieldStart, new Velocity(vx, vy, 0), route, alliance, TestRobot.VOLTS, DriveModel.capture(robot.follower));
             if (!plan.ok()) continue;
             planned++;

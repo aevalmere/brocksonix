@@ -24,6 +24,9 @@ public final class HardwareNames {
     public static final String DOOR_SERVO = "door";
     public static final String FLOWER_LEFT_SERVO = "flowerLeft";
     public static final String FLOWER_RIGHT_SERVO = "flowerRight";
+    // TODO(16): When the coax hood goes on, add a servo with this name to the configuration ("Full Range Servo" for goBILDA or Axon) and write its port in ROBOT.md.
+    // Only needed when the coax hood is on the robot. The robot runs without it.
+    public static final String HOOD_SERVO = "hood";
 
     public static final String BEAM_SLOT_1 = "beamSlot1";
     public static final String BEAM_SLOT_2 = "beamSlot2";

@@ -19,17 +19,16 @@ import java.util.List;
  * driven facing forward. In an empty field so only the motion counts.
  */
 public class MotionModelTest {
-    private double timeLimit;
+    private TestRobot.Saved saved;
 
     @Before
     public void noTimeLimit() {
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
+        saved = TestRobot.save();
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
+        saved.restore();
     }
 
     /** Predicted and driven seconds for a route from start in an empty field (walls only). */
@@ -37,7 +36,7 @@ public class MotionModelTest {
         TestRobot robot = new TestRobot();
         FieldMap walls = new FieldMap();
         walls.setZones("none", new ArrayList<Zone>());
-        AgateFlow agateFlow = new AgateFlow(walls, robot.follower);
+        AgateFlow agateFlow = new AgateFlow(walls);
         Plan plan = robot.plan(agateFlow, start, route, Alliance.RED);
         assertTrue(plan.toString(), plan.ok());
         List<Zone> zones = walls.snapshot().zones;

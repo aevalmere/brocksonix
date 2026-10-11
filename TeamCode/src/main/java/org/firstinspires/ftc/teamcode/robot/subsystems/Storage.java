@@ -63,10 +63,6 @@ public class Storage {
         return slot1.get();
     }
 
-    public boolean slot2Occupied() {
-        return slot2.get();
-    }
-
     public boolean isFull() {
         return full;
     }
@@ -75,7 +71,7 @@ public class Storage {
         return !slot1.get() && !slot2.get() && !full;
     }
 
-    /** A shot or pass can only start with at least 2 balls. */
+    /** TeleOp needs this to start a shot or pass. Auto can allow 1 ball (Robot.singleBallBursts). */
     public boolean hasAtLeastTwo() {
         return full || (slot1.get() && slot2.get());
     }

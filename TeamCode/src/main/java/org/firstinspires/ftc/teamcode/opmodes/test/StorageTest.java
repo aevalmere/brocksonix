@@ -30,6 +30,8 @@ public class StorageTest extends LinearOpMode {
         boolean collecting = false;
 
         waitForStart();
+        // "WasPressed" remembers presses made during init, which would fire on the first loop.
+        gamepad1.resetEdgeDetection();
         while (opModeIsActive()) {
             bulkReads.clear();
             storage.update();

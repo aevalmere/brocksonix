@@ -10,6 +10,7 @@ import com.pedropathing.math.Pose;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 /**
@@ -17,11 +18,17 @@ import java.util.function.DoubleSupplier;
  * background, every REFRESH_MS) of how long parking takes from wherever the
  * robot is right now. When the time left gets down to that estimate plus
  * MARGIN_SECONDS, it stops whatever is running and drives the park route.
+ * If the park drive ends without getting there (no plan, out of time,
+ * interrupted, or blocked from starting), it starts it again while there is
+ * time left.
  *
  * "Stops whatever is running": the park command requires the drive and every
  * subsystem passed in, at a high priority, so Ivy interrupts every command
  * using any of them (their end() runs, so shoot buttons and the like are let
  * go). Pass every subsystem your auto commands require.
+ *
+ * The estimates share AgateFlow's one planning thread with the drives, so none
+ * is asked for while a drive's own plan is being made: that one goes first.
  *
  * For this robot, make it with RobotCommands.parkGuard, which passes every
  * subsystem and keeps the flower intake up while parking:
@@ -41,20 +48,23 @@ public final class ParkGuard {
     // TODO(15): Run an auto that runs long and check it ends parked with a little time to spare. Raise if it's late, lower if it parks too early.
     /** Start parking this much earlier than the estimate says it's needed, seconds. */
     public static double MARGIN_SECONDS = 0.75;
+    // TODO(15): Run an auto that replans a lot. Raise this if replans come back late (they share the planning thread with park estimates), lower it if parking starts much earlier than needed.
     /** How often the park estimate is redone from the robot's current pose, ms. */
     public static double REFRESH_MS = 250;
+    // TODO(15): Block the park route with a vision zone in a test auto and check the robot still parks in time once it is clear.
     /** Used only if no park estimate has worked yet (say the park route is blocked): park this many seconds before the end. */
     public static double FALLBACK_SECONDS = 5;
     /** Priority of the park command, above anything else the auto schedules. */
     public static int PRIORITY = 1000;
 
-    public enum State { WATCHING, PARKING, DISARMED }
+    public enum State { WATCHING, PARKING }
 
     private final AgateFlowCommands agateFlow;
     private final Route parkRoute;
     private final DoubleSupplier secondsLeft;
     private final Object[] stopAlso;
     private Command alongside;
+    private BooleanSupplier flowerIntakeDown = () -> false;
 
     private State state = State.WATCHING;
     /** Newest estimate asked for, and the newest one that came back with a plan. */
@@ -79,9 +89,15 @@ public final class ParkGuard {
         return this;
     }
 
-    /** Stop watching, say because the auto parked on its own. */
-    public void disarm() {
-        state = State.DISARMED;
+    /**
+     * Where to read whether the flower intake is down (like robot.flowerIntake::isDown).
+     * Parking from a FLOWER with it down, the park drive first backs out with the
+     * intake still reaching ahead while it comes up, like after a
+     * Route.flowerIntakeDown stop. Without this it plans with the intake up.
+     */
+    public ParkGuard flowerIntakeDown(BooleanSupplier isDown) {
+        flowerIntakeDown = isDown;
+        return this;
     }
 
     public State state() {
@@ -93,14 +109,18 @@ public final class ParkGuard {
         return latest == null ? Double.NaN : latest.seconds();
     }
 
+    /** The park drive, null before parking starts. For the tests. */
+    DriveRoute parkDrive() {
+        return drive;
+    }
+
     /** Call every loop, before Scheduler.execute(). */
     public void update() {
-        if (state == State.DISARMED) return;
         if (state == State.PARKING) {
-            // The park drive gave up (no plan yet, or timed out) with time left: try again.
-            if (drive.status() == DriveRoute.Status.NO_PLAN || drive.status() == DriveRoute.Status.TIMED_OUT) {
-                if (!Scheduler.isScheduled(parking) && secondsLeft.getAsDouble() > 0.5) startParking(null);
-            }
+            // The park drive ended without getting there (no plan, out of time, interrupted), or was never
+            // let start (Ivy drops a command blocked by a higher priority one): try again while there's time.
+            boolean gaveUp = !Scheduler.isScheduled(parking) && drive.status() != DriveRoute.Status.ARRIVED;
+            if (gaveUp && secondsLeft.getAsDouble() > 0.5) startParking(null);
             return;
         }
 
@@ -108,7 +128,8 @@ public final class ParkGuard {
             if (asked.plan() != null && asked.plan().ok()) latest = asked;
             if (asked.age() * 1000 >= REFRESH_MS) asked = null;
         }
-        if (asked == null) asked = agateFlow.estimate(parkRoute);
+        // A drive's own plan goes first on the planning thread: estimate again once it is made.
+        if (asked == null && !agateFlow.drivePlanPending()) asked = agateFlow.estimate(parkRouteNow());
 
         if (secondsLeft.getAsDouble() <= needed()) startParking(fresh(latest));
     }
@@ -137,8 +158,16 @@ public final class ParkGuard {
         return Geometry.length(pose.x() - end.x(), pose.y() - end.y()) < 2;
     }
 
+    /** The park route, starting with the flower intake as it is right now. */
+    private Route parkRouteNow() {
+        return parkRoute.startingFlowerDown(flowerIntakeDown.getAsBoolean());
+    }
+
     private void startParking(Estimate estimate) {
-        drive = estimate != null ? agateFlow.driveTo(estimate) : agateFlow.driveTo(parkRoute);
+        Route route = parkRouteNow();
+        // An estimate made with the flower intake the other way planned the start wrong: plan again.
+        boolean fits = estimate != null && estimate.route.startFlowerDown == route.startFlowerDown;
+        drive = fits ? agateFlow.driveTo(estimate) : agateFlow.driveTo(route);
         CommandBuilder command = alongside == null ? drive : Groups.deadline(drive, alongside);
         Set<Object> everything = new HashSet<>(Arrays.asList(stopAlso));
         everything.add(agateFlow.drive);
@@ -152,15 +181,9 @@ public final class ParkGuard {
 
     /** One line for telemetry. */
     public String describe() {
-        switch (state) {
-            case PARKING:
-                return "Parking: " + drive.describe();
-            case DISARMED:
-                return "Park guard off";
-            default:
-                double left = secondsLeft.getAsDouble();
-                return latest == null ? "Park: estimating"
-                        : String.format("Park starts in %.1f s (takes %.1f s)", left - needed(), parkSeconds());
-        }
+        if (state == State.PARKING) return "Parking: " + drive.describe();
+        double left = secondsLeft.getAsDouble();
+        return latest == null ? "Park: estimating"
+                : String.format("Park starts in %.1f s (takes %.1f s)", left - needed(), parkSeconds());
     }
 }

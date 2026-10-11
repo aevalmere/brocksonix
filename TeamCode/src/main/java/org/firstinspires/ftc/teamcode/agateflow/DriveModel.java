@@ -57,6 +57,7 @@ public final class DriveModel {
     // TODO(13): Drive full power forward from a stop on the field tiles. If the wheels spin, lower this until the estimate matches.
     /** Most acceleration (in/s²) the wheels can grip with, any direction. About 0.8 g. */
     public static double TRACTION_ACCEL = 300;
+    // TODO(13): Drive a few short paths and time from the robot reaching the end to the follower saying it is done. Set this to that.
     /** Time from reaching the end of a path until the follower is settled and says it is done. */
     public static double SETTLE_SECONDS = 0.10;
     // ---- Foresight's gains. They are read from the follower (see readGains); these are used only if that fails. ----
@@ -214,6 +215,12 @@ public final class DriveModel {
      */
     public static DriveModel capture(Follower follower) {
         return new DriveModel(follower);
+    }
+
+    /** Forgets the gains and speed limit read from earlier followers, so each test starts fresh. */
+    static void forgetReadings() {
+        lastGains = null;
+        lastSpeedLimit = Double.POSITIVE_INFINITY;
     }
 
     /** Foresight's gains, read from its controllers, and the controllers they came from. NaN: couldn't be read. */

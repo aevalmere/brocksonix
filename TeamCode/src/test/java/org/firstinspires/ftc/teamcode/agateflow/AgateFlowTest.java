@@ -19,20 +19,19 @@ import java.util.List;
 
 /** Planning on the real field: routes like an auto's, safety, determinism, and the problems it reports. */
 public class AgateFlowTest {
-    private double timeLimit;
+    private TestRobot.Saved saved;
     private boolean moveTargets;
 
     @Before
     public void noTimeLimit() {
-        // Every candidate is tried, so plans don't depend on how fast the computer is.
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
+        // Every candidate is tried (TestRobot.save), so plans don't depend on how fast the computer is.
+        saved = TestRobot.save();
         moveTargets = AgateFlow.MOVE_TARGETS_OUT_OF_ZONES;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
+        saved.restore();
         AgateFlow.MOVE_TARGETS_OUT_OF_ZONES = moveTargets;
     }
 

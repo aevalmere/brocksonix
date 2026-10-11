@@ -28,7 +28,13 @@ public class CachedMotor {
         }
     }
 
+    /**
+     * The motor itself, for what this class doesn't wrap. A call through it can change the power
+     * without this class knowing (setMode(STOP_AND_RESET_ENCODER) sets it to 0), so the cache is
+     * cleared: the next setPower() always goes out, even if it repeats the last one.
+     */
     public DcMotorEx raw() {
+        last = Double.NaN;
         return motor;
     }
 }

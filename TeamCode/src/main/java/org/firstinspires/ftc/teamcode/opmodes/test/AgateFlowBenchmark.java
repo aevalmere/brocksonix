@@ -59,7 +59,7 @@ public class AgateFlowBenchmark extends LinearOpMode {
 
         FieldMap map = new FieldMap();
         map.setZones("field", FieldZones.zones());
-        AgateFlow agateFlow = new AgateFlow(map, follower);
+        AgateFlow agateFlow = new AgateFlow(map);
         DriveModel model = DriveModel.capture(follower);
         List<Pose> starts = new ArrayList<>();
         List<Route> routes = new ArrayList<>();
@@ -85,6 +85,8 @@ public class AgateFlowBenchmark extends LinearOpMode {
             }
         }
 
+        // "WasPressed" remembers presses made during init and planning. Start the browsing with none.
+        gamepad1.resetEdgeDetection();
         Collections.sort(millis);
         int shown = 0;
         Alliance alliance = Alliance.RED;

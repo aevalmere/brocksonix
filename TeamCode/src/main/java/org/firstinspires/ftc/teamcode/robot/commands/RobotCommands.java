@@ -11,6 +11,7 @@ import com.pedropathing.math.Pose;
 import com.pedropathing.paths.AtomicPath;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.curves.Line;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.agateflow.AgateFlowCommands;
 import org.firstinspires.ftc.teamcode.agateflow.DriveRoute;
@@ -42,6 +43,12 @@ public class RobotCommands {
     public static double SHOOT_ONE_TIMEOUT_MS = 1500;
     // TODO(9): Time a full burst the same way.
     public static double SHOOT_ALL_TIMEOUT_MS = 3000;
+    // TODO(9): shootAll with 4 balls: watch the last ball. Raise it until the last ball always reaches the wheel before the rail stops; lower it to end bursts sooner.
+    /**
+     * Mid-burst, shoot stays held this long after storage reads empty: the last ball has
+     * left the beams then, but not yet reached the wheel, and letting go stops the rail at once.
+     */
+    public static double LAST_BALL_MS = 300;
     // TODO(9): Jam a ball on purpose and run shootAllWithRetry. Raise until the retry frees it, but balls must not come out of the intake.
     public static double RETRY_UNJAM_MS = 200;
     // TODO(9): Each retry can cost RETRY_UNJAM_MS + SHOOT_ALL_TIMEOUT_MS. Set to 0 if retries never fix anything.
@@ -53,6 +60,8 @@ public class RobotCommands {
     private final Robot robot;
     /** shoot() counts from here, so it ends on its own ball and not on an earlier one. */
     private int shotsAtStart = 0;
+    /** How long storage has read empty, for LAST_BALL_MS. Shared: only one shooting command runs at a time. */
+    private final ElapsedTime emptyFor = new ElapsedTime();
 
     public RobotCommands(Robot robot) {
         this.robot = robot;
@@ -77,9 +86,19 @@ public class RobotCommands {
         return driveTo(redPose).raceWith(Commands.waitMs(timeoutMs));
     }
 
-    /** Runs any Pedro path, already in this alliance's field coordinates. Ends when the end of the path is reached. */
+    /**
+     * Runs any Pedro path, already in this alliance's field coordinates. Ends when the end of
+     * the path is reached. If it is cancelled or timed out before that, the robot holds where it is.
+     */
     public Command follow(Path path) {
-        return PedroCommands.follow(robot.drive.follower(), path).requiring(robot.drive);
+        Follower follower = robot.drive.follower();
+        // Ivy's follow() has no end(), so a cancelled follow would keep driving the path.
+        // Only while a path is still being driven: a finished one already holds its end.
+        return PedroCommands.follow(follower, path)
+                .setEnd(endCondition -> {
+                    if (endCondition == EndCondition.INTERRUPTED && follower.following()) follower.hold(follower.pose());
+                })
+                .requiring(robot.drive);
     }
 
     /**
@@ -132,7 +151,7 @@ public class RobotCommands {
             // Until the first plan is ready nobody knows the stretch, so leave the intake as it is.
             if (drive.plan() == null) return;
             boolean wanted = drive.flowerIntakeDown();
-            // Moved only when the stretch changes, so Robot can still raise it when storage fills.
+            // Moved only when the stretch changes. Full storage doesn't raise it; flowerUp() does.
             if (!known || wanted != down) robot.flowerIntake.setDown(wanted);
             known = true;
             down = wanted;
@@ -167,15 +186,22 @@ public class RobotCommands {
     // ---- Shooting ----
     // Shooting commands require the shooter, so only one of them runs at a time.
 
-    /** Fires one ball. Ends after the shot, right away if storage is empty, or after SHOOT_ONE_TIMEOUT_MS. */
+    /**
+     * Fires one ball. Ends after the shot, right away if storage is empty, or after
+     * SHOOT_ONE_TIMEOUT_MS. FireControl stops the rail the moment the shot is counted
+     * (stopAfterOneShot), so the next ball isn't fed. That needs FireControl.SHOT_DIP_RPM
+     * tuned: a shot that isn't counted keeps the rail feeding until the timeout.
+     */
     public Command shoot() {
         Command fire = Command.build()
                 .setStart(() -> {
                     robot.singleBallBursts = true;
+                    robot.stopAfterOneShot = true;
                     shotsAtStart = robot.shotsFired();
                 })
-                // Hold shoot until our ball is counted, then let go so a second ball isn't fed.
-                .setExecute(() -> robot.shootHeld = robot.shotsFired() == shotsAtStart && !robot.storage.isEmpty())
+                // Held until our ball is counted. Not let go when storage reads empty: the ball has
+                // left the beams then, but is still on its way to the wheel.
+                .setExecute(() -> robot.shootHeld = robot.shotsFired() == shotsAtStart)
                 .setDone(() -> !robot.isFiring() && (robot.shotsFired() > shotsAtStart || robot.storage.isEmpty()))
                 .setEnd(endCondition -> stopShooting())
                 .requiring(robot.shooter);
@@ -183,14 +209,13 @@ public class RobotCommands {
     }
 
     /**
-     * Fires every stored ball. Ends when storage is empty and the last feed has
-     * finished, or after SHOOT_ALL_TIMEOUT_MS.
+     * Fires every stored ball in one burst. Ends when storage is empty and the burst
+     * is over, or after SHOOT_ALL_TIMEOUT_MS.
      */
     public Command shootAll() {
         Command fire = Command.build()
                 .setStart(() -> robot.singleBallBursts = true)
-                // Once storage is empty, let go of shoot. FireControl still finishes the feed in progress.
-                .setExecute(() -> robot.shootHeld = !robot.storage.isEmpty())
+                .setExecute(this::holdShootWhileBallsLeft)
                 .setDone(() -> robot.storage.isEmpty() && !robot.isFiring())
                 .setEnd(endCondition -> stopShooting())
                 .requiring(robot.shooter);
@@ -211,11 +236,11 @@ public class RobotCommands {
 
     /**
      * Shoots whenever a ball is stored and never ends by itself, so run it alongside
-     * a drive command (see sweepAndShoot). Shoot is let go whenever storage is
-     * empty, so the rail can collect between shots.
+     * a drive command (see sweepAndShoot). Shoot is let go once storage is empty
+     * (LAST_BALL_MS after it reads empty), so the rail can collect between bursts.
      */
     public Command shootContinuous() {
-        return Commands.infinite(() -> robot.shootHeld = !robot.storage.isEmpty())
+        return Commands.infinite(this::holdShootWhileBallsLeft)
                 .setStart(() -> robot.singleBallBursts = true)
                 .setEnd(endCondition -> stopShooting())
                 .requiring(robot.shooter);
@@ -226,10 +251,22 @@ public class RobotCommands {
         return Groups.deadline(drive, shootContinuous());
     }
 
+    /**
+     * Holds shoot while a ball is stored, and for LAST_BALL_MS after storage reads empty
+     * during a burst. Letting go stops the rail at once (FireControl), so letting go the
+     * moment storage reads empty could leave the last ball in the door.
+     */
+    private void holdShootWhileBallsLeft() {
+        boolean empty = robot.storage.isEmpty();
+        if (!empty) emptyFor.reset();
+        robot.shootHeld = !empty || (robot.isFiring() && emptyFor.milliseconds() < LAST_BALL_MS);
+    }
+
     /** Safe to call twice, or on a command that never started: Ivy groups can end a command both ways. */
     private void stopShooting() {
         robot.shootHeld = false;
         robot.singleBallBursts = false;
+        robot.stopAfterOneShot = false;
     }
 
     // ---- Parking ----
@@ -247,7 +284,8 @@ public class RobotCommands {
         Runnable up = () -> robot.flowerIntake.setDown(false);
         Command holdFlowerUp = Commands.infinite(up).setStart(up).requiring(robot.flowerIntake);
         return new ParkGuard(agateFlow, parkRoute, secondsLeft, robot.shooter, robot.rail, robot.flowerIntake)
-                .whileParking(holdFlowerUp);
+                .whileParking(holdFlowerUp)
+                .flowerIntakeDown(robot.flowerIntake::isDown);
     }
 
     // ---- Intake and rail ----

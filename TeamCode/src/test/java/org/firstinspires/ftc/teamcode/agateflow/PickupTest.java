@@ -18,17 +18,16 @@ import java.util.Random;
 
 /** Route.pickUp: grouping, ordering, the capture test, and picking up for real on TestRobot. */
 public class PickupTest {
-    private double timeLimit;
+    private TestRobot.Saved saved;
 
     @Before
     public void noTimeLimit() {
-        timeLimit = AgateFlow.PLAN_TIME_LIMIT_MS;
-        AgateFlow.PLAN_TIME_LIMIT_MS = 1e9;
+        saved = TestRobot.save();
     }
 
     @After
     public void putBack() {
-        AgateFlow.PLAN_TIME_LIMIT_MS = timeLimit;
+        saved.restore();
     }
 
     @Test

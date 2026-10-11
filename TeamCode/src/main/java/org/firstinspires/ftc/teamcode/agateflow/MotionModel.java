@@ -332,14 +332,7 @@ final class MotionModel {
 
         /** Closest the predicted path comes to (x, y), inches. */
         double closestTo(double x, double y) {
-            double best = Double.POSITIVE_INFINITY;
-            for (int i = 0; i + 3 < path.length; i += 2) {
-                double ax = path[i], ay = path[i + 1], dx = path[i + 2] - ax, dy = path[i + 3] - ay;
-                double l2 = dx * dx + dy * dy;
-                double f = l2 < 1e-12 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
-                best = Math.min(best, Geometry.length(x - ax - f * dx, y - ay - f * dy));
-            }
-            return best;
+            return Geometry.distanceToPolyline(path, x, y);
         }
     }
 

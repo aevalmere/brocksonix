@@ -20,4 +20,20 @@ final class Geometry {
     static double wrap(double radians) {
         return radians - 2 * Math.PI * Math.floor((radians + Math.PI) / (2 * Math.PI));
     }
+
+    /**
+     * Distance from (x, y) to the nearest point of the line through {@code path}'s
+     * points (x, y pairs, like a Leg's predicted path). +infinity if it has fewer
+     * than two points.
+     */
+    static double distanceToPolyline(double[] path, double x, double y) {
+        double best = Double.POSITIVE_INFINITY;
+        for (int q = 0; q + 3 < path.length; q += 2) {
+            double ax = path[q], ay = path[q + 1], dx = path[q + 2] - ax, dy = path[q + 3] - ay;
+            double l2 = dx * dx + dy * dy;
+            double f = l2 < 1e-12 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+            best = Math.min(best, length(x - ax - f * dx, y - ay - f * dy));
+        }
+        return best;
+    }
 }

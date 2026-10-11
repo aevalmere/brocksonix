@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.LongSupplier;
 
 /**
  * The command AgateFlowCommands.driveTo makes. When it starts, it plans the Route
@@ -26,11 +27,18 @@ import java.util.concurrent.Future;
  *     the old path meanwhile, unless that path is blocked close ahead; then it
  *     stops until the new plan is ready. Whenever the zones differ from the
  *     plan's, it looks at the path just ahead every loop (also while a replan is
- *     being made, which can take a while on a Control Hub), so it stops the loop
- *     a block shows up close ahead. It stops by braking hard (STOP_BRAKING_POWER),
- *     then holds. A replan that comes back after the robot moved on to the next
- *     leg, or that starts somewhere the robot no longer is, is out of date and is
- *     dropped.</li>
+ *     being made, which can take a while on a Control Hub), so it stops in the
+ *     same loop a block shows up close ahead. It stops by braking hard
+ *     (STOP_BRAKING_POWER), then holds. Near a stop the robot is meant to get
+ *     close to things, so there only a new zone it would hit (closer than
+ *     ROBOT_RADIUS) counts: a partner robot parked on a stop makes it replan,
+ *     and the replan moves that stop out of the zone (with
+ *     AgateFlow.MOVE_TARGETS_OUT_OF_ZONES off it finds no plan, so the robot
+ *     holds short of the zone until it goes or the time runs out). A replan
+ *     that comes back after the robot moved on to the next leg, or that starts
+ *     somewhere the robot no longer is, is out of date and is dropped. A replan
+ *     within AgateFlow.FLOWER_INTAKE_RAISE_RUN of a Route.flowerIntakeDown stop
+ *     still plans its start with the flower intake coming up.</li>
  * <li>gives up TIMEOUT_SCALE x its estimate + TIMEOUT_EXTRA_SECONDS after the
  *     first plan is ready. A replan can move that deadline up to
  *     REPLAN_EXTRA_SECONDS past the first one. A detour around something new
@@ -39,7 +47,9 @@ import java.util.concurrent.Future;
  *     robot that is still getting closer to its stop at the deadline gets up to
  *     MAX_OVERTIME_SECONDS more. Then it holds where it is and ends, so an auto
  *     moves on instead of hanging.</li>
- * <li>reports each leg that ran without replanning to EtaCalibration.</li>
+ * <li>reports each leg that ran start to finish on its own plan and got to its
+ *     stop to EtaCalibration. Not the first leg of a replan, a leg the robot was
+ *     pushed or stopped on, or a leg of driveTo(estimate) it joined partway.</li>
  * </ul>
  * It ends when the last stop is reached and settled, or with a status saying why not.
  */
@@ -59,6 +69,9 @@ public final class DriveRoute extends CommandBuilder {
         /** Done: cancelled from outside. */
         STOPPED
     }
+
+    /** The clock DriveRoute, Estimate and ParkGuard time things with, nanoseconds. The tests swap in a virtual one. */
+    static LongSupplier NOW = System::nanoTime;
 
     /** After Foresight hands a leg over to holding, wait at most this much longer than predicted for the robot to be at the stop, seconds. */
     private static final double SETTLE_EXTRA_SECONDS = 0.5;
@@ -85,7 +98,16 @@ public final class DriveRoute extends CommandBuilder {
     private Future<Plan> pending;
     private Alliance alliance;
     private int legIndex;
-    private boolean legStarted, legReplanned, started;
+    private boolean legStarted, started;
+    /**
+     * EtaCalibration may learn from the current leg: it is not the first leg of a
+     * replan, the robot wasn't pushed or stopped on it, and it wasn't joined partway.
+     */
+    private boolean learnFromLeg;
+    /** The last leg that finished got to its stop (false: it gave up settling, see legFinished). */
+    private boolean reachedStop;
+    /** The first plan comes from a driveTo(estimate) that the robot joined partway along its first leg. */
+    private boolean joinedPartway;
     /** Holding still because the path ahead is blocked, until a new plan is ready. */
     private boolean paused;
     /** How far along the current leg the robot was when it paused, inches. */
@@ -97,6 +119,11 @@ public final class DriveRoute extends CommandBuilder {
     private int replanLeg;
     /** The pending replan is for something new in the way (not a push), and the robot stopped for it after asking. */
     private boolean replanForBlock, pausedSinceAsked;
+    /**
+     * The plan being driven, and the pending one, start with the flower intake still
+     * coming up (Route.startFlowerDown): a replan soon after a flowerIntakeDown stop.
+     */
+    private boolean planFlowerStart, pendingFlowerStart;
     /** How many times a detour has moved the latest deadline (see MAX_DETOURS). */
     private int detours;
     /** Progress toward the current stop: the leg, the closest the robot has been to its stop, and when. */
@@ -104,7 +131,8 @@ public final class DriveRoute extends CommandBuilder {
     private double closestToStop;
     private long progressNanos;
     private long legStartNanos, deadlineNanos, lastCheckNanos;
-    /** When Foresight finished the current leg's path and started holding its end, or 0. */
+    /** Foresight finished the current leg's path and started holding its end, and when. */
+    private boolean handedOff;
     private long handoffNanos;
     /** When the first plan was ready, and the latest a replan may move the deadline to. */
     private long drivingSinceNanos, latestDeadlineNanos;
@@ -153,22 +181,19 @@ public final class DriveRoute extends CommandBuilder {
     /**
      * Whether the stretch being driven is planned with the flower intake down
      * (Route.flowerIntakeDown). After the last stop, whether the last stretch was.
-     * False before the first plan is ready. RobotCommands.driveTo lowers and raises
-     * the intake with it.
+     * False before the first plan is ready. RobotCommands.withFlowerIntake lowers
+     * and raises the intake with it.
      */
     public boolean flowerIntakeDown() {
         if (plan == null || plan.legs.isEmpty()) return false;
-        if (legIndex >= plan.legs.size()) {
-            List<Waypoint> last = plan.legs.get(plan.legs.size() - 1).waypoints;
-            return last.get(last.size() - 1).flowerDown;
-        }
+        if (legIndex >= plan.legs.size()) return stopOf(plan.legs.get(plan.legs.size() - 1)).flowerDown;
         Leg leg = plan.legs.get(legIndex);
         // Before the leg starts the follower still holds the last stop, so distanceDone would say "at the end".
         double done = !legStarted ? 0 : paused ? pausedAt : leg.distanceDone(follower);
         for (int i = 0; i < leg.waypoints.size() - 1; i++) {
             if (leg.waypointAt[i] > done) return leg.waypoints.get(i).flowerDown;
         }
-        return leg.waypoints.get(leg.waypoints.size() - 1).flowerDown;
+        return stopOf(leg).flowerDown;
     }
 
     /** Predicted seconds until the last stop is settled, calibrated. NaN until there is a plan. */
@@ -205,6 +230,23 @@ public final class DriveRoute extends CommandBuilder {
         }
     }
 
+    // ---- For the tests ----
+
+    /** Which leg of plan() is being driven (0 is the first). */
+    int legIndex() {
+        return legIndex;
+    }
+
+    /** How many detours have had their own time so far (see MAX_DETOURS). */
+    int detours() {
+        return detours;
+    }
+
+    /** True while a plan or replan is on its way. */
+    boolean planPending() {
+        return pending != null;
+    }
+
     // ---- The command ----
 
     private boolean finished() {
@@ -223,8 +265,10 @@ public final class DriveRoute extends CommandBuilder {
         braking = false;
         replanForBlock = false;
         pausedSinceAsked = false;
+        joinedPartway = false;
         detours = 0;
         progressLeg = -1;
+        pendingFlowerStart = route.startFlowerDown;
         alliance = RobotState.alliance;
         if (alliance == null) {
             problem = "No alliance picked";
@@ -233,7 +277,12 @@ public final class DriveRoute extends CommandBuilder {
             return;
         }
         Pose pose = follower.pose();
-        pending = canUse(prepared, pose) ? prepared.future : owner.planLater(pose, follower.velocity(), route, alliance);
+        if (canUse(prepared, pose)) {
+            pending = prepared.future;
+            joinedPartway = !madeHere(prepared, pose);
+        } else {
+            pending = owner.planDrive(pose, follower.velocity(), route, alliance);
+        }
         prepared = null;
     }
 
@@ -244,17 +293,21 @@ public final class DriveRoute extends CommandBuilder {
      */
     private boolean canUse(Estimate estimate, Pose pose) {
         if (estimate == null || estimate.alliance != alliance) return false;
-        boolean samePose = Geometry.length(pose.x() - estimate.from.x(), pose.y() - estimate.from.y()) < 1
-                && Math.abs(Angles.wrapRadians(pose.heading() - estimate.from.heading())) < Math.toRadians(5);
-        if (samePose) return true;
+        if (madeHere(estimate, pose)) return true;
         Plan plan = estimate.plan();
         if (estimate.age() > 0.5 || plan == null || !plan.ok() || plan.legs.get(0).path == null) return false;
-        return distanceToPolyline(plan.legs.get(0).predictedPath, pose.x(), pose.y()) < 2;
+        return Geometry.distanceToPolyline(plan.legs.get(0).predictedPath, pose.x(), pose.y()) < 2;
+    }
+
+    /** The robot is where the estimate was made from: within an inch and 5°. */
+    private static boolean madeHere(Estimate estimate, Pose pose) {
+        return Geometry.length(pose.x() - estimate.from.x(), pose.y() - estimate.from.y()) < 1
+                && Math.abs(Angles.wrapRadians(pose.heading() - estimate.from.heading())) < Math.toRadians(5);
     }
 
     private void step() {
         if (finished() || !started) return;
-        long now = System.nanoTime();
+        long now = NOW.getAsLong();
         // While braking for a block, a new plan waits until the robot is still (see pause()).
         if (pending != null && pending.isDone() && !braking) takePlan(now);
         if (plan == null || finished()) return;
@@ -283,9 +336,10 @@ public final class DriveRoute extends CommandBuilder {
             startLeg(leg, now);
             return;
         }
-        if (legFinished(leg)) {
-            if (!legReplanned) EtaCalibration.record(leg.seconds, secondsSince(legStartNanos));
+        if (legFinished(leg, now)) {
+            if (learnFromLeg && reachedStop) EtaCalibration.record(leg.seconds, secondsSince(legStartNanos));
             legIndex++;
+            learnFromLeg = true;
             if (legIndex >= plan.legs.size()) {
                 status = Status.ARRIVED;
                 return;
@@ -297,7 +351,7 @@ public final class DriveRoute extends CommandBuilder {
         if (AgateFlowCommands.REPLAN && watchAhead(leg, now)) return;
         if (checkDue) {
             lastCheckNanos = now;
-            checkForReplan(leg);
+            checkForReplan(leg, now);
         }
     }
 
@@ -321,7 +375,7 @@ public final class DriveRoute extends CommandBuilder {
      */
     private boolean stillGettingThere(long now) {
         boolean moving = (now - progressNanos) / 1e9 < PROGRESS_SECONDS && !paused;
-        boolean settling = legStarted && handoffNanos != 0;
+        boolean settling = legStarted && handedOff;
         return (moving || settling) && (now - deadlineNanos) / 1e9 < AgateFlowCommands.MAX_OVERTIME_SECONDS;
     }
 
@@ -355,6 +409,7 @@ public final class DriveRoute extends CommandBuilder {
         pausedAt = leg.distanceDone(follower);
         braking = true;
         brakeSinceNanos = now;
+        learnFromLeg = false;
         brake(leg, now);
     }
 
@@ -386,7 +441,11 @@ public final class DriveRoute extends CommandBuilder {
         replanLeg = legIndex;
         replanForBlock = forBlock;
         pausedSinceAsked = false;
-        pending = owner.planLater(follower.pose(), follower.velocity(), remainingRoute(leg, done), alliance);
+        // Pushed, or stopped for a block: this leg's time says nothing about the estimate.
+        learnFromLeg = false;
+        pendingFlowerStart = flowerComingUp(done);
+        Route rest = remainingRoute(leg, done, pendingFlowerStart);
+        pending = owner.planDrive(follower.pose(), follower.velocity(), rest, alliance);
     }
 
     private void takePlan(long now) {
@@ -403,26 +462,33 @@ public final class DriveRoute extends CommandBuilder {
         // The robot stopped for a block after this replan was asked for, so it may start
         // somewhere the robot no longer is. Use it only if the robot is on its predicted path.
         if (plan != null && pausedSinceAsked && fresh != null && fresh.ok() && fresh.legs.get(0).path != null
-                && distanceToPolyline(fresh.legs.get(0).predictedPath, follower.pose().x(), follower.pose().y()) > PAUSED_ON_PATH) {
+                && Geometry.distanceToPolyline(fresh.legs.get(0).predictedPath, follower.pose().x(), follower.pose().y()) > PAUSED_ON_PATH) {
             return;
         }
         if (fresh != null && fresh.ok()) {
             boolean replanned = plan != null;
+            // Read before it is cleared below: a replan around something new in the way is a detour.
+            boolean detour = replanned && replanForBlock;
             plan = fresh;
+            planFlowerStart = pendingFlowerStart;
             legIndex = 0;
             legStarted = false;
-            legReplanned = replanned;
+            // The first leg of a replan starts where the robot was when it was asked, and a leg joined
+            // partway wasn't driven whole: neither says how good the estimate is.
+            learnFromLeg = !replanned && !joinedPartway;
             paused = false;
             braking = false;
             pausedSinceAsked = false;
             replanForBlock = false;
+            // Progress starts again with the new plan: a detour may first lead away from the stop.
+            progressLeg = -1;
             problem = null;
             double allowed = plan.seconds() * AgateFlowCommands.TIMEOUT_SCALE + AgateFlowCommands.TIMEOUT_EXTRA_SECONDS;
             long deadline = now + (long) (allowed * 1e9);
             if (!replanned) {
                 drivingSinceNanos = now;
                 latestDeadlineNanos = deadline + (long) (AgateFlowCommands.REPLAN_EXTRA_SECONDS * 1e9);
-            } else if (replanForBlock && detours < AgateFlowCommands.MAX_DETOURS) {
+            } else if (detour && detours < AgateFlowCommands.MAX_DETOURS) {
                 // A detour around something new in the way gets the time its own plan needs.
                 // Counted, so a route that keeps finding new blocks still ends.
                 detours++;
@@ -447,7 +513,7 @@ public final class DriveRoute extends CommandBuilder {
         else follower.hold(leg.end);
         legStarted = true;
         legStartNanos = now;
-        handoffNanos = 0;
+        handedOff = false;
     }
 
     /**
@@ -456,18 +522,21 @@ public final class DriveRoute extends CommandBuilder {
      * a little before its end (and sometimes inches short, cutting into a short last
      * piece), then holds the end pose, so this waits for that hold to get there.
      * If it takes much longer than predicted, the leg counts as done anyway (the
-     * follower keeps holding the pose).
+     * follower keeps holding the pose), and reachedStop says it didn't get there.
      */
-    private boolean legFinished(Leg leg) {
+    private boolean legFinished(Leg leg, long now) {
         Pose pose = follower.pose();
         Velocity velocity = follower.velocity();
-        boolean there = Geometry.length(pose.x() - leg.end.x(), pose.y() - leg.end.y()) < MotionModel.ARRIVED_INCHES
+        reachedStop = Geometry.length(pose.x() - leg.end.x(), pose.y() - leg.end.y()) < MotionModel.ARRIVED_INCHES
                 && Math.abs(Angles.wrapRadians(pose.heading() - leg.end.heading())) < Math.toRadians(MotionModel.ARRIVED_DEGREES)
                 && Geometry.length(velocity.vx, velocity.vy) < MotionModel.ARRIVED_SPEED;
-        if (leg.path == null) return there || secondsSince(legStartNanos) > leg.seconds + SETTLE_EXTRA_SECONDS;
+        if (leg.path == null) return reachedStop || secondsSince(legStartNanos) > leg.seconds + SETTLE_EXTRA_SECONDS;
         if (follower.following()) return false;
-        if (handoffNanos == 0) handoffNanos = System.nanoTime();
-        return there || secondsSince(handoffNanos) > leg.settleSeconds() + SETTLE_EXTRA_SECONDS;
+        if (!handedOff) {
+            handedOff = true;
+            handoffNanos = now;
+        }
+        return reachedStop || secondsSince(handoffNanos) > leg.settleSeconds() + SETTLE_EXTRA_SECONDS;
     }
 
     /**
@@ -475,14 +544,14 @@ public final class DriveRoute extends CommandBuilder {
      * off its predicted path. It keeps driving meanwhile (watchAhead stops it if the
      * block comes close before the new plan is ready).
      */
-    private void checkForReplan(Leg leg) {
+    private void checkForReplan(Leg leg, long now) {
         FieldMap.Snapshot snap = owner.map().snapshot();
         Pose pose = follower.pose();
         double blockedAt = snap.version != plan.zonesVersion ? blockedAhead(snap, pose, Double.POSITIVE_INFINITY) : Double.POSITIVE_INFINITY;
         boolean pushed = leg.path != null && follower.following()
-                && distanceToPolyline(leg.predictedPath, pose.x(), pose.y()) > AgateFlowCommands.REPLAN_OFF_PATH;
+                && Geometry.distanceToPolyline(leg.predictedPath, pose.x(), pose.y()) > AgateFlowCommands.REPLAN_OFF_PATH;
         if (blockedAt == Double.POSITIVE_INFINITY && !pushed) return;
-        askForReplan(leg, leg.distanceDone(follower), blockedAt != Double.POSITIVE_INFINITY, System.nanoTime());
+        askForReplan(leg, leg.distanceDone(follower), blockedAt != Double.POSITIVE_INFINITY, now);
     }
 
     /**
@@ -490,11 +559,13 @@ public final class DriveRoute extends CommandBuilder {
      * that path first passes too close to a zone because of the new zones, or
      * +infinity if it doesn't within {@code limit}. A point counts only if the new
      * zones took room from it: plans pass close to things on purpose (a FLOWER
-     * pickup spot, the GARDEN lane, a corner), and those haven't changed. Points near
-     * a stop don't count either: the robot is meant to get close there. That is each
-     * leg's end, and the start of each later leg (the stop before it). Points closer
-     * than CHECK_SPACING to the last one looked at are skipped: room changes at most
-     * that much between them, and the check leaves SAFETY_MARGIN / 2 to spare.
+     * pickup spot, the GARDEN lane, a corner), and those haven't changed. Near a
+     * stop (each leg's end, and the start of each later leg, the stop before it) the
+     * robot is meant to get close, so there a point counts only if a new zone comes
+     * closer than ROBOT_RADIUS: the robot would hit it (a partner parked on the stop).
+     * Points closer than CHECK_SPACING to the last one looked at are skipped: room
+     * changes at most that much between them, and the check leaves SAFETY_MARGIN / 2
+     * to spare.
      */
     private double blockedAhead(FieldMap.Snapshot snap, Pose pose, double limit) {
         double need = AgateFlow.ROBOT_RADIUS + AgateFlow.SAFETY_MARGIN / 2;
@@ -512,24 +583,40 @@ public final class DriveRoute extends CommandBuilder {
                 lastX = x;
                 lastY = y;
                 if (along > limit) return Double.POSITIVE_INFINITY;
-                if (Geometry.length(x - leg.end.x(), y - leg.end.y()) < nearStop) continue;
-                if (i > legIndex && Geometry.length(x - path[0], y - path[1]) < nearStop) continue;
+                boolean byStop = Geometry.length(x - leg.end.x(), y - leg.end.y()) < nearStop
+                        || (i > legIndex && Geometry.length(x - path[0], y - path[1]) < nearStop);
+                double least = byStop ? AgateFlow.ROBOT_RADIUS : need;
                 double room = snap.clearance(x, y);
-                if (room < need && room < plan.zones.clearance(x, y) - BLOCKED_WORSE_BY) return along;
+                if (room < least && room < plan.zones.clearance(x, y) - BLOCKED_WORSE_BY) return along;
             }
         }
         return Double.POSITIVE_INFINITY;
     }
 
-    /** The waypoints not reached yet ({@code done} inches along this leg): the rest of this leg's, then every later leg's. */
-    private Route remainingRoute(Leg leg, double done) {
+    /**
+     * Whether the flower intake may still be coming up {@code done} inches along the
+     * current leg: the leg starts at a Route.flowerIntakeDown stop (or the plan started
+     * with the intake down), and the robot is still within
+     * AgateFlow.FLOWER_INTAKE_RAISE_RUN of that start.
+     */
+    private boolean flowerComingUp(double done) {
+        boolean leftDown = legIndex == 0 ? planFlowerStart : stopOf(plan.legs.get(legIndex - 1)).flowerDown;
+        return leftDown && done < AgateFlow.FLOWER_INTAKE_RAISE_RUN;
+    }
+
+    /**
+     * The waypoints not reached yet ({@code done} inches along this leg): the rest of
+     * this leg's, then every later leg's. {@code flowerStart}: it starts with the
+     * flower intake still coming up.
+     */
+    private Route remainingRoute(Leg leg, double done, boolean flowerStart) {
         List<Waypoint> rest = new ArrayList<>();
         for (int i = 0; i < leg.waypoints.size(); i++) {
             boolean last = i == leg.waypoints.size() - 1;
             if (last || leg.waypointAt[i] > done + 1) rest.add(leg.waypoints.get(i));
         }
         for (int i = legIndex + 1; i < plan.legs.size(); i++) rest.addAll(plan.legs.get(i).waypoints);
-        return Route.of(rest);
+        return Route.of(rest, flowerStart);
     }
 
     private void holdHere() {
@@ -546,8 +633,13 @@ public final class DriveRoute extends CommandBuilder {
         started = false;
     }
 
+    /** The leg's stop: its last waypoint. */
+    private static Waypoint stopOf(Leg leg) {
+        return leg.waypoints.get(leg.waypoints.size() - 1);
+    }
+
     private static double secondsSince(long nanos) {
-        return (System.nanoTime() - nanos) / 1e9;
+        return (NOW.getAsLong() - nanos) / 1e9;
     }
 
     private static int nearestPoint(double[] path, double x, double y) {
@@ -559,18 +651,6 @@ public final class DriveRoute extends CommandBuilder {
                 bestDistance = d;
                 best = q;
             }
-        }
-        return best;
-    }
-
-    private static double distanceToPolyline(double[] path, double x, double y) {
-        if (path.length < 4) return 0;
-        double best = Double.POSITIVE_INFINITY;
-        for (int q = 0; q + 3 < path.length; q += 2) {
-            double ax = path[q], ay = path[q + 1], dx = path[q + 2] - ax, dy = path[q + 3] - ay;
-            double l2 = dx * dx + dy * dy;
-            double f = l2 < 1e-12 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
-            best = Math.min(best, Geometry.length(x - ax - f * dx, y - ay - f * dy));
         }
         return best;
     }

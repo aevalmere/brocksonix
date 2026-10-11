@@ -15,7 +15,11 @@ public enum Warning {
     SHOOTER_OFF("!! SHOOTER OFF (watchdog): check the encoder, then restart the OpMode"),
     TURRET_OFF("!! TURRET OFF (watchdog): check the encoder and the REVERSED flags, then restart the OpMode"),
     // A Panels edit put a shot table's distances out of order, so aiming would use wrong numbers.
-    SHOT_TABLE_ORDER("!! SHOT TABLE OUT OF ORDER: distances must increase (fix in Panels, ShotTables)");
+    SHOT_TABLE_ORDER("!! SHOT TABLE OUT OF ORDER: distances must increase (fix in Panels, ShotTables)"),
+    // Robot.HOOD is COAX, but the configuration has no hood servo, so shots use the static hood's numbers.
+    HOOD_MISSING("!! COAX HOOD PICKED but no hood servo in the configuration: shooting with the static hood numbers"),
+    // CoaxHood's mapping asks for a servo position past 0 to 1, so the hood stops short of the angle and shots miss.
+    HOOD_AT_END("!! HOOD SERVO AT ITS END: the hood can't reach this angle. Check CoaxHood ANCHOR_DEG, SERVO_AT_ANCHOR, GEAR_RATIO and REVERSED");
 
     /** The line the drivers see. */
     public final String text;

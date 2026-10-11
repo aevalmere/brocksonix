@@ -18,7 +18,13 @@ public class CachedServo {
         }
     }
 
+    /**
+     * The servo itself, for what this class doesn't wrap. A call through it (setDirection,
+     * scaleRange, a new PWM range) changes where a position lands, so the cache is cleared:
+     * the next setPosition() always goes out, even if it repeats the last one.
+     */
     public Servo raw() {
+        last = Double.NaN;
         return servo;
     }
 }

@@ -55,6 +55,7 @@ tasks.register('todoList') {
             13: 'AgateFlow setup',
             14: 'Pickups: FLOWERS, GARDEN and floor POLLEN',
             15: 'AgateFlow on the field',
+            16: 'Coax hood',
     ]
     // Same phases as TUNING_GUIDE.md.
     def phases = [
@@ -62,6 +63,7 @@ tasks.register('todoList') {
             [first: 9, last: 10, title: 'Phase 2: Autonomous and competition'],
             [first: 11, last: 12, title: 'Phase 3: Make it better'],
             [first: 13, last: 15, title: 'Phase 4: AgateFlow and auto pickups'],
+            [first: 16, last: 16, title: 'Phase 5: Coax hood (once it is on the robot)'],
     ]
     inputs.dir(sourceDir)
     outputs.file(output)
@@ -113,7 +115,7 @@ tasks.register('todoList') {
         out << 'Do the item, delete its TODO comment, and the list updates on the next build '
         out << '(or run `./gradlew todoList`). How to do each step is in TUNING_GUIDE.md.\n\n'
         out << 'Most important first: work from the top down. Phase 1 gets the robot playing TeleOp, '
-        out << 'phase 2 adds a scoring auto, phase 3 makes both better, phase 4 adds AgateFlow and auto pickups.\n\n'
+        out << 'phase 2 adds a scoring auto, phase 3 makes both better, phase 4 adds AgateFlow and auto pickups, phase 5 is the coax hood once it is on the robot.\n\n'
         out << "**${items.size()} left.**\n"
         def byStep = items.sort { a, b -> a.step <=> b.step ?: a.path <=> b.path ?: a.line <=> b.line }
                 .groupBy { it.step }
