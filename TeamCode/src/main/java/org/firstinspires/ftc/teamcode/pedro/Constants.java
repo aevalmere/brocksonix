@@ -15,16 +15,16 @@ public class Constants {
 
     // Starting values, so Drive Test runs before any tuning. The MecanumTuner output (drivetrainConfig)
     // and the PinpointTuner output (localizerConfig) replace these two as printed.
-    // TODO(2): Motor directions are a guess (left side reversed). Check them with Drive Test's D-pad, or run MecanumTuner.
+    // TODO(2): All four motor directions were flipped on 2026-10-25, because Drive Test only drove correctly without the stick minus signs. Confirm with Drive Test's D-pad: each wheel alone must roll the robot intake first.
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
         c.frontLeftName.set("frontLeft");
         c.frontRightName.set("frontRight");
         c.backLeftName.set("backLeft");
         c.backRightName.set("backRight");
-        c.frontLeftDirection.set(DcMotorSimple.Direction.REVERSE);
-        c.frontRightDirection.set(DcMotorSimple.Direction.FORWARD);
-        c.backLeftDirection.set(DcMotorSimple.Direction.REVERSE);
-        c.backRightDirection.set(DcMotorSimple.Direction.FORWARD);
+        c.frontLeftDirection.set(DcMotorSimple.Direction.FORWARD);
+        c.frontRightDirection.set(DcMotorSimple.Direction.REVERSE);
+        c.backLeftDirection.set(DcMotorSimple.Direction.FORWARD);
+        c.backRightDirection.set(DcMotorSimple.Direction.REVERSE);
     });
 
     // TODO(2): Pinpoint pod offsets from CAD are in ROBOT.md (X pod +2.54 in. left, Y pod -1.55 in. forward). Confirm with PinpointTuner.

@@ -151,7 +151,7 @@ public class Shooter {
      * Test only: drives each motor directly, -1 to 1, with no closed loop. Positive pushes the
      * shooting direction once the REVERSED flags are right. Stays in effect until setTargetRpm is called.
      */
-    public void setOpenLoopTest(double leftPower, double rightPower) {
+    public void setTestPowers(double leftPower, double rightPower) {
         openLoop = true;
         openLeftPower = Range.clip(leftPower, -1, 1);
         openRightPower = Range.clip(rightPower, -1, 1);

@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
+import org.firstinspires.ftc.teamcode.robot.subsystems.FlowerIntake;
 
 /**
  * Finds servo positions (door open/closed, flower intake up/down). Move one
@@ -52,7 +53,9 @@ public class ServoPositionFinder extends LinearOpMode {
             for (int i = 0; i < NAMES.length; i++) {
                 telemetry.addData((i == selected ? "> " : "  ") + NAMES[i], "%.2f", positions[i]);
             }
-            telemetry.addLine("The right flower servo is reversed in FlowerIntake, so its number here is 1 minus the one to use.");
+            if (FlowerIntake.RIGHT_REVERSED) {
+                telemetry.addLine("The right flower servo is reversed in FlowerIntake, so its number here is 1 minus the one to use.");
+            }
             telemetry.update();
         }
     }

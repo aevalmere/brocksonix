@@ -21,9 +21,7 @@ import org.firstinspires.ftc.teamcode.util.DriveCurve;
  */
 @Configurable
 public class Drive {
-    // TODO(2): Raise if the robot creeps with the sticks let go; lower if small moves feel dead.
     public static double STICK_DEADBAND = 0.05;
-    // TODO(12): Drive and adjust DRIVE_CUBIC and TURN_CUBIC to taste. Higher = gentler near center, same top speed.
     public static double DRIVE_CUBIC = 0.6;
     public static double TURN_CUBIC = 0.7;
     // TODO(2): Drive around and let go. If holding feels jumpy, set false.
@@ -38,7 +36,6 @@ public class Drive {
         this.follower = follower;
     }
 
-    // TODO(2): Main TeleOp, red: stick up drives away from the driver, stick left to the driver's left. Check blue too.
     /**
      * Raw stick values from the driver's point of view, each -1 to 1.
      *
@@ -61,8 +58,17 @@ public class Drive {
                 away * stretch,
                 left * stretch,
                 DriveCurve.shape(turnLeft, STICK_DEADBAND, TURN_CUBIC));
+        follower.manual(driverToField(fromDriver, pose().heading(), alliance));
+    }
+
+    /**
+     * Turns driver-view powers (away, left, turn left) into the robot-centric
+     * powers Pedro drives with; turn is unchanged. Drive Test's field-centric
+     * mode uses this too.
+     */
+    public static DrivePowers driverToField(DrivePowers fromDriver, double headingRad, Alliance alliance) {
         // Pedro rotates by -(heading + offset), so offset = -driverHeading first turns the driver's view into the field's.
-        follower.manual(ManualDrive.fieldCentric(fromDriver, pose().heading(), -alliance.driverHeading()));
+        return ManualDrive.fieldCentric(fromDriver, headingRad, -alliance.driverHeading());
     }
 
     public void setPose(Pose pose) {

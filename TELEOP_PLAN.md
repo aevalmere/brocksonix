@@ -1,6 +1,6 @@
 # TeleOp controls and field reference
 
-Button map, driver warnings, match rules and field coordinates. How each mechanism works is in the comment at the top of its class. Hardware is in `ROBOT.md`, tuning in `TUNING_GUIDE.md`.
+Button map, driver warnings, match rules and field coordinates. How each mechanism works is in the comment at the top of its class. Hardware is in `ROBOT.md`, tuning in `TUNING_GUIDE.md`, and how the code runs in `RUNDOWN.md`.
 
 ## Init
 

@@ -40,25 +40,17 @@ import org.firstinspires.ftc.teamcode.util.PIDF;
  *   + KS toward the target              (ramped in near zero so it doesn't buzz)
  * Telemetry shows each part ("Turret P / I / D / F / KS") for tuning.
  *
- * Safety. Ask watchdogTripped() whether the turret is off until the OpMode restarts.
- *   - Wrong way: it turns against its own push, more than WRONG_WAY_DEG overall. That is
- *     SERVO_REVERSED and ENCODER_REVERSED disagreeing: off within about 1.5 s (about 0.3 s
- *     when the target is near). The encoder sits on the turret and measures against the
- *     chassis, so the robot turning doesn't change it.
- *   - Full power, but the error doesn't shrink for WATCHDOG_MS: off. A backup for anything
- *     else that keeps the error from closing; the wrong-way check sees wrong REVERSED
- *     flags first.
- *   - Stuck: it pushes at KS or more but the angle doesn't move. Friction, a dead encoder
- *     and a held turret all look like that, so it tests: it pushes harder, little by
- *     little, up to TEST_POWER. Friction gives way and the turret moves, so all is well.
- *     If it still doesn't move, the power goes off for REST_MS and it tries again.
- *     After FAILED_TESTS_TO_LATCH failed tests in a row it stays off. So a turret held
- *     for a few seconds comes back, and a dead encoder ends up off in about 4 to 6 s,
- *     at any error (this check sees it before the full-power one would).
- *   - Under KS: a push under KS can't start a turret that is standing still, but it can
- *     keep one creeping that was already moving (moving friction is lower). So once the
- *     angle has stood still for STUCK_WATCH_MS, a push under KS is cut to 0. A working
- *     turret at rest doesn't notice; an encoder that froze mid-move stops the creep.
+ * Safety. The first three checks turn the turret off until the OpMode restarts
+ * (watchdogTripped()). Each method comment has the details.
+ *   - checkWrongWay: turns more than WRONG_WAY_DEG against its own push (the two REVERSED
+ *     flags disagree). Trips within about 1.5 s, about 0.3 s when the target is near.
+ *   - checkWatchdog: full power for WATCHDOG_MS without the error shrinking. A backup, since
+ *     the wrong-way check sees wrong flags first.
+ *   - checkStuck: pushes at KS or more for STUCK_WATCH_MS and the angle doesn't move. It
+ *     tests (pushes harder) and rests, and trips after FAILED_TESTS_TO_LATCH failed tests
+ *     in a row: a held turret comes back, a dead encoder is off in about 4 to 6 s.
+ *   - cutUnderKs: a push under KS is cut to 0 once the angle has stood still for
+ *     STUCK_WATCH_MS, so a frozen encoder can't leave the turret creeping.
  *   - Not caught: an encoder that freezes close to the target, under the KS power. The
  *     turret creeps for up to STUCK_WATCH_MS, then stops, and onTarget() believes the
  *     frozen reading. A frozen reading and a turret at rest look the same.
@@ -244,7 +236,7 @@ public class Turret {
     }
 
     /** For tuning only: drive the servo directly. Pass null to go back to aiming. */
-    public void setManualPower(Double power) {
+    public void setTestPower(Double power) {
         manualPower = power;
     }
 
@@ -432,7 +424,7 @@ public class Turret {
     }
 
     /**
-     * The stuck check (see the class comment). Takes the power the controller wants and
+     * The stuck check. Takes the power the controller wants and
      * returns the power to send. Three steps, like FireControl:
      *
      * WATCH: if the turret pushes the same way, at KS or more, for STUCK_WATCH_MS and the
@@ -547,7 +539,7 @@ public class Turret {
         telemetry.addData("Turret P / I / D / F / KS", "%.3f / %.3f / %.3f / %.3f / %.3f",
                 pidf.lastP(), pidf.lastI(), pidf.lastD(), pidf.lastF(), staticPush);
         if (watchdogTripped) {
-            telemetry.addData("Turret WATCHDOG", "TRIPPED: " + tripReason + ". Turret is off. Check the encoder wiring and the two REVERSED flags, then restart the OpMode.");
+            telemetry.addData("TURRET OFF", "TRIPPED: " + tripReason + ". Turret is off. Check the encoder wiring and the two REVERSED flags, then restart the OpMode.");
         } else if (stuckStep != StuckStep.WATCH || failedTests > 0) {
             telemetry.addData("Turret stuck check", "%s, failed tests %d of %d", stuckStep, failedTests, FAILED_TESTS_TO_LATCH);
         }

@@ -24,8 +24,9 @@ How to measure and tune everything the code can't know until someone tries it on
 
 ## 2. Drivetrain and localization (Pedro)
 
-- [ ] Run the `Drive Test` OpMode first (no tuning needed). Hold the D-pad to spin one wheel at low power: up = frontLeft, right = frontRight, down = backRight, left = backLeft. Each must roll the robot forward. If a wheel goes backward, flip that motor's direction in `Constants.drivetrainConfig`. If a different wheel spins, the port is wrong.
-- [ ] In `Drive Test`, check the sticks: left stick up drives toward the intake end, left stick left strafes left, right stick X left turns left. Right trigger held is slow mode.
+- [ ] Run the `Drive Test` OpMode first (no tuning needed). Hold the D-pad to spin one wheel at low power: up = frontLeft, right = frontRight, down = backRight, left = backLeft. Each must roll the robot forward, intake first. If a wheel goes backward, flip that motor's direction in `Constants.drivetrainConfig`. If a different wheel spins, the port is wrong. All four directions were flipped on 2026-10-25 (the sticks only drove right with their minus signs taken out), so do this check again.
+- [ ] In `Drive Test`, check the sticks: left stick up drives toward the intake end, left stick left strafes left, right stick X left turns left. Right trigger held is slow mode. Intake Test drives with the same code (`DriveTest.stickPowers`). The sticks have Main TeleOp's signs (a stick pushed up reads -1, so the code negates it), so if the robot drives the wrong way, fix the motor directions in `Constants.drivetrainConfig`, never the stick signs: a sign changed in Drive Test leaves Main TeleOp wrong.
+- [ ] In `Drive Test`, Cross switches to field-centric, the same rotation Main TeleOp uses (`Drive.driverToField`). Point the intake away from you and press Options: stick up must drive away from you whichever way the robot turns.
 - [ ] In `Drive Test`, check the Pinpoint (Options resets the pose to 0, 0, 0). Push the robot 48 in. forward by hand and x rises 48. Push it 48 in. left and y rises 48. Turn it left and heading goes positive. If x or y runs the wrong way, flip that pod's direction in `Constants.localizerConfig`.
 - [ ] Pinpoint pod offsets: `ROBOT.md` has them from CAD, measured from the **turret center** (the robot's center in all our code). PinpointTuner confirms them; fix `ROBOT.md` if it disagrees.
 - [ ] Run the tuners in order: `MecanumTuner`, `PinpointTuner`, `ForesightTuner`. They are registered in `pedro/TeamTuning.java`; only `Tests` gets added there later, once the Foresight output is pasted into `Constants` (see the TODO in that file).
@@ -43,10 +44,10 @@ How to measure and tune everything the code can't know until someone tries it on
 
 - [ ] First, `Door.CLOSED_POSITION` and `Door.OPEN_POSITION` with the Servo Position Finder OpMode. Storage Test holds the door closed, and the balls stack up against it for the rest of this section.
 - [ ] `Storage.BLOCKED_READS_LOW`: block each beam by hand. Telemetry must show `true` when blocked. If it's backwards, flip this.
-- [ ] `Rail.INTAKE_REVERSED`, `Rail.TRANSFER_REVERSED`: with Cross (collect) on, both ends must move balls **toward the door**.
-- [ ] `Rail.TRANSFER_HOLD_POWER`: with a ball against the closed door, the lowest power that keeps it seated without the motor straining.
-- [ ] `Rail.INTAKE_POWER`, `Rail.TRANSFER_INTAKE_POWER`: lower them if balls jam or bounce.
-- [ ] `Rail.REVERSE_POWER` (-1.0, the unjam power): hold Circle with balls loaded. They must back out without flying out of the intake. Move it toward 0 if they do.
+- [ ] `Transfer.REVERSED` (Panels page "Transfer"): with Cross (collect) on, the door end must move balls **toward the door**. `Intake.REVERSED` (page "Intake") is already checked in Intake Test.
+- [ ] `Transfer.HOLD_POWER`: with a ball against the closed door, the lowest power that keeps it seated without the motor straining.
+- [ ] `Intake.COLLECT_POWER`, `Transfer.COLLECT_POWER`: lower them if balls jam or bounce.
+- [ ] `Intake.REVERSE_POWER`, `Transfer.REVERSE_POWER` (both -1.0, the unjam power): hold Circle with balls loaded. They must back out without flying out of the intake. Move them toward 0 if they do.
 - [ ] `Storage.FULL_HOLD_MS`: feed balls one at a time. "Full" must only appear on the 4th. Raise it if a passing ball triggers full.
 - [ ] `Storage.DEBOUNCE_MS`: raise it (in ms) if the count flickers. A beam change only counts after it holds this long.
 - [ ] Watch the count go 0, 1, 2-3, 4 as balls come in.
@@ -68,7 +69,7 @@ Manual mode first (Cross toggles; left stick X drives the servo, capped at `Turr
 - [ ] `Turret.SERVO_REVERSED`: stick **left** must turn the turret **counter-clockwise** (seen from above).
 - [ ] `Turret.ENCODER_FULL_TURN_VOLTS`: turn the turret slowly through several full turns and watch "Encoder volts". Use the highest clean reading before it jumps back to 0 (Meta-Infinity found 3.2 V on the same encoder).
 - [ ] `Turret.ENCODER_MIN_VOLTS`: same slow turns. Use the lowest clean reading just after the voltage drops at the wrap. Leave it 0 if it reads 0.000 there. Set it before `ENCODER_ZERO_DEG`, since changing it moves every angle a little.
-- [ ] `Turret.ENCODER_REVERSED`: the angle must **increase** when the turret turns counter-clockwise. If the two REVERSED flags disagree, aiming mode turns the turret off within about 1.5 s ("turned ... against its push"): fix the flags and restart the OpMode.
+- [ ] `Turret.ENCODER_REVERSED`: the angle must **increase** when the turret turns counter-clockwise. If the two REVERSED flags disagree, aiming mode turns the turret off within about 1.5 s (the "TURRET OFF" line says "turned ... against its push"): fix the flags and restart the OpMode.
 - [ ] `Turret.ENCODER_ZERO_DEG`: point the shooter straight out the robot's front and read the angle. Put that number here so the angle reads 0.
 - [ ] `Turret.KS`: manual mode sends the stick to the servo without KS, so changing KS there does nothing. Instead, push the stick very slowly and watch "Turret error / power". Note the power where the turret just starts to move, and set KS a little below it.
 

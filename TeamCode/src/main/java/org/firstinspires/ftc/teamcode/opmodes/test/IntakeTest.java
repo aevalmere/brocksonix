@@ -5,9 +5,6 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.revhub.drivetrains.Mecanum;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -15,15 +12,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmodes.teleop.MainTeleOp;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
-import org.firstinspires.ftc.teamcode.robot.hardware.CachedMotor;
 import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
-import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
 import org.firstinspires.ftc.teamcode.util.Debouncer;
 
 /**
  * Drive around and pick balls up. It builds only Pedro's Mecanum drivetrain
- * (from Constants.drivetrainConfig) and the intake motor: no Pinpoint, no
+ * (from Constants.drivetrainConfig) and the Intake subsystem: no Pinpoint, no
  * Follower, no Robot. The configuration needs the four drive motors and
  * "intake": no transfer motor, no beams.
  *
@@ -31,11 +27,11 @@ import org.firstinspires.ftc.teamcode.util.Debouncer;
  * (DriveTest.stickPowers). Right trigger (hold): slow mode, all three sticks
  * times DriveTest.SLOW_SCALE (Panels page "DriveTest").
  *
- * From Start the intake runs at Rail.INTAKE_POWER with no button. Balls must
- * move in, toward the door. If they go out, flip Rail.INTAKE_REVERSED (Panels
- * page "Rail").
+ * From Start the intake runs at Intake.COLLECT_POWER with no button. Balls must
+ * move in, toward the door. If they go out, flip Intake.REVERSED (Panels
+ * page "Intake").
  *
- * Left trigger (hold): reverse at Rail.REVERSE_POWER, to back balls out, even
+ * Left trigger (hold): reverse at Intake.REVERSE_POWER, to back balls out, even
  * when the beam reads full.
  *
  * The full beam ("beamFull") is optional. Without it the intake runs nonstop.
@@ -53,13 +49,8 @@ public class IntakeTest extends LinearOpMode {
         // Moves nothing: Mecanum only sets directions and float mode.
         Mecanum drivetrain = new Mecanum(hardwareMap, Constants.drivetrainConfig);
 
-        // Same setup as Rail's motors. The motor stays FORWARD: INTAKE_REVERSED is applied
-        // when the power is written, so flipping it in Panels works live.
-        DcMotorEx intakeMotor = hardwareMap.get(DcMotorEx.class, HardwareNames.INTAKE_MOTOR);
-        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        CachedMotor intake = new CachedMotor(intakeMotor);
+        // The same Intake the match code uses, so a direction or power fixed here is fixed there too.
+        Intake intake = new Intake(hardwareMap);
 
         // tryGet gives null instead of an error when the beam isn't in the configuration.
         DigitalChannel fullBeam = hardwareMap.tryGet(DigitalChannel.class, HardwareNames.BEAM_FULL);
@@ -100,16 +91,15 @@ public class IntakeTest extends LinearOpMode {
             double power;
             String doing;
             if (gamepad1.left_trigger > MainTeleOp.TRIGGER_THRESHOLD) {
-                power = Rail.REVERSE_POWER;
+                intake.reverse();
+                power = Intake.REVERSE_POWER;
                 doing = "reversing (LT)";
-            } else if (full) {
-                power = 0;
-                doing = "stopped (beam full)";
             } else {
-                power = Rail.INTAKE_POWER;
-                doing = "running";
+                // collect() stops the intake while full, as in a match.
+                intake.collect(full);
+                power = full ? 0 : Intake.COLLECT_POWER;
+                doing = full ? "stopped (beam full)" : "running";
             }
-            intake.setPower(Rail.INTAKE_REVERSED ? -power : power);
 
             screen.addData("Intake", "%s at %.2f power", doing, power);
             screen.addData("Full beam", beam);
@@ -118,6 +108,6 @@ public class IntakeTest extends LinearOpMode {
             screen.update();
         }
         drivetrain.stop();
-        intake.setPower(0);
+        intake.stop();
     }
 }

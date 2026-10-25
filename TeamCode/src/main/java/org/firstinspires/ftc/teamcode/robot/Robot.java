@@ -19,9 +19,10 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.CoaxHood;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.robot.subsystems.FlowerIntake;
-import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Turret;
 
 import java.util.EnumSet;
@@ -54,12 +55,13 @@ public class Robot {
     public static double COAX_RPM_TOLERANCE = 300;
 
     // OpModes may call these directly: drive, the flower intake, the aim trims (turret, shooter and coax hood),
-    // and setPose/relocalize. update() decides everything else (the rail, the door, and the shooter, turret
-    // and coax hood targets) from scratch every loop, so a direct call there is overwritten on the next update().
+    // and setPose/relocalize. update() decides everything else (the intake and transfer, the door, and the shooter,
+    // turret and coax hood targets) from scratch every loop, so a direct call there is overwritten on the next update().
     // To change those, set shootHeld, passHeld, unjamHeld, singleBallBursts or stopAfterOneShot instead.
     public final Drive drive;
     public final Storage storage;
-    public final Rail rail;
+    public final Intake intake;
+    public final Transfer transfer;
     public final Door door;
     public final FlowerIntake flowerIntake;
     public final Shooter shooter;
@@ -94,8 +96,6 @@ public class Robot {
     private double lastTurretDeg = 0;
     /** The pose or velocity had a NaN this loop (odometry glitch). Nothing is aimed or saved while true. */
     private boolean poseIsNaN = false;
-    /** The aim is good this loop (see aimed()). Mid-burst, the rail pauses while it is false. */
-    private boolean aimed = false;
     /** The shot is ready this loop: aimed, and the wheel at speed. Starts a burst. */
     private boolean ready = false;
     /** The coax hood shoots this loop (HOOD is COAX and the hood servo is configured). */
@@ -116,7 +116,8 @@ public class Robot {
 
         drive = new Drive(follower);
         storage = new Storage(hardwareMap);
-        rail = new Rail(hardwareMap);
+        intake = new Intake(hardwareMap);
+        transfer = new Transfer(hardwareMap);
         door = new Door(hardwareMap);
         flowerIntake = new FlowerIntake(hardwareMap);
         shooter = new Shooter(hardwareMap, voltage);
@@ -163,7 +164,7 @@ public class Robot {
         return RobotState.alliance != null && poseTrusted;
     }
 
-    /** True when the coax hood shoots: HOOD is COAX and its servo is configured. Decided once per update(). */
+    /** True when the coax hood shoots: HOOD is COAX and its servo is configured. Changes only between bursts. */
     public boolean usingCoaxHood() {
         return coax;
     }
@@ -229,7 +230,7 @@ public class Robot {
             coaxHood.update();
         }
 
-        aimed = aimed();
+        boolean aimed = aimed();
         ready = aimed && wheelReady();
         hoodOutOfReach = coax && aim != null && aim.valid && !aim.hoodCanScore() && wheelNearTarget();
         boolean enoughBalls = singleBallBursts ? !storage.isEmpty() : storage.hasAtLeastTwo();
@@ -241,14 +242,23 @@ public class Robot {
         if (fireControl.doorOpen()) door.open();
         else door.close();
 
-        // Rail priority: unjam always wins, so a jam can be cleared at any time. Then feed.
+        // Intake and transfer priority: unjam always wins, so a jam can be cleared at any time. Then feed.
         // Then stopped: while a burst waits, pauses or closes, the door is open, so the rail has to hold the balls back.
         // Collect is the default.
-        if (unjamHeld) rail.reverse();
-        else if (fireControl.feeding()) rail.feed(lastFeedPower);
-        // After a burst, stay stopped until the door is closed, or the next ball reaches it half open.
-        else if (isFiring() || !door.isFullyClosed()) rail.stop();
-        else rail.collect(storage.slot1Occupied(), storage.isFull());
+        if (unjamHeld) {
+            intake.reverse();
+            transfer.reverse();
+        } else if (fireControl.feeding()) {
+            intake.feed(lastFeedPower);
+            transfer.feed(lastFeedPower);
+        } else if (isFiring() || !door.isFullyClosed()) {
+            // After a burst, stay stopped until the door is closed, or the next ball reaches it half open.
+            intake.stop();
+            transfer.stop();
+        } else {
+            intake.collect(storage.isFull());
+            transfer.collect(storage.slot1Occupied());
+        }
 
         door.update();
         flowerIntake.update();
@@ -366,7 +376,8 @@ public class Robot {
         }
         drive.addTelemetry(telemetry);
         storage.addTelemetry(telemetry);
-        rail.addTelemetry(telemetry);
+        intake.addTelemetry(telemetry);
+        transfer.addTelemetry(telemetry);
         door.addTelemetry(telemetry);
         flowerIntake.addTelemetry(telemetry);
         shooter.addTelemetry(telemetry);

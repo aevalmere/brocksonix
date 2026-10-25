@@ -30,7 +30,7 @@ import java.util.function.DoubleSupplier;
  *
  * <pre>
  * RobotCommands commands = new RobotCommands(robot);
- * Scheduler.schedule(sequential(commands.driveTo(SHOOT_SPOT), commands.shootAll()));
+ * Scheduler.schedule(sequential(commands.driveTo(SHOOT_SPOT, 4000), commands.shootAll()));
  * while (opModeIsActive()) { Scheduler.execute(); robot.update(); }
  * </pre>
  *
@@ -283,7 +283,7 @@ public class RobotCommands {
     public ParkGuard parkGuard(AgateFlowCommands agateFlow, Route parkRoute, DoubleSupplier secondsLeft) {
         Runnable up = () -> robot.flowerIntake.setDown(false);
         Command holdFlowerUp = Commands.infinite(up).setStart(up).requiring(robot.flowerIntake);
-        return new ParkGuard(agateFlow, parkRoute, secondsLeft, robot.shooter, robot.rail, robot.flowerIntake)
+        return new ParkGuard(agateFlow, parkRoute, secondsLeft, robot.shooter, robot.intake, robot.transfer, robot.flowerIntake)
                 .whileParking(holdFlowerUp)
                 .flowerIntakeDown(robot.flowerIntake::isDown);
     }
@@ -315,6 +315,6 @@ public class RobotCommands {
         Command hold = Command.build()
                 .setStart(() -> robot.unjamHeld = true)
                 .setEnd(endCondition -> robot.unjamHeld = false);
-        return hold.raceWith(Commands.waitMs(ms)).requiring(robot.rail);
+        return hold.raceWith(Commands.waitMs(ms)).requiring(robot.intake, robot.transfer);
     }
 }

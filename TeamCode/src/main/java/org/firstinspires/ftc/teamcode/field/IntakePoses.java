@@ -21,7 +21,7 @@ import com.pedropathing.math.Pose;
  *         .to(IntakePoses.gardenEndPose()).allowContact().maxSpeed(20);
  * </pre>
  *
- * Not used by any OpMode yet.
+ * No match OpMode uses it yet (AgateFlow Benchmark does).
  */
 @Configurable
 public final class IntakePoses {

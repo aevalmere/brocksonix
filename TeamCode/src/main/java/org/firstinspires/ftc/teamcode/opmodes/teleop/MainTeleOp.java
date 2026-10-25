@@ -30,11 +30,11 @@ import org.firstinspires.ftc.teamcode.robot.RobotState;
 @Configurable
 @TeleOp(name = "Main TeleOp")
 public class MainTeleOp extends LinearOpMode {
+    // TODO(10): Set to false before competition.
     /**
      * true: every value, every loop, so Panels shows live values while tuning.
      * false: only the warnings and loop time, every TELEMETRY_INTERVAL_MS. Autos use this too.
      */
-    // TODO(10): Set to false before competition.
     public static boolean FULL_TELEMETRY = true;
     // TODO(12): Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.
     public static double TELEMETRY_INTERVAL_MS = 200;

@@ -46,12 +46,12 @@ public final class ShotTables {
             {110, 1.0},
     };
 
+    // TODO(16): Once passing is on (FireControl.PASS_ENABLED): fill it from real passes like SHOT_RPM. Its first and last distances also limit where coax passes fire (G405): check a pass from the far end can't leave the field.
     /**
      * Flywheel RPM for a pass that lands at the pass target from this distance, with the static hood.
      * With the coax hood, passes come from HoodSolver instead, but only inside this table's distances (G405).
      * Passing is on hold until the coax hood is on the robot (FireControl.PASS_ENABLED).
      */
-    // TODO(16): Once passing is on (FireControl.PASS_ENABLED): fill it from real passes like SHOT_RPM. Its first and last distances also limit where coax passes fire (G405): check a pass from the far end can't leave the field.
     public static double[][] PASS_RPM = {
             {24, 1500},
             {165, 3200},

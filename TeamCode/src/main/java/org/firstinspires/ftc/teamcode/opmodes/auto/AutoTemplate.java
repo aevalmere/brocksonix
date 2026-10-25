@@ -32,8 +32,6 @@ import org.firstinspires.ftc.teamcode.robot.commands.RobotCommands;
 // TODO(9): Copy this file for a real auto, fill in the poses and the routine, and delete the @Disabled line.
 @Disabled
 public class AutoTemplate extends LinearOpMode {
-    private static final double TELEMETRY_INTERVAL_MS = 200;
-
     // ---- 1. Poses: written for red, flipped for blue ----
     // Inches, Pedro frame (see field/Field.java). Heading is in degrees, 0 faces +x, counter-clockwise is positive.
     // These are plain numbers so Panels can edit them. runOpMode builds the Poses after init, so an edit applies to the next run.
@@ -71,7 +69,7 @@ public class AutoTemplate extends LinearOpMode {
             while (opModeIsActive()) {
                 screen.addLine("!! NO ALLIANCE PICKED: auto is doing nothing. Stop, restart the OpMode and pick one in init.");
                 screen.update();
-                sleep((long) TELEMETRY_INTERVAL_MS);
+                sleep((long) MainTeleOp.TELEMETRY_INTERVAL_MS);
             }
             return;
         }
@@ -95,8 +93,8 @@ public class AutoTemplate extends LinearOpMode {
             Scheduler.execute();
             robot.update();
 
-            // MainTeleOp.FULL_TELEMETRY switches the auto's telemetry too.
-            if (MainTeleOp.FULL_TELEMETRY || sinceTelemetry.milliseconds() >= TELEMETRY_INTERVAL_MS) {
+            // MainTeleOp.FULL_TELEMETRY and TELEMETRY_INTERVAL_MS set the auto's telemetry too.
+            if (MainTeleOp.FULL_TELEMETRY || sinceTelemetry.milliseconds() >= MainTeleOp.TELEMETRY_INTERVAL_MS) {
                 sinceTelemetry.reset();
                 robot.addWarnings(screen);
                 if (MainTeleOp.FULL_TELEMETRY) robot.addTelemetry(screen);

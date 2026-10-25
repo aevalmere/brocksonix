@@ -47,7 +47,7 @@ public class TurretTest extends LinearOpMode {
 
             // Capped like aiming mode, so the stick never pushes harder than MAX_POWER.
             double stick = Range.clip(-gamepad1.left_stick_x, -Turret.MAX_POWER, Turret.MAX_POWER);
-            turret.setManualPower(manual ? (Double) stick : null);
+            turret.setTestPower(manual ? (Double) stick : null);
             turret.setTargetDeg(target);
             turret.update();
 

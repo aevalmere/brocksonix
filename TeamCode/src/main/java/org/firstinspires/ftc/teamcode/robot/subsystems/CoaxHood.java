@@ -154,7 +154,7 @@ public class CoaxHood {
     }
 
     /** For tests only: send this servo position (0 to 1) directly, ignoring the angle. Pass null to go back to angles. */
-    public void setRawPositionForTest(Double position) {
+    public void setTestPosition(Double position) {
         testPosition = position;
     }
 

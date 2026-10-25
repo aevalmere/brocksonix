@@ -8,6 +8,8 @@ public final class HardwareNames {
     private HardwareNames() {}
 
     // TODO(1): Make the robot configuration on the Driver Station with these names. Write each port in ROBOT.md.
+    // Pedro takes these five names from pedro/Constants (drivetrainConfig, localizerConfig),
+    // not from here, so a rename must be made there too.
     public static final String FRONT_LEFT = "frontLeft";
     public static final String FRONT_RIGHT = "frontRight";
     public static final String BACK_LEFT = "backLeft";

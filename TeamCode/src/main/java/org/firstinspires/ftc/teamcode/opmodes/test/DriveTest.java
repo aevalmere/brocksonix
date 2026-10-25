@@ -4,7 +4,6 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.drivetrain.DrivePowers;
-import com.pedropathing.follower.ManualDrive;
 import com.pedropathing.math.Pose;
 import com.pedropathing.revhub.drivetrains.Mecanum;
 import com.pedropathing.revhub.localizers.PinpointLocalizer;
@@ -116,8 +115,8 @@ public class DriveTest extends LinearOpMode {
                 DrivePowers powers = stickPowers(gamepad1);
                 // A NaN heading would make every power NaN, so field-centric waits for a real one.
                 if (fieldCentric && !noHeading) {
-                    // Same rotation as Drive.drive, for red.
-                    powers = ManualDrive.fieldCentric(powers, pose.heading(), -Alliance.RED.driverHeading());
+                    // Main TeleOp's rotation, for red.
+                    powers = Drive.driverToField(powers, pose.heading(), Alliance.RED);
                 }
                 // true = driver input, so the wheels brake at 0 power (as in Main TeleOp).
                 drivetrain.drive(powers, true);
@@ -149,13 +148,14 @@ public class DriveTest extends LinearOpMode {
 
     /**
      * Robot-centric drive powers from the sticks: deadband, then SLOW_SCALE while
-     * RT is held. Intake Test drives with this too, so a sign changed here changes
-     * both OpModes.
+     * RT is held. Standard signs, as in Main TeleOp: a stick reads -1 pushed up
+     * or left, and Pedro takes forward, left and counter-clockwise as positive.
+     * Intake Test drives with this too, so a sign changed here changes both OpModes.
      */
     static DrivePowers stickPowers(Gamepad pad) {
-        double forward = pad.left_stick_y;
-        double left = pad.left_stick_x;
-        double turnLeft = pad.right_stick_x;
+        double forward = -pad.left_stick_y;
+        double left = -pad.left_stick_x;
+        double turnLeft = -pad.right_stick_x;
         if (Math.hypot(forward, left) <= Drive.STICK_DEADBAND) {
             forward = 0;
             left = 0;

@@ -13,9 +13,10 @@ import org.firstinspires.ftc.teamcode.robot.shot.HoodSolver;
 import org.firstinspires.ftc.teamcode.robot.shot.ShotTables;
 import org.firstinspires.ftc.teamcode.robot.subsystems.CoaxHood;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
-import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
 import org.firstinspires.ftc.teamcode.util.LookupTable;
 
 import java.util.ArrayList;
@@ -44,8 +45,10 @@ import java.util.List;
  * plus an offset, D-pad up/down (±100 RPM). The hood follows HoodSolver's angle
  * for the RPM the wheel really has. Right bumper (hold): once the hood has an angle
  * for this RPM and is there, the door opens and the rail feeds. While RB stays held
- * the door stays open, and the rail pauses whenever the hood isn't ready, like a
- * burst in Main TeleOp. So every ball leaves at the angle the physics picked.
+ * the door stays open, and the rail pauses whenever the hood isn't ready, so every
+ * ball leaves at the angle the physics picked. Unlike a Main TeleOp burst, nothing
+ * checks the wheel speed, there is no READY_HOLD_MS and no turret, and letting go
+ * closes the door at once.
  * Firing from one spot at two or three offsets checks ShotTables.COAX_EXIT_SPEED:
  * the distance stays the real one while the RPM changes.
  *
@@ -85,7 +88,8 @@ public class CoaxHoodTest extends LinearOpMode {
         VoltageCache voltage = new VoltageCache(hardwareMap);
         Shooter shooter = new Shooter(hardwareMap, voltage);
         Door door = new Door(hardwareMap);
-        Rail rail = new Rail(hardwareMap);
+        Intake intake = new Intake(hardwareMap);
+        Transfer transfer = new Transfer(hardwareMap);
         Storage storage = new Storage(hardwareMap);
         CoaxHood hood = new CoaxHood(hardwareMap);
 
@@ -175,7 +179,7 @@ public class CoaxHoodTest extends LinearOpMode {
                 }
                 shooter.setTargetRpm(gamepad1.square ? ANGLE_MODE_RPM : 0);
             }
-            hood.setRawPositionForTest(raw ? (Double) rawPosition : null);
+            hood.setTestPosition(raw ? (Double) rawPosition : null);
             // Written here, before the fire check, so atTarget() counts this loop's move (like Robot).
             hood.update();
 
@@ -190,9 +194,16 @@ public class CoaxHoodTest extends LinearOpMode {
             if (doorWanted) door.open();
             else door.close();
 
-            if (doorWanted && hoodReady && door.isFullyOpen()) rail.feed(FEED_POWER);
-            else if (doorWanted) rail.stop();
-            else rail.collect(storage.slot1Occupied(), storage.isFull());
+            if (doorWanted && hoodReady && door.isFullyOpen()) {
+                intake.feed(FEED_POWER);
+                transfer.feed(FEED_POWER);
+            } else if (doorWanted) {
+                intake.stop();
+                transfer.stop();
+            } else {
+                intake.collect(storage.isFull());
+                transfer.collect(storage.slot1Occupied());
+            }
 
             shooter.update();
             door.update();

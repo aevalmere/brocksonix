@@ -8,8 +8,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
-import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
 
 /**
  * Checks the break beams and the ball count. Block each beam by hand first,
@@ -25,7 +26,8 @@ public class StorageTest extends LinearOpMode {
         Telemetry screen = new JoinedTelemetry(PanelsTelemetry.INSTANCE.getFtcTelemetry(), telemetry);
         BulkReads bulkReads = new BulkReads(hardwareMap);
         Storage storage = new Storage(hardwareMap);
-        Rail rail = new Rail(hardwareMap);
+        Intake intake = new Intake(hardwareMap);
+        Transfer transfer = new Transfer(hardwareMap);
         Door door = new Door(hardwareMap);
         boolean collecting = false;
 
@@ -37,9 +39,16 @@ public class StorageTest extends LinearOpMode {
             storage.update();
 
             if (gamepad1.crossWasPressed()) collecting = !collecting;
-            if (gamepad1.circle) rail.reverse();
-            else if (collecting) rail.collect(storage.slot1Occupied(), storage.isFull());
-            else rail.stop();
+            if (gamepad1.circle) {
+                intake.reverse();
+                transfer.reverse();
+            } else if (collecting) {
+                intake.collect(storage.isFull());
+                transfer.collect(storage.slot1Occupied());
+            } else {
+                intake.stop();
+                transfer.stop();
+            }
 
             // Written every loop, so a Panels edit to CLOSED_POSITION shows up right away.
             door.close();
@@ -47,7 +56,8 @@ public class StorageTest extends LinearOpMode {
 
             screen.addData("Collecting (Cross)", collecting);
             storage.addTelemetry(screen);
-            rail.addTelemetry(screen);
+            intake.addTelemetry(screen);
+            transfer.addTelemetry(screen);
             door.addTelemetry(screen);
             screen.update();
         }

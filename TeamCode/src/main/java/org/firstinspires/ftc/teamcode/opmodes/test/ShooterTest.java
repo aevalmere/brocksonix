@@ -12,9 +12,10 @@ import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
 import org.firstinspires.ftc.teamcode.robot.shot.ShotTables;
 import org.firstinspires.ftc.teamcode.robot.subsystems.CoaxHood;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
-import org.firstinspires.ftc.teamcode.robot.subsystems.Rail;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
 
 /**
  * Flywheel tuning and filling the shot tables. Put the robot a measured
@@ -22,7 +23,10 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
  * ShotTables (also live in Panels). Tune KS/KV/KP live in Panels (Shooter).
  *
  * Cross: wheel on/off. D-pad up/down: big RPM step, left/right: small step.
- * Right bumper (hold): open the door and feed. Rail collects otherwise.
+ * Right bumper (hold): open the door, and feed once it is fully open, at any
+ * wheel speed. Letting go closes the door and collects in the same loop. Main
+ * TeleOp (FireControl) keeps the door open DOOR_CLOSE_DELAY_MS longer and only
+ * collects once it is closed (Door.CLOSE_TIME_MS).
  *
  * Before the first spin, with the wheel off: hold Square to run only the left
  * motor, Circle to run only the right one, at low power. Each must push the
@@ -51,7 +55,8 @@ public class ShooterTest extends LinearOpMode {
         VoltageCache voltage = new VoltageCache(hardwareMap);
         Shooter shooter = new Shooter(hardwareMap, voltage);
         Door door = new Door(hardwareMap);
-        Rail rail = new Rail(hardwareMap);
+        Intake intake = new Intake(hardwareMap);
+        Transfer transfer = new Transfer(hardwareMap);
         Storage storage = new Storage(hardwareMap);
         // Optional, like in Robot: null when the configuration has no hood servo.
         CoaxHood hood = CoaxHood.isConfigured(hardwareMap) ? new CoaxHood(hardwareMap) : null;
@@ -77,7 +82,7 @@ public class ShooterTest extends LinearOpMode {
             boolean testLeft = !on && gamepad1.square;
             boolean testRight = !on && gamepad1.circle;
             if (testLeft || testRight) {
-                shooter.setOpenLoopTest(testLeft ? MOTOR_TEST_POWER : 0, testRight ? MOTOR_TEST_POWER : 0);
+                shooter.setTestPowers(testLeft ? MOTOR_TEST_POWER : 0, testRight ? MOTOR_TEST_POWER : 0);
             } else {
                 shooter.setTargetRpm(on ? rpm : 0);
             }
@@ -85,9 +90,16 @@ public class ShooterTest extends LinearOpMode {
             if (fire) door.open();
             else door.close();
 
-            if (fire && door.isFullyOpen()) rail.feed(FEED_POWER);
-            else if (fire) rail.stop();
-            else rail.collect(storage.slot1Occupied(), storage.isFull());
+            if (fire && door.isFullyOpen()) {
+                intake.feed(FEED_POWER);
+                transfer.feed(FEED_POWER);
+            } else if (fire) {
+                intake.stop();
+                transfer.stop();
+            } else {
+                intake.collect(storage.isFull());
+                transfer.collect(storage.slot1Occupied());
+            }
 
             shooter.update();
             door.update();

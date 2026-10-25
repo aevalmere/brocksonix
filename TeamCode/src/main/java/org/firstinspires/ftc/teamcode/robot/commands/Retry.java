@@ -17,7 +17,7 @@ import java.util.function.BooleanSupplier;
  * timeout. So give each try a timeout and let the check decide if it worked.
  *
  * Each try is ended exactly once, even if the Retry itself is ended twice
- * (Ivy groups can do that, see CLAUDE.md).
+ * (Ivy 1.1.1 groups can end a child twice, or end one that never started).
  */
 public class Retry extends CommandBuilder {
     private final Command first;
