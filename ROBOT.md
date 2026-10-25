@@ -23,7 +23,7 @@ What matters for this robot, from the Competition Manual, version TU04 (2026-10-
 
 | Qty | Part | Device | Configuration name | Hub / port | Notes |
 |-----|------|--------|--------------------|------------|-------|
-| 4 | Drivetrain | goBILDA 6000 RPM bare motor, 10:105 reduction | `frontLeft`, `frontRight`, `backLeft`, `backRight` | TBD | Mecanum, 104 mm GripForce wheels |
+| 4 | Drivetrain | goBILDA 6000 RPM bare motor, 10:105 reduction | `frontLeft`, `frontRight`, `backLeft`, `backRight` | Control Hub motor 0 `frontLeft`, 1 `frontRight`, 2 `backLeft`, 3 `backRight` | Mecanum, 104 mm GripForce wheels |
 | 1 | Intake | goBILDA 6000 RPM bare motor, geared to about 4700 RPM | `intake` | TBD | Intake end of the rail, 38.1 mm wheels |
 | 1 | Transfer | goBILDA 6000 RPM bare motor, 20:32 reduction | `transfer` | TBD | Door end of the rail, 48 mm wheels |
 | 2 | Shooter | goBILDA 6000 RPM bare motor, with encoder | `shooterLeft`, `shooterRight` | TBD | Mechanically coupled, mounted opposite each other. The speed is read from `shooterLeft`'s encoder port |
@@ -34,7 +34,7 @@ What matters for this robot, from the Competition Manual, version TU04 (2026-10-
 | 1 | Coax hood (coming, optional) | Positional servo, type TBD | `hood` | TBD (hub servo port, 5 V) | Turns the hood around the flywheel axle, gear ratio TBD. The robot runs without it |
 | 2 | Transfer break beams | Adafruit 3 mm IR break beam | `beamSlot1`, `beamSlot2` | TBD (digital port) | Slots 1 and 2 |
 | 1 | Intake break beam | Adafruit 3 mm IR break beam | `beamFull` | TBD (digital port) | Slot 4, trips only when all 4 are stored |
-| 1 | Localization | goBILDA Pinpoint V2 | `pinpoint` | TBD (I2C) | goBILDA 4-bar odometry pods |
+| 1 | Localization | goBILDA Pinpoint V2 | `pinpoint` | Control Hub I2C 1 | goBILDA 4-bar odometry pods |
 
 **Motors:** 8 of 8 allowed (R503): 4 drive, intake, transfer, 2 shooter. Adding a motor means taking one out. **Servos:** 4 of 8 allowed (turret, door, 2 flower intake), 5 of 8 with the coax hood. The configuration names are the constants in `robot/hardware/HardwareNames.java`; the Driver Station configuration must use them exactly.
 
@@ -42,7 +42,7 @@ What matters for this robot, from the Competition Manual, version TU04 (2026-10-
 
 - REV Control Hub plus REV Expansion Hub.
 - All servos run straight off hub servo ports at 5 V. There is no servo power module.
-- Port assignments: TBD.
+- Port assignments: the drive motors and the Pinpoint are set (Pinpoint on I2C bus 1, since bus 0 is shared with the hub's own IMU). The rest are TBD.
 - At events, only the Driver Station app may send data over the robot's Wi-Fi, so Panels stays off for the whole event (R704.D). How to check: `TUNING_GUIDE.md`, step 10.
 
 ## Dimensions

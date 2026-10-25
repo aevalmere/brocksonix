@@ -1,7 +1,10 @@
 package org.firstinspires.ftc.teamcode.pedro;
 
+import com.pedropathing.revhub.drivetrains.Mecanum;
+import com.pedropathing.revhub.localizers.PinpointLocalizer;
 import com.pedropathing.tuning.autotune.Procedure;
 import com.pedropathing.tuning.autotune.Tuner;
+import org.firstinspires.ftc.teamcode.pedro.procedures.ForesightTuner;
 import org.firstinspires.ftc.teamcode.pedro.procedures.MecanumTuner;
 import org.firstinspires.ftc.teamcode.pedro.procedures.PinpointTuner;
 
@@ -19,20 +22,15 @@ public class TeamTuning {
         return new PinpointTuner();
     }
 
-    // TODO(2): After pasting the Mecanum and Pinpoint tuner output into Constants, add ForesightTuner here. Add Tests after pasting the Foresight output too.
-    // Imports to add:
-    //   import com.pedropathing.algorithm.Foresight;
-    //   import com.pedropathing.revhub.drivetrains.Mecanum;
-    //   import com.pedropathing.revhub.localizers.PinpointLocalizer;
-    //   import org.firstinspires.ftc.teamcode.pedro.procedures.ForesightTuner;
-    //   import org.firstinspires.ftc.teamcode.pedro.procedures.Tests;
-    // Methods to add (needs Constants.drivetrainConfig and Constants.localizerConfig):
-    //   @Tuner
-    //   public static Procedure foresightTuner() {
-    //       return new ForesightTuner(
-    //               hardwareMap -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig),
-    //               hardwareMap -> new Mecanum(hardwareMap, Constants.drivetrainConfig));
-    //   }
+    // Run it after the Mecanum and Pinpoint tuner output is pasted into Constants.
+    @Tuner
+    public static Procedure foresightTuner() {
+        return new ForesightTuner(
+                hardwareMap -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig),
+                hardwareMap -> new Mecanum(hardwareMap, Constants.drivetrainConfig));
+    }
+
+    // TODO(2): After pasting the Foresight output into Constants (as foresightConfig()), add Tests here (code at the bottom).
     // TODO(13): Add DriveModelTuner the same way as ForesightTuner (code below). It measures the numbers agateflow/DriveModel needs.
     //   import org.firstinspires.ftc.teamcode.pedro.procedures.DriveModelTuner;
     //   @Tuner
@@ -41,7 +39,9 @@ public class TeamTuning {
     //               hardwareMap -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig),
     //               hardwareMap -> new Mecanum(hardwareMap, Constants.drivetrainConfig));
     //   }
-    // Method to add after Constants.foresightConfig() exists too:
+    // Tests, once Constants.foresightConfig() exists:
+    //   import com.pedropathing.algorithm.Foresight;
+    //   import org.firstinspires.ftc.teamcode.pedro.procedures.Tests;
     //   @Tuner
     //   public static Procedure tests() {
     //       return new Tests(

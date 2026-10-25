@@ -4,9 +4,9 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 Most important first: work from the top down. Phase 1 gets the robot playing TeleOp, phase 2 adds a scoring auto, phase 3 makes both better, phase 4 adds AgateFlow and auto pickups, phase 5 is the coax hood once it is on the robot.
 
-**162 left.**
+**164 left.**
 
-## Phase 1: TeleOp, bare minimum (61 left)
+## Phase 1: TeleOp, bare minimum (63 left)
 
 ### 1. Wiring and configuration
 
@@ -15,11 +15,13 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 ### 2. Drivetrain and localization
 
 - [ ] [DriveModel.java:51](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/agateflow/DriveModel.java#L51) `TUNED_VOLTS`: Write down the battery voltage while ForesightTuner runs. It is for AgateFlow (step 13), but now is the only time to read it without rerunning the tuner.
-- [ ] [Constants.java:7](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L7) `create()`: Pinpoint pod offsets from CAD are in ROBOT.md (X pod +2.54 in. left, Y pod -1.55 in. forward). Confirm with PinpointTuner.
-- [ ] [Constants.java:8](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L8) `create()`: Run the tuners in TeamTuning.java (MecanumTuner, PinpointTuner, then ForesightTuner) and paste the results here.
-- [ ] [Constants.java:9](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L9) `create()`: Robot forward (heading 0) must be the intake end. Corner poses and aiming depend on it.
-- [ ] [Constants.java:10](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L10) `create()`: Run the Pedro Tests procedure. Push the robot 48 in. by hand and check the pose moves 48 in.
-- [ ] [TeamTuning.java:22](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L22): After pasting the Mecanum and Pinpoint tuner output into Constants, add ForesightTuner here. Add Tests after pasting the Foresight output too.
+- [ ] [Constants.java:12](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L12) `drivetrainConfig`: Run the tuners in TeamTuning.java (MecanumTuner, PinpointTuner, then ForesightTuner) and paste the results here.
+- [ ] [Constants.java:13](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L13) `drivetrainConfig`: Robot forward (heading 0) must be the intake end. Corner poses and aiming depend on it.
+- [ ] [Constants.java:14](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L14) `drivetrainConfig`: Run the Pedro Tests procedure (Localization, Line, Curve).
+- [ ] [Constants.java:18](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L18) `drivetrainConfig`: Motor directions are a guess (left side reversed). Check them with Drive Test's D-pad, or run MecanumTuner.
+- [ ] [Constants.java:30](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L30) `localizerConfig`: Pinpoint pod offsets from CAD are in ROBOT.md (X pod +2.54 in. left, Y pod -1.55 in. forward). Confirm with PinpointTuner.
+- [ ] [Constants.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L31) `localizerConfig`: Pod directions are a guess. Check them with Drive Test (push 48 in. forward and left), or run PinpointTuner.
+- [ ] [TeamTuning.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L33): After pasting the Foresight output into Constants (as foresightConfig()), add Tests here (code at the bottom).
 - [ ] [Drive.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L24) `STICK_DEADBAND`: Raise if the robot creeps with the sticks let go; lower if small moves feel dead.
 - [ ] [Drive.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L29) `HOLD_WHEN_STOPPED`: Drive around and let go. If holding feels jumpy, set false.
 - [ ] [Drive.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L31) `HOLD_BELOW_SPEED`: Drive around and let go. Raise if it rolls on before holding; lower if the hold feels jumpy.
@@ -155,7 +157,7 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 - [ ] [DriveModel.java:36](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/agateflow/DriveModel.java#L36) `FORWARD_SPEED_PER_VOLT`: Run DriveModelTuner (after ForesightTuner) and paste its output over these.
 - [ ] [DriveModel.java:57](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/agateflow/DriveModel.java#L57) `TRACTION_ACCEL`: Drive full power forward from a stop on the field tiles. If the wheels spin, lower this until the estimate matches.
 - [ ] [DriveModel.java:60](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/agateflow/DriveModel.java#L60) `SETTLE_SECONDS`: Drive a few short paths and time from the robot reaching the end to the follower saying it is done. Set this to that.
-- [ ] [TeamTuning.java:36](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L36): Add DriveModelTuner the same way as ForesightTuner (code below). It measures the numbers agateflow/DriveModel needs.
+- [ ] [TeamTuning.java:34](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L34): Add DriveModelTuner the same way as ForesightTuner (code below). It measures the numbers agateflow/DriveModel needs.
 
 ### 14. Pickups: FLOWERS, GARDEN and floor POLLEN
 

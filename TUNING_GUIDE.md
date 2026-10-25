@@ -24,12 +24,15 @@ How to measure and tune everything the code can't know until someone tries it on
 
 ## 2. Drivetrain and localization (Pedro)
 
+- [ ] Run the `Drive Test` OpMode first (no tuning needed). Hold the D-pad to spin one wheel at low power: up = frontLeft, right = frontRight, down = backRight, left = backLeft. Each must roll the robot forward. If a wheel goes backward, flip that motor's direction in `Constants.drivetrainConfig`. If a different wheel spins, the port is wrong.
+- [ ] In `Drive Test`, check the sticks: left stick up drives toward the intake end, left stick left strafes left, right stick X left turns left. Right trigger held is slow mode.
+- [ ] In `Drive Test`, check the Pinpoint (Options resets the pose to 0, 0, 0). Push the robot 48 in. forward by hand and x rises 48. Push it 48 in. left and y rises 48. Turn it left and heading goes positive. If x or y runs the wrong way, flip that pod's direction in `Constants.localizerConfig`.
 - [ ] Pinpoint pod offsets: `ROBOT.md` has them from CAD, measured from the **turret center** (the robot's center in all our code). PinpointTuner confirms them; fix `ROBOT.md` if it disagrees.
-- [ ] Run the tuners in order: `MecanumTuner`, `PinpointTuner`, `ForesightTuner`. They are registered in `pedro/TeamTuning.java`; `ForesightTuner` and `Tests` get added there once the first two results are pasted into `Constants` (see the TODO in that file).
+- [ ] Run the tuners in order: `MecanumTuner`, `PinpointTuner`, `ForesightTuner`. They are registered in `pedro/TeamTuning.java`; only `Tests` gets added there later, once the Foresight output is pasted into `Constants` (see the TODO in that file).
 - [ ] While ForesightTuner runs, write down the battery voltage as `DriveModel.TUNED_VOLTS`. Only AgateFlow uses it (step 13), but this is the only time to read it without running the tuner again.
-- [ ] Paste their output into `pedro/Constants.java` and fill in `create()`. The ForesightTuner output goes inside a `foresightConfig()` method, not in a field: the comment in that file shows how. Then every OpMode starts from a fresh config, and a path speed limit left on when an OpMode stopped can't carry over. Until this is done, Main TeleOp stops at init with an error saying so.
+- [ ] Paste their output into `pedro/Constants.java`. It already holds starting `drivetrainConfig` and `localizerConfig` values; the tuners' output replaces them. Fill in `create()` once `foresightConfig()` exists. The ForesightTuner output goes inside a `foresightConfig()` method, not in a field: the comment in that file shows how. Then every OpMode starts from a fresh config, and a path speed limit left on when an OpMode stopped can't carry over. Until this is done, Main TeleOp stops at init with an error saying so.
 - [ ] Only if you change Foresight's braking settings (Pedro 3.0.1): set `maxDecelerationScale` or `maxDecelerationConstraint`, not both, since setting the scale throws the constraint away. `brakeAggression` above 1 overshoots the end of a path and below 1 stops short, the opposite of what Pedro's docs page says: raise it if the robot stops short.
-- [ ] Run the Pedro `Tests` procedure (Localization, Line, Curve). Push the robot 48 in. by hand and check the pose moves 48 in.
+- [ ] Run the Pedro `Tests` procedure (Localization, Line, Curve).
 - [ ] Main TeleOp, red alliance: stick up drives **away from the driver**, stick left drives to the **driver's left**. Then the same on blue.
 - [ ] Robot forward (heading 0) is the **intake end**. If Pedro's forward is the other end, the corner poses and the aiming are 180° off.
 - [ ] `Drive.STICK_DEADBAND`: raise it if the robot creeps with the sticks let go.
