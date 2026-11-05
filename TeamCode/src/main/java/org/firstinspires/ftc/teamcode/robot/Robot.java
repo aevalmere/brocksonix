@@ -7,8 +7,10 @@ import com.pedropathing.math.Velocity;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.field.Cell;
 import org.firstinspires.ftc.teamcode.field.Corner;
 import org.firstinspires.ftc.teamcode.field.Field;
+import org.firstinspires.ftc.teamcode.field.ShootingZone;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
 import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
@@ -35,6 +37,25 @@ import java.util.Set;
  *
  * Test OpModes skip this class and build only the subsystems they need.
  *
+ * Shoot or pass is picked here, not by a button. In TeleOp, driver 2 picks which
+ * of our HIVE's cells is up (upCell). Its opening faces out along y, so it only
+ * scores from its own half of the field: there firing shoots at it, and from the
+ * other half firing passes to the pass target on the robot's own half (with
+ * FireControl.PASS_ENABLED off, it does nothing there). With no up cell picked,
+ * as in every auto, it shoots at the cell on the robot's own half. The aim is
+ * decided every loop, fire held or not, so the wheel already spins at the speed
+ * of the shot or pass that comes next.
+ *
+ * Zone fire (zoneFire, driver 1's Triangle in TeleOp): while any part of the
+ * robot overlaps the shooting zone (field/ShootingZone) in front of the up cell,
+ * or with none picked the cell on the robot's half, it fires as if RB were held.
+ * Unlike RB, nobody lets go of it, and a burst that waits stops the intake. So it
+ * starts a burst only once the shot is ready, and lets go when the shot can't come
+ * back (out of range, or a watchdog has tripped). A moment off target or a NaN
+ * pose only pauses the rail, as with RB. Leaving the zone stops the rail at once,
+ * unless RB is held. Parked in the zone the rail keeps feeding, so balls picked up
+ * there go straight through: that's on purpose.
+ *
  * Two hoods are supported, and HOOD picks which one is used, live in Panels:
  * STATIC (fixed launch angle, the SHOT_RPM table) or COAX (the coax hood:
  * COAX_RPM for the wheel, and HoodSolver picks the angle from the wheel's real
@@ -55,9 +76,9 @@ public class Robot {
     public static double COAX_RPM_TOLERANCE = 300;
 
     // OpModes may call these directly: drive, the flower intake, the aim trims (turret, shooter and coax hood),
-    // and setPose/relocalize. update() decides everything else (the intake and transfer, the door, and the shooter,
+    // and setPose/relocalize/relocalizeHeading. update() decides everything else (the intake and transfer, the door, and the shooter,
     // turret and coax hood targets) from scratch every loop, so a direct call there is overwritten on the next update().
-    // To change those, set shootHeld, passHeld, unjamHeld, singleBallBursts or stopAfterOneShot instead.
+    // To change those, set shootHeld, zoneFire, upCell, unjamHeld, singleBallBursts or stopAfterOneShot instead.
     public final Drive drive;
     public final Storage storage;
     public final Intake intake;
@@ -71,9 +92,15 @@ public class Robot {
     /** Battery voltage, shared by the shooter and turret. Other code (like AgateFlow) can read it too. */
     public final VoltageCache voltage;
 
+    /** Fire: shoot at the HIVE, or pass from the wrong half (see the class comment). */
     public boolean shootHeld = false;
-    /** Lob balls to the pass target instead of shooting at the HIVE. Ignored while FireControl.PASS_ENABLED is false. */
-    public boolean passHeld = false;
+    /** TeleOp: fire while any part of the robot is in the shooting zone, as if shootHeld were set. Off in every new Robot. */
+    public boolean zoneFire = false;
+    /**
+     * TeleOp: which of our HIVE's cells is up, picked by driver 2. Null (the start, and
+     * always in auto): not picked, so the robot shoots at the cell on its own half.
+     */
+    public Cell upCell = null;
     /** Runs the rail and intake backwards to clear a jam or spit balls out. */
     public boolean unjamHeld = false;
     /** Auto only: lets a burst start with 1 ball stored. TeleOp leaves this off, so a burst needs 2. */
@@ -104,12 +131,28 @@ public class Robot {
     private boolean hoodOutOfReach = false;
     /** False until the pose is known: a recent saved pose, or a relocalize. Nothing fires while false. */
     private boolean poseTrusted = false;
+    /**
+     * The robot's half of the field, named by the cell on it (Field.cellForSide). It starts
+     * from the cell the last OpMode aimed at, and stays put while the pose is NaN.
+     */
+    private Cell half = RobotState.targetCell;
+    /** This loop's aim: SHOOT, PASS, or NONE (wrong half with passing off). Set whether or not fire is held. */
+    private FireControl.Mode aimMode = FireControl.Mode.NONE;
+    /** Any part of the robot overlaps the shooting zone this loop. Stays put while the pose is NaN, like half. */
+    private boolean inZone = false;
 
     public Robot(HardwareMap hardwareMap) {
+        this(hardwareMap, Constants.create(hardwareMap));
+    }
+
+    /**
+     * Builds the robot around a follower made somewhere else. Only the headless sim
+     * (TeamCode/src/test/.../sim) uses this: it has no tuned Constants yet, so it brings its own.
+     */
+    public Robot(HardwareMap hardwareMap, Follower follower) {
         bulkReads = new BulkReads(hardwareMap);
         voltage = new VoltageCache(hardwareMap);
 
-        Follower follower = Constants.create(hardwareMap);
         if (follower == null) {
             throw new IllegalStateException("Constants.create() returns null. Run the Pedro tuners and fill it in first.");
         }
@@ -141,13 +184,36 @@ public class Robot {
         setPose(RobotState.alliance.fromRed(redPose), true);
     }
 
-    /** Snap the pose to a corner the robot is pushed into. Trims are reset, since they mostly cover pose drift. */
-    public void relocalize(Corner corner) {
-        if (RobotState.alliance == null) return;
+    /**
+     * Snap the pose to a corner the robot is pushed into. The pose is trusted from then on.
+     * Trims are reset, since they mostly cover pose drift.
+     *
+     * @return false (and nothing changes) without an alliance
+     */
+    public boolean relocalize(Corner corner) {
+        if (RobotState.alliance == null) return false;
         setPose(Field.cornerPose(RobotState.alliance, corner), true);
         turret.resetTrim();
         shooter.resetTrim();
         if (coaxHood != null) coaxHood.resetTrim();
+        return true;
+    }
+
+    /**
+     * Fix only the heading: the intake is flat against the left (or right) side wall, as the
+     * driver sees it from the ALLIANCE AREA. x and y stay, and so does whether the pose is
+     * trusted: a heading alone doesn't make a guessed position right, but it does fix
+     * field-centric driving. Only the turret trim is reset, since heading drift is what it covers.
+     *
+     * @return false (and nothing changes) without an alliance or while the pose is NaN
+     */
+    public boolean relocalizeHeading(boolean leftWall) {
+        if (RobotState.alliance == null) return false;
+        Pose now = drive.pose();
+        if (isBad(now)) return false;
+        setPose(new Pose(now.x(), now.y(), Field.sideWallHeading(RobotState.alliance, leftWall)), poseTrusted);
+        turret.resetTrim();
+        return true;
     }
 
     public boolean isFiring() {
@@ -169,6 +235,44 @@ public class Robot {
         return coax;
     }
 
+    /** Any part of the robot overlaps the shooting zone, as of the last update(). False with no alliance; a NaN pose keeps the last answer. */
+    public boolean inShootingZone() {
+        return inZone;
+    }
+
+    /** The cell whose shooting zone counts: the up cell if one is picked, otherwise the cell on the robot's own half. */
+    public Cell shootingZoneCell() {
+        return upCell != null ? upCell : half;
+    }
+
+    /** One line for the drivers: which cell is up, and what firing does from here. */
+    public String goalStatus() {
+        if (upCell == null) return "not picked (D2 LB/RB) | own half (" + half + ")";
+        String doing;
+        if (aimMode == FireControl.Mode.SHOOT) doing = "shooting";
+        else if (aimMode == FireControl.Mode.PASS) doing = "wrong half: passing";
+        else doing = "wrong half, passing off";
+        return upCell + " up | " + doing;
+    }
+
+    /** One line for the drivers: zone fire off, or on and whether the robot is in the zone. */
+    public String zoneFireStatus() {
+        if (!zoneFire) return "OFF";
+        return inZone ? "ON, in zone" : "ON, out of zone";
+    }
+
+    /**
+     * Shoot or pass, from the up cell and the robot's half. The up cell's opening faces out
+     * along y, so it only scores from its own half: from the other half the robot passes, or
+     * does nothing while passing is off. No up cell picked (always in auto): shoot at the cell
+     * on the robot's own half. Either way SHOOT always aims at the cell on the robot's half.
+     * Static, so the tests can check it without a robot.
+     */
+    static FireControl.Mode decideAimMode(Cell upCell, Cell robotHalf, boolean passEnabled) {
+        if (upCell == null || upCell == robotHalf) return FireControl.Mode.SHOOT;
+        return passEnabled ? FireControl.Mode.PASS : FireControl.Mode.NONE;
+    }
+
     /**
      * Call once, right after the OpMode's loop ends. Pedro writes a path's speed limit into
      * the Foresight settings and only puts the old value back when the path is let go.
@@ -179,11 +283,6 @@ public class Robot {
     }
 
     public void update() {
-        // Decide shoot or pass once, so aiming and FireControl can't disagree. Shoot wins if both are held.
-        FireControl.Mode wanted = shootHeld ? FireControl.Mode.SHOOT
-                : (passHeld && FireControl.PASS_ENABLED) ? FireControl.Mode.PASS
-                : FireControl.Mode.NONE;
-
         bulkReads.clear();
         drive.update();
         storage.update();
@@ -206,7 +305,17 @@ public class Robot {
 
         Pose pose = drive.pose();
         poseIsNaN = isBad(pose) || isBad(drive.velocity());
-        aim = solve(pose, wanted);
+        // The half has the same band in the middle as the cell switch, so shoot and pass
+        // don't flicker on the center line. A NaN pose keeps the last half.
+        if (!poseIsNaN) half = Field.cellForSide(pose.y(), half);
+        // Decided once, every loop, so aiming and FireControl can't disagree, and the wheel
+        // spins for the shot or the pass before fire is pressed.
+        aimMode = decideAimMode(upCell, half, FireControl.PASS_ENABLED);
+        // A NaN pose keeps last loop's answer too, so a one-loop glitch pauses a zone-fire burst
+        // (as it does one with RB held) instead of ending it.
+        if (RobotState.alliance == null) inZone = false;
+        else if (!poseIsNaN) inZone = ShootingZone.overlaps(RobotState.alliance, shootingZoneCell(), pose);
+        aim = solve(pose, aimMode);
 
         if (aim != null) {
             lastFeedPower = aim.feedPower;
@@ -233,6 +342,10 @@ public class Robot {
         boolean aimed = aimed();
         ready = aimed && wheelReady();
         hoodOutOfReach = coax && aim != null && aim.valid && !aim.hoodCanScore() && wheelNearTarget();
+        // Nobody lets go of zone fire, and a burst that waits stops the intake. So zone fire starts
+        // a burst only once the shot is ready, and keeps one only while the shot can come back.
+        boolean zoneShot = zoneFire && inZone && (isFiring() ? shotCanComeBack() : ready);
+        FireControl.Mode wanted = (shootHeld || zoneShot) ? aimMode : FireControl.Mode.NONE;
         boolean enoughBalls = singleBallBursts ? !storage.isEmpty() : storage.hasAtLeastTwo();
         fireControl.update(wanted, enoughBalls, stopAfterOneShot,
                 ready, aimed, shooter.rpm(), shooter.effectiveTargetRpm(), door.isFullyOpen());
@@ -306,6 +419,21 @@ public class Robot {
         return coax ? wheelNearTarget() : shooter.atSpeed();
     }
 
+    /**
+     * Zone fire, during a burst: true while the shot is only off for a moment, which
+     * FireControl rides out by pausing the rail (the turret settling, the wheel sagging,
+     * a NaN pose). False when it can't come back from here: no trusted pose, out of range
+     * (the OUT_OF_RANGE warning, the coax hood's included), or a watchdog has turned the
+     * shooter or turret off. The coax hood uses hoodOutOfReach, not hoodCanScore(): while
+     * the wheel sags no angle may score for a moment, and that must only pause the rail.
+     */
+    private boolean shotCanComeBack() {
+        if (!canFire() || shooter.watchdogTripped() || turret.watchdogTripped()) return false;
+        // No aim to check while the pose is NaN. The last good aim holds and the rail pauses.
+        if (poseIsNaN) return true;
+        return aim != null && aim.valid && !hoodOutOfReach;
+    }
+
     private boolean wheelNearTarget() {
         double target = shooter.effectiveTargetRpm();
         return target > 0 && Math.abs(shooter.rpm() - target) < COAX_RPM_TOLERANCE;
@@ -319,18 +447,22 @@ public class Robot {
         return Double.isNaN(velocity.vx) || Double.isNaN(velocity.vy) || Double.isNaN(velocity.omega);
     }
 
-    private ShotSolution solve(Pose pose, FireControl.Mode wanted) {
+    private ShotSolution solve(Pose pose, FireControl.Mode mode) {
         if (RobotState.alliance == null) return null;
         // A NaN would send the flywheel to the top RPM and the turret to a NaN angle, so don't aim at all.
         if (poseIsNaN) return null;
+        // Wrong half with passing off: nothing to aim at.
+        if (mode == FireControl.Mode.NONE) return null;
         // The coax hood solves with the averaged RPM: steadier, so the hood servo doesn't shake.
-        if (wanted == FireControl.Mode.PASS) {
-            Pose passTarget = Field.passTarget(RobotState.alliance);
+        if (mode == FireControl.Mode.PASS) {
+            Pose passTarget = Field.passTarget(RobotState.alliance, half);
             return coax ? solver.solveCoaxPass(pose, passTarget, shooter.averageRpm())
                     : solver.solvePass(pose, passTarget);
         }
-        RobotState.targetCell = Field.cellForSide(pose.y(), RobotState.targetCell);
-        Pose cell = Field.cellTarget(RobotState.alliance, RobotState.targetCell);
+        // SHOOT only happens on the up cell's own half, or with no up cell picked,
+        // so the cell to aim at is always the one on the robot's half.
+        RobotState.targetCell = half;
+        Pose cell = Field.cellTarget(RobotState.alliance, half);
         return coax ? solver.solveCoaxShot(pose, drive.velocity(), cell, shooter.averageRpm())
                 : solver.solveShot(pose, drive.velocity(), cell);
     }

@@ -2,6 +2,7 @@ repositories {
     mavenCentral()
     maven { url 'https://repo.dairy.foundation/releases/'}
     maven { url 'https://mymaven.bylazar.com/releases' }
+    maven { url 'https://jitpack.io' } // Zenith's robot runtime
     google() // Needed for androidx
 }
 
@@ -20,7 +21,17 @@ dependencies {
     implementation 'com.pedropathing:tuning:1.0.1'
     implementation 'com.pedropathing.ivy:pedro:1.1.1'
     implementation 'com.bylazar:fullpanels:1.0.18'
+    // Zenith's robot runtime: plays an autos/*.auto.json file through Ivy (zenith/TeamZenithRobot).
+    // Keep the version the same as the Zenith editor and CLI: a newer editor's file fails at init.
+    // It declares no dependencies, so it runs on our Pedro 3.0.1 and Ivy 1.1.1.
+    implementation 'com.github.Horizon-36596:zenith:v0.1.2'
 
     // Unit tests (TeamCode/src/test), run on the computer: ./gradlew :TeamCode:testDebugUnitTest
     testImplementation 'junit:junit:4.13.2'
+}
+
+// SimLoop, the headless robot sim, for TeamCode's desktop tests only (test-only, never in the APK).
+// This file is shared with FtcRobotController, so the sim's settings live in TeamCode/simloop.gradle.
+if (project.name == 'TeamCode') {
+    apply from: "$rootDir/TeamCode/simloop.gradle"
 }

@@ -1,0 +1,49 @@
+// SimLoop (Horizon 36596): runs our real auto code headless on the computer, in the desktop tests.
+// The sim itself is in TeamCode/src/test/java/org/firstinspires/ftc/teamcode/sim/. Everything here
+// is test-only, so none of it goes into the APK. build.dependencies.gradle applies this file to
+// TeamCode only. Its repositories (JitPack, and repo.dairy.foundation for PsiKit, which SimLoop
+// logs with) are already listed there.
+//
+// Run one auto and write its trace for Zenith:
+//   ./gradlew :TeamCode:testDebugUnitTest --tests "*ZenithAutoHeadlessTest*" -Dzenith.auto=template
+// or `zenith sim template`, which runs that same line (zenith.json, "sim").
+
+// SimLoop is alpha: keep the exact tag. JitPack's version is the git tag, leading v included.
+ext.simloopVersion = 'v0.2.0-alpha.2'
+
+dependencies {
+    testImplementation "com.github.Horizon-36596:simloop:${simloopVersion}"
+
+    // SimLoop and the sim tests are JUnit 5. The vintage engine keeps running our JUnit 4 tests on
+    // the JUnit 5 platform: without it they are silently not collected and the build stays green.
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.3'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.11.3'
+    // Gradle 9 no longer adds the platform launcher by itself.
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.3'
+}
+
+android {
+    testOptions {
+        unitTests.all { test ->
+            test.useJUnitPlatform()
+            // Gradle does not hand -D settings to the test JVM by itself. zenith.auto names the auto
+            // to simulate; zenith.alliance (or the ZENITH_ALLIANCE environment variable) runs it for
+            // RED or BLUE instead of the alliance the file is written for.
+            def zenithAuto = System.getProperty('zenith.auto')
+            def zenithAlliance = System.getProperty('zenith.alliance') ?: System.getenv('ZENITH_ALLIANCE')
+            if (zenithAuto) test.systemProperty 'zenith.auto', zenithAuto
+            if (zenithAlliance) test.systemProperty 'zenith.alliance', zenithAlliance
+            // The auto files are not test inputs, so a named run must always run.
+            if (zenithAuto || zenithAlliance) test.outputs.upToDateWhen { false }
+        }
+    }
+}
+
+// Debug unit tests only. The release unit-test JVM would run the same sims at the same time and
+// write the same TeamCode/build/sim files. Both variants compile the same tests, so nothing is lost.
+androidComponents {
+    beforeVariants(selector().withBuildType('release')) { variantBuilder ->
+        variantBuilder.enableUnitTest = false
+    }
+}

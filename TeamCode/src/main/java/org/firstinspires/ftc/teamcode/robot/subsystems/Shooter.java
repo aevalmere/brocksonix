@@ -96,7 +96,7 @@ public class Shooter {
     // and small KV edits in Panels would look dead.
     private static final double MIN_POWER_CHANGE = 0.002;
     // A target change bigger than this in one loop is a jump (spin-up from 0, shoot to pass),
-    // not the robot driving, so it doesn't feed the kA estimate. Trim presses are left out too.
+    // not the robot driving, so it doesn't feed the kA estimate. Trim changes are left out too.
     private static final double TARGET_JUMP_RPM = 200;
     // Room for AVERAGE_SAMPLES; Panels values above this are capped.
     private static final int MAX_AVERAGE_SAMPLES = 20;
@@ -250,7 +250,7 @@ public class Shooter {
 
     /** How fast the target RPM is changing, smoothed, for the kA part. Jumps and odd loop times count as no change. */
     private void updateTargetRate(double dt) {
-        // Without the trim, like the turret: a trim press isn't the robot driving.
+        // Without the trim, like the turret: a trim change isn't the robot driving.
         double target = Math.max(targetRpm, 0);
         double step = target - lastTarget;
         lastTarget = target;

@@ -16,8 +16,8 @@ import java.util.List;
  * top. AgateFlow adds the robot's size and a margin itself
  * (AgateFlow.ROBOT_RADIUS, SAFETY_MARGIN).
  *
- * What a robot can hit (Competition Manual TU03, Section 9, checked against the
- * official field CAD):
+ * What a robot can hit (Competition Manual TU07, Section 9, checked against the
+ * official field CAD, STEP v26-27.2; the rule for which source wins is in Field):
  * <ul>
  * <li><b>HIVE frame</b> (9.6.1, Figures 9-8 and 9-10): an A-frame at each end
  *     (red and blue), joined by a crossbar at the top. Each A-frame stands on a
@@ -31,7 +31,11 @@ import java.util.List;
  *     floor, and the robot fits under the HIVES, between the A-frames. The
  *     crossbar and the banners are above 34 in., and the bars that hold the
  *     frame down are under the tiles.</li>
- * <li><b>FLOWERS</b> (9.7, Figure 9-12): 4 on the walls, 4.9 in. deep.</li>
+ * <li><b>FLOWERS</b> (9.7, Figure 9-12): 4 on the walls. The ring plates stand
+ *     on the tiles, 5.95 wide and 4.9 deep. The Field Wall Bracket that holds
+ *     each one rests on top of the wall, 11.44 to 11.84 in. up, under the robot's
+ *     top: 6.7 wide but only 1.58 deep. One zone covers both, FLOWER_WIDTH by
+ *     FLOWER_DEPTH. Zenith's field file has them as two boxes.</li>
  * <li>The GARDENS and LOADING ZONES are only tape.</li>
  * </ul>
  *
@@ -55,14 +59,23 @@ public final class FieldZones {
     public static double LEG_THICKNESS = 1.2;
 
     // ---- FLOWERS. Red's are written here; blue's are the same spun 180°. ----
-    /** Red's FLOWERS are centered here: y on the red wall, x on the far wall, inches. Pedro Visualizer (official field CAD: 47.4). */
+    /**
+     * Red's FLOWERS are centered here: y on the red wall, x on the far wall, inches.
+     * Pedro Visualizer. The CAD puts them 23.39 from the field center (47.36 here), at
+     * the joints between wall panels: within 0.1, so kept.
+     */
     public static double FLOWER_ALONG_WALL = 47.3;
-    /** Wall to a FLOWER's front face, inches. Front face to ring center 2.40 (Figure 9-12), ring center to wall 2.5 (official field CAD). */
+    /**
+     * Wall to a FLOWER's front face, inches. Front face to ring center 2.40 (Figure
+     * 9-12), so the ring center is 2.5 from the wall. The CAD has 4.95 and 2.55 from
+     * the wall rail: within 0.1, so kept.
+     */
     public static double FLOWER_DEPTH = 4.9;
     /**
-     * Width of a FLOWER along its wall, inches. The rings are 5.9 wide (Figure 9-12,
-     * Pedro Visualizer). The bracket on top of the wall is 6.7 wide and 11.4 in. up,
-     * under the robot's top (Figure 9-17, official field CAD), so the zone uses that.
+     * Width of a FLOWER along its wall, inches: the Field Wall Bracket (CAD part
+     * am-5860, 6.67), which is wider than the ring plates (5.95) and under the robot's
+     * top. The zone uses it for the whole FLOWER_DEPTH, though the bracket only
+     * reaches 1.58 out.
      */
     public static double FLOWER_WIDTH = 6.7;
 

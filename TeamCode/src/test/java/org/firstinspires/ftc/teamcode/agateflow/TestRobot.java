@@ -36,10 +36,13 @@ import java.util.function.LongSupplier;
  * Commands (DriveRoute, ParkGuard) run on it with useVirtualClock() and loop(): their
  * timers read the virtual clock, and each loop waits for the plans it asked for, so
  * a plan is ready the next loop however fast the computer is.
+ *
+ * Public only so the headless sim (teamcode/sim) drives with the same numbers and the
+ * same Foresight settings (config()), so the sim and these tests agree.
  */
-final class TestRobot {
-    static final double VOLTS = 12.5, FORWARD = 70, STRAFE = 55, STEP = 0.01;
-    static final double TURN = DriveModel.TURN_SPEED_PER_VOLT * VOLTS, TAU_F = DriveModel.FORWARD_TIME_CONSTANT,
+public final class TestRobot {
+    public static final double VOLTS = 12.5, FORWARD = 70, STRAFE = 55, STEP = 0.01;
+    public static final double TURN = DriveModel.TURN_SPEED_PER_VOLT * VOLTS, TAU_F = DriveModel.FORWARD_TIME_CONSTANT,
             TAU_S = DriveModel.STRAFE_TIME_CONSTANT, TAU_T = DriveModel.TURN_TIME_CONSTANT;
     static final double SAG = DriveModel.BATTERY_OHMS * DriveModel.DRIVE_MOTORS / DriveModel.MOTOR_OHMS;
 
@@ -137,7 +140,7 @@ final class TestRobot {
         follower = new Follower(body, wheels, new Foresight(config()));
     }
 
-    static ForesightConfig config() {
+    public static ForesightConfig config() {
         return new ForesightConfig(c -> {
             c.forwardTranslational.set(Controller.piecewise(Controller.proportional(TAU_F * 6.2 * 6.2 / FORWARD))
                     .put(2.5, Controller.proportional(TAU_F * 10.2 * 10.2 / FORWARD)));

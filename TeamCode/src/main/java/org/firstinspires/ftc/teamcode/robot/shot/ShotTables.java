@@ -46,18 +46,19 @@ public final class ShotTables {
             {110, 1.0},
     };
 
-    // TODO(16): Once passing is on (FireControl.PASS_ENABLED): fill it from real passes like SHOT_RPM. Its first and last distances also limit where coax passes fire (G405): check a pass from the far end can't leave the field.
+    // TODO(7): Main TeleOp, pick an up cell (driver 2 LB/RB) and fire from the other half: fill it from real passes like SHOT_RPM. Check from the far end of the table that no pass can leave the field (G405).
+    // TODO(16): With the coax hood, passes come from HoodSolver but only inside this table's distances: check a pass from the far end again in COAX (G405).
     /**
      * Flywheel RPM for a pass that lands at the pass target from this distance, with the static hood.
      * With the coax hood, passes come from HoodSolver instead, but only inside this table's distances (G405).
-     * Passing is on hold until the coax hood is on the robot (FireControl.PASS_ENABLED).
+     * Outside them a pass is out of range and doesn't fire.
      */
     public static double[][] PASS_RPM = {
             {24, 1500},
             {165, 3200},
     };
 
-    // TODO(16): Once passing is on: lower it if back-to-back passes land short or scatter.
+    // TODO(7): Lower it if back-to-back passes land short or scatter.
     /** Rail power while feeding a pass. */
     public static double[][] PASS_FEED_POWER = {
             {24, 1.0},

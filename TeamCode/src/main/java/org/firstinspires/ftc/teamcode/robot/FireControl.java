@@ -21,11 +21,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *    expected: the ready check isn't asked again. The rail only pauses (the door
  *    stays open) while the aim is off (the `aimed` input), or while the wheel is
  *    more than BURST_RPM_FLOOR under its target. It goes again as soon as both are back.
- * 3. CLOSE: letting go of the button stops the rail at once. The door stays open
+ * 3. CLOSE: letting go of the button (or zone fire letting go: leaving the zone, or
+ *    a shot that can't come back, see Robot) stops the rail at once. The door stays open
  *    DOOR_CLOSE_DELAY_MS longer, so it doesn't close on a ball that is already past
- *    it, and then the burst is over. Switching between shoot and pass mid-burst ends
- *    it the same way: the wheel needs a different speed, so the new burst starts like
- *    any other, once its own shot is ready.
+ *    it, and then the burst is over. Switching between shoot and pass mid-burst (in
+ *    TeleOp, driving across the half line with an up cell picked) ends it the same
+ *    way: the wheel needs a different speed, so the new burst starts like any other,
+ *    once its own shot is ready.
  *
  * Shots are counted from the RPM: a ball hitting the wheel takes it down fast, in
  * tens of ms. A shot counts when the RPM falls SHOT_DIP_RPM below the highest reading
@@ -47,13 +49,14 @@ public class FireControl {
 
     private enum Step { WAIT, FIRE, CLOSE }
 
-    // TODO(16): Once coax shots work, turn on and pass from around the field. Check no pass can leave the field (G405).
+    // TODO(7): ShotTables.PASS_RPM is a placeholder. Until it is filled from real passes, check no pass from the wrong half can leave the field (G405), or set this false.
     /**
-     * Passing (RT) is on hold until the coax hood is on the robot. With Robot.HOOD = COAX, a
-     * pass is worked out from the physics (ShotSolver.solveCoaxPass); with the static hood it
-     * uses the PASS_RPM table.
+     * Passing. With an up cell picked (Robot.upCell), firing from the other half passes to
+     * the pass target on the robot's own half instead of shooting. The static hood uses the
+     * PASS_RPM table; with Robot.HOOD = COAX, a pass is worked out from the physics
+     * (ShotSolver.solveCoaxPass). The kill switch: false makes firing from the wrong half do nothing.
      */
-    public static boolean PASS_ENABLED = false;
+    public static boolean PASS_ENABLED = true;
 
     // TODO(6): Main TeleOp: raise if bursts start while the turret is still settling.
     /** The shot must stay ready this long before a burst starts. */
@@ -111,8 +114,8 @@ public class FireControl {
     /**
      * Call once per loop.
      *
-     * @param wanted           what the drivers want this loop. Robot decides it (shoot wins over pass, and pass
-     *                         counts only while PASS_ENABLED), so it is decided in one place.
+     * @param wanted           what the drivers want this loop. Robot decides it in one place: shoot or pass from
+     *                         the up cell and the robot's half (pass only while PASS_ENABLED), NONE when not firing.
      * @param enoughBalls      enough balls are stored to start a burst (only checked when a burst starts)
      * @param stopAfterOneShot the burst closes by itself after the first shot is counted (auto's shoot())
      * @param ready            the shot is ready right now: the aim is good and the wheel is at speed. Only starts a burst.

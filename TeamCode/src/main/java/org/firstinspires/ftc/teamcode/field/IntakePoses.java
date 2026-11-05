@@ -44,8 +44,11 @@ public final class IntakePoses {
     // ---- GARDEN: 4 POLLEN in a line from our corner, touching the audience wall (10.3.1). ----
     // ---- They go in through the intake at the robot's front (ROBOT.md), flower intake up. ----
     // ---- The intake is as wide as the chassis, so it reaches POLLEN against the wall.      ----
-    /** Red wall to the far side of the 4th POLLEN, inches: 4 touching POLLEN, 2.8 in. each (9.8). Pedro Visualizer and the official field CAD show 11.3. */
-    public static double GARDEN_LINE_LENGTH = 11.2;
+    /**
+     * Red wall to the far side of the 4th POLLEN, inches. Official field CAD: each POLLEN
+     * (2.8 in., 9.8) is 1.31 off both walls and 2.89 from the next. 4 touching POLLEN would be 11.2.
+     */
+    public static double GARDEN_LINE_LENGTH = 11.38;
     // TODO(14): Raise it if the robot isn't lined up yet when the intake reaches the line.
     /** At the start, the gap between the intake and the 4th POLLEN, inches. */
     public static double GARDEN_RUN_UP = 4;
@@ -91,7 +94,7 @@ public final class IntakePoses {
 
     /**
      * Start of the GARDEN run: facing the red wall, the intake GARDEN_RUN_UP short of the 4th POLLEN.
-     * x = 11.2 + 4 + 7.99 = 23.19, y = 5.87 + 0.5 = 6.37.
+     * x = 11.38 + 4 + 7.99 = 23.37, y = 5.87 + 0.5 = 6.37.
      */
     public static Pose gardenStartPose() {
         return new Pose(GARDEN_LINE_LENGTH + GARDEN_RUN_UP + Field.CENTER_TO_INTAKE_WALL, gardenLaneY(), Math.PI);

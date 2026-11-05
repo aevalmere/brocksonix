@@ -101,7 +101,7 @@ public class CoaxHood {
     // TODO(16): Main TeleOp, COAX: set it near the angle most shots use, so the hood has the least to move when a shot comes up.
     /** Where the hood goes when there's nothing to aim at. */
     public static double IDLE_LAUNCH_DEG = 60;
-    // TODO(16): Once passing is on (FireControl.PASS_ENABLED): higher lobs over robots, lower ones get there sooner.
+    // TODO(16): Main TeleOp, COAX, firing from the wrong half (passing): higher lobs clear robots, lower ones get there sooner.
     /**
      * The lob angle passes aim for. The pass RPM is what lands the ball on the pass target at
      * this angle; the hood then solves for the wheel's real RPM, like a shot.

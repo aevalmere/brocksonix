@@ -44,7 +44,8 @@ How to measure and tune everything the code can't know until someone tries it on
 
 - [ ] First, `Door.CLOSED_POSITION` and `Door.OPEN_POSITION` with the Servo Position Finder OpMode. Storage Test holds the door closed, and the balls stack up against it for the rest of this section.
 - [ ] `Storage.BLOCKED_READS_LOW`: block each beam by hand. Telemetry must show `true` when blocked. If it's backwards, flip this.
-- [ ] `Transfer.REVERSED` (Panels page "Transfer"): with Cross (collect) on, the door end must move balls **toward the door**. `Intake.REVERSED` (page "Intake") is already checked in Intake Test.
+- [ ] `Transfer.REVERSED` (Panels page "Transfer", default false): in Transfer Test, with no button held, the transfer end must move balls **toward the door**; LT must back both ends away. `Intake.REVERSED` (page "Intake") is already checked in Intake Test.
+- [ ] After checking each shooter motor alone at low power in Shooter Test, run Continuous Test with a safe target: it holds the door open, runs the shooter at 3000 RPM, and feeds with both rail motors. LT reverses the rail motors while the shooter keeps spinning.
 - [ ] `Transfer.HOLD_POWER`: with a ball against the closed door, the lowest power that keeps it seated without the motor straining.
 - [ ] `Intake.COLLECT_POWER`, `Transfer.COLLECT_POWER`: lower them if balls jam or bounce.
 - [ ] `Intake.REVERSE_POWER`, `Transfer.REVERSE_POWER` (both -1.0, the unjam power): hold Circle with balls loaded. They must back out without flying out of the intake. Move them toward 0 if they do.
@@ -118,6 +119,11 @@ All values there now are placeholders. Panels can change the numbers but can't a
 - [ ] Repeat a few distances with the **other** cell up to check one table works for both.
 - [ ] `SHOT_FEED_POWER`: the rail's power for the whole burst, so it sets how fast the balls go out. Lower it at long range if back-to-back balls miss because RPM hasn't recovered.
 - [ ] Check the robot can't reach a spot closer than the table's first row. If it can, add a row (in the code).
+- [ ] Passing with the static hood: in Main TeleOp, pick an up cell with driver 2's LB or RB, drive to the other half and fire. The robot passes to the pass target on its own half, and the Goal line says `wrong half: passing`.
+- [ ] `ShotTables.PASS_RPM`: put the robot at measured distances from the pass target and find the RPM that lands the ball there, like `SHOT_RPM`. Do it from both halves.
+- [ ] G405: from the far end of `PASS_RPM`'s distances, check that no pass can leave the field. A ball sent out of the field is a MAJOR FOUL. Until the table is filled and this is checked, set `FireControl.PASS_ENABLED` to false: firing from the wrong half then does nothing.
+- [ ] `Field.PASS_TARGET_RED_X/Y`: pick where passes should land. Now a placeholder at (24, 106) for red's far half; the audience half's target is the same point mirrored across the center line, and blue's are mirrored across x. Check real passes land there on both halves.
+- [ ] `ShotTables.PASS_FEED_POWER`: the rail's power while passing. Lower it if back-to-back passes land short or scatter.
 
 `SHOT_FLIGHT_TIME` only matters for shooting while moving (step 11).
 
@@ -125,11 +131,13 @@ All values there now are placeholders. Panels can change the numbers but can't a
 
 The field numbers (`Field.SIZE`, `Field.RED_HIVE_X`, `Field.FAR_CELL_Y`, `Field.AUDIENCE_CELL_Y`, `FieldZones`, `IntakePoses.GARDEN_LINE_LENGTH`) follow Pedro Visualizer's 141.5 in. field and the Competition Manual, and agree with the official field CAD, so they don't need measuring. Visualizer points copy into the code 1:1. `FieldZones.ROBOT_HEIGHT` is the robot's height from CAD: change it if the robot gets taller. Where each number came from is in `TELEOP_PLAN.md`, "Field coordinates".
 
-TeleOp only shoots after a relocalize (or a fresh auto), so this step is part of the minimum.
+TeleOp only shoots after a corner relocalize (or a fresh auto), so this step is part of the minimum.
 
 - [ ] `Field.CENTER_TO_INTAKE_WALL`: push the intake flat against a wall and measure from the wall to the turret center (CAD says 7.99 in.). If the wedges or something else touches first, measure to that instead.
 - [ ] `Field.CENTER_TO_SIDE_WALL`: the same for the robot's side (CAD says 5.87 in.). Check that nothing sticks out sideways past the chassis.
-- [ ] Relocalize in all 4 corners (D-pad left/right, Square, Circle), then drive to a taped spot and check the pose.
+- [ ] Relocalize in all 4 corners with driver 2 (D-pad down = near left, Cross = near right, D-pad up = far left, Triangle = far right), on both alliances, then drive to a taped spot and check the pose. Near is our own alliance wall (intake facing the driver), far is the other one (intake facing away).
+- [ ] The two heading-only buttons (D-pad left = left side wall, Circle = right side wall): push the intake flat on the side wall and press. The heading should read 90° / 270° on red and 270° / 90° on blue (left / right), and x and y must not change. With the pose NaN, nothing should happen.
+- [ ] Driver 2's LB and RB pick the cell on the driver's left and right: on red, LB makes the Goal line say `FAR up`; on blue, LB says `AUDIENCE up`.
 
 **Phase 1 done:** play a full TeleOp match. Relocalize, intake, shoot standing still from near and far, unjam, use the flower intake.
 
@@ -152,6 +160,12 @@ The goal is a simple auto that scores the 4 preloaded POLLEN and parks, with pla
 - [ ] `RobotCommands.LAST_BALL_MS` (300): `shootAll()` and `shootContinuous()` keep shoot held this long after storage reads empty, because the last ball has left the beams but not yet reached the wheel, and letting go stops the rail at once. Run `shootAll()` with 4 balls and watch the last ball. Raise it until the last ball always reaches the wheel before the rail stops; lower it to end bursts sooner.
 - [ ] `RobotCommands.RETRY_UNJAM_MS`: jam a ball on purpose and run `shootAllWithRetry`. Raise it until the retry frees the jam, but balls must not come out of the intake. `RobotCommands.SHOOT_RETRIES`: each retry can cost `RETRY_UNJAM_MS` + `SHOOT_ALL_TIMEOUT_MS`, so set it to 0 if retries never fix anything.
 - [ ] Replace the placeholder routine with the real one, and delete the `@Disabled` line.
+- [ ] Zenith autos (`autos/`): `autos/robot.json` holds the numbers Zenith plans and times with. Every value has a `provenance`. Those that say APPROX or PLACEHOLDER are guesses (CAD and `DriveModel` fallbacks). Replace each with a measured value and rewrite its `provenance`:
+  - [ ] Footprint: measure the robot's length and width with the flower intake up, and the box's offset from the turret center, with a tape measure.
+  - [ ] Forward and strafe top speed, and the brake distances: use the ForesightTuner output from step 2. Acceleration and turn speed: use the `DriveModelTuner` output from step 13.
+  - [ ] The step times for `shoot`, `shootAll` and `shootAllWithRetry`: use the times you measured above for `RobotCommands`.
+- [ ] `TeamZenithRobot.PATH_TIMEOUT_SECONDS` (6): a path in a Zenith auto with no `timeoutS` of its own gets this, divided by its speed fraction. Time the longest path in your autos at full speed, then add margin. Too short cuts a good path off; too long lets a stuck robot push for the rest of auto.
+- [ ] Calibrate Zenith's estimates from the real robot: run each auto on the field, save the traces, and run `npx -y @horizon36596/zenith-cli@0.1.2 calibrate --write` on them. The sim has never been compared with the real robot, so its times are not a promise. `calibrate --write` labels the result "CALIBRATED FROM SIM". Change that label to "CALIBRATED FROM ROBOT" by hand, and only when the traces came from the robot.
 - [ ] After auto, start Main TeleOp and check there's no "POSE UNKNOWN" warning.
 
 ## 10. Before competition
@@ -161,8 +175,9 @@ The goal is a simple auto that scores the 4 preloaded POLLEN and parks, with pla
 - [ ] Panels off for the whole event, pits included: R704.D names FTControl Panels as prohibited, and it doesn't say "during MATCH play" the way R704.C does. Before the event, set `PanelsSettings.EVENT_BUILD` = true in the code and install the app. Panels then stays off at every app start, and so does its Limelight plugin, which opens ports even while Panels is off. To check, INIT the `Enable/Disable Panels` OpMode on the Driver Station (TeleOp list, group "Panels"): its screen says whether Panels is on. Then press Stop, not Start, since Start switches Panels until the next app restart. Without the event build, that OpMode is the only way to turn Panels off, and **Panels turns itself back on whenever the robot app restarts** (power cycle, Restart Robot, new code). After the event, set `EVENT_BUILD` back to false to use Panels again. The rule text doesn't say whether Panels may stay in the app while it's off. If an inspector wants it out of the app, that needs a code change, so ask the programmers before the event.
 - [ ] INIT check (G304.H, G403): INIT Main TeleOp, then the auto, and watch the robot. Nothing may move or twitch until Start. Do it again once `Constants.create()` is filled in, and after any change to init code.
 - [ ] Gamepads: both wired to the Driver Hub by USB, none on Bluetooth (R901, R904).
-- [ ] Practice: a full match with both drivers, including relocalizing and switching cells.
+- [ ] Practice: a full match with both drivers, including relocalizing, picking the up cell, passing and zone fire.
 - [ ] Check the ROBOT.md TBDs are all filled in.
+- [ ] Deploy the Zenith autos again (`zenith deploy`) after the last edit, and INIT each one on both alliances. The sim reads `autos/` directly, but the robot plays the copy in `TeamCode/src/main/assets/autos/`.
 
 **Phase 2 done:** a full match, auto into TeleOp, on both alliances.
 
@@ -190,12 +205,18 @@ Only after stationary shots are reliable.
 ## 12. Driver feel, feedback and loop time
 
 - [ ] `Drive.DRIVE_CUBIC`, `Drive.TURN_CUBIC`: the stick curve, to the drivers' taste. Higher = finer control near the center, same top speed.
-- [ ] `Field.CELL_SWITCH_BAND`: drive across the middle of the field. The aim should switch cells once, not flicker.
-- [ ] `MainTeleOp.TURRET_TRIM_STEP_DEG` (2°), `MainTeleOp.RPM_TRIM_STEP` (25): driver 2 practice. One press should fix a typical miss. Raise a step if it takes several presses, lower it if one press overshoots.
-- [ ] `MainTeleOp.TRIGGER_THRESHOLD` (0.5): raise it if a resting finger fires RT or LT; lower it if a full pull doesn't register.
+- [ ] `Field.CELL_SWITCH_BAND`: drive across the middle of the field. The aim should switch cells once, not flicker. With an up cell picked, the Goal line should switch between `shooting` and `wrong half: passing` once.
+- [ ] `MainTeleOp.TURRET_TRIM_RATE_DEG_PER_SEC` (4°/s), `MainTeleOp.RPM_TRIM_RATE_PER_SEC` (75 RPM/s): driver 2 practice with the left stick (turret) and the right stick (RPM). A typical miss should take about a second of full stick to fix. Raise a rate if fixing takes too long, lower it if the trim is hard to stop in the right place.
+- [ ] `MainTeleOp.TRIM_STICK_DEADBAND` (0.15): raise it if a resting stick still moves a trim; lower it if a small push does nothing.
+- [ ] `MainTeleOp.TRIGGER_THRESHOLD` (0.5): raise it if a resting finger fires LT; lower it if a full pull doesn't register.
 - [ ] `Feedback.WARNING_*`: the warning pulses. Long enough to feel, short enough not to annoy. `WARNING_COOLDOWN_MS` stops a flickering warning from buzzing nonstop.
 - [ ] `Feedback.FULL_STRENGTH`: the constant storage-full rumble. Soft enough to drive with, strong enough to notice.
+- [ ] `Feedback.RELOCALIZE_STRENGTH`, `Feedback.RELOCALIZE_MS`: the relocalize buzz on both gamepads, one short, strong pulse that can't be mistaken for the 3-pulse warning and is long enough to feel while driving. Check that driver 1 feels it too, and that it comes after a warning buzz instead of cutting it off.
 - [ ] The gamepad light only works on PlayStation-style controllers. Check yours.
+- [ ] `ShootingZone.RED_FAR_CORNERS` (Panels page "ShootingZone"): the trapezoid zone fire shoots from. Now a placeholder, for red with the FAR cell up: (48, 104), (68, 104), (90, 135), (26, 135). Turn zone fire on (driver 1 Triangle) with `FULL_TELEMETRY` on, so Panels' field page draws the zone (yellow) and the robot's outline (green in the zone, red outside). Drive to points all along the zone's edge, with the robot just inside, and fire. Any part of the robot in the zone fires, so the whole trapezoid has to be where shots score: pull in any corner where shots miss, and push the edge out where good shots are left out. Keep the corners in order around the shape and the shape convex.
+- [ ] The short side of the placeholder is about 20 in. from the cell's opening, right at `SHOT_RPM`'s first row. If `OUT_OF_RANGE` shows near it and a burst waits, move the short side out, or add a shorter row to `SHOT_RPM` in the code (step 7).
+- [ ] Check the mirrored zones too: the AUDIENCE cell's (driver 2 picks it) and blue's. Each must sit in front of its own cell's opening on the field page.
+- [ ] Zone fire itself: park in the zone with balls coming in and check they go straight through; drive out and check the rail stops at once; with zone fire off, check nothing fires in the zone while RB still fires everywhere.
 - [ ] Watch "Loop" in telemetry with everything running. Goal: under 15 ms. Then set `MainTeleOp.FULL_TELEMETRY` to false and check again (it then sends every `TELEMETRY_INTERVAL_MS`, 200 ms).
 
 # Phase 4: AgateFlow and auto pickups
@@ -285,7 +306,7 @@ In Main TeleOp, with `Robot.HOOD = COAX`:
 - [ ] `Robot.COAX_RPM_TOLERANCE` (300): how far the wheel may be from its target for a coax burst to start (mid-burst, `FireControl.BURST_RPM_FLOOR` applies, as with the static hood). Hold RB with 4 balls. Raise it for faster bursts (the hood makes up for the RPM error); lower it if balls fired with the wheel far off target miss. Keep `HoodSolver.SEED_RPM_WINDOW` equal to it.
 - [ ] `CoaxHood.ON_ANGLE_DEG` (0.5°): raise it if bursts wait on "moving" while the hood angle barely changes; lower it if shots fire before the hood has settled.
 - [ ] `FireControl.SHOT_DIP_RPM`: check it again in Coax Hood Test physics mode, with the wheel anywhere in the 300 RPM ready window (D-pad up/down moves the RPM). A coax burst can start with the wheel still speeding up or above its target. The dip is measured the same way for both hoods, from the highest reading of the last `DIP_WINDOW_MS`.
-- [ ] `MainTeleOp.HOOD_TRIM_STEP_DEG` (0.5°): driver 2's D-pad up/down trims the hood instead of the RPM in COAX. Up is steeper, which mostly lands higher. One press should fix a typical high or low miss: raise it if it takes several presses, lower it if one overshoots.
+- [ ] `MainTeleOp.HOOD_TRIM_RATE_DEG_PER_SEC` (1°/s): driver 2's right stick trims the hood instead of the RPM in COAX. Up is steeper, which mostly lands higher. A typical high or low miss should take about a second of full stick to fix: raise it if fixing takes too long, lower it if the trim is hard to stop in the right place.
 - [ ] Shooting while moving (step 11) in COAX: `LEAD` takes the flight time from the physics, so `SHOT_FLIGHT_TIME` isn't needed.
 - [ ] `CoaxHood.IDLE_LAUNCH_DEG`: where it waits with nothing to aim at. Set it near the angle most shots use, so the hood has the least to move when a shot comes up.
-- [ ] Passing: turn on `FireControl.PASS_ENABLED`. Pick where passes should land in our LOADING ZONE and set `Field.PASS_TARGET_RED_X/Y` (now a placeholder at (24, 106)). With the coax hood, a pass is a lob at about `CoaxHood.PASS_LAUNCH_DEG`: the RPM is what lands it on the pass target at that angle (`HoodSolver.passRpm`), and the hood solves for the real RPM like a shot. Higher lobs clear robots, lower ones get there sooner. Passes stay inside `ShotTables.PASS_RPM`'s distance range, so none can leave the field (G405): check from the far end of that range, and fill `PASS_RPM` from real passes like `SHOT_RPM`. `ShotTables.PASS_FEED_POWER`: lower it if back-to-back passes land short or scatter.
+- [ ] Passing with the coax hood (firing from the wrong half; the pass target, tables and G405 check for the static hood are in step 7): a pass is a lob at about `CoaxHood.PASS_LAUNCH_DEG`. The RPM is what lands it on the pass target at that angle (`HoodSolver.passRpm`), and the hood solves for the real RPM like a shot. Higher lobs clear robots, lower ones get there sooner. Passes stay inside `ShotTables.PASS_RPM`'s distance range, so none can leave the field (G405): check from the far end of that range again in COAX.

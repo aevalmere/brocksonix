@@ -1,0 +1,221 @@
+{
+  "$schema": "https://libraries.horizon36596.org/zenith/schema/v1/robot.json",
+  "formatVersion": 1,
+  "name": "brocksonix",
+  "frame": {
+    "forward": "+x",
+    "left": "+y",
+    "headingZero": "+x",
+    "headingPositive": "ccw"
+  },
+  "footprint": {
+    "startIn": {
+      "lengthIn": 13.71,
+      "widthIn": 11.74,
+      "provenance": "APPROX: CAD, AgateFlow.ROBOT_FRONT 7.99 (intake front) + ROBOT_BACK 5.72 (chassis back) long, 2 x ROBOT_HALF_WIDTH 5.87 (outer frame rails) wide, flower intake up; TODO(8) and TODO(13) tape checks"
+    },
+    "expandedIn": {
+      "lengthIn": 13.71,
+      "widthIn": 11.74,
+      "provenance": "APPROX: the startIn box. AgateFlow plans every drive with the flower intake up; lowered it reaches IntakePoses.FLOWER_INTAKE_REACH 10.84 in ahead of the turret centre, which this box leaves out"
+    },
+    "centreOfRotationIn": {
+      "xIn": -1.135,
+      "yIn": 0,
+      "provenance": "APPROX: poses are the turret centre (what the Pinpoint tracks); the box centre is (7.99 - 5.72) / 2 = 1.135 in ahead of it"
+    }
+  },
+  "heightIn": {
+    "value": 12.73597,
+    "provenance": "SPEC: CAD, FieldZones.ROBOT_HEIGHT (ROBOT.md, 323.5 mm)"
+  },
+  "kinematics": {
+    "maxForwardVelInPerS": {
+      "value": 85,
+      "provenance": "PLACEHOLDER: agateflow/DriveModel.FALLBACK_FORWARD_SPEED, a guess until ForesightTuner measures maxAchievableForwardVelocity, TODO(2)"
+    },
+    "maxStrafeVelInPerS": {
+      "value": 70,
+      "provenance": "PLACEHOLDER: agateflow/DriveModel.FALLBACK_STRAFE_SPEED, a guess until ForesightTuner measures maxAchievableStrafeVelocity, TODO(2)"
+    },
+    "forwardDecelInPerS2": {
+      "value": 184.8,
+      "provenance": "APPROX: derived from DriveModel's fallback brake model, stop distance 0.06 v + 0.002 v^2 = 19.55 in from 85 in/s, so v^2 / (2 d); guesses until ForesightTuner, TODO(2)"
+    },
+    "strafeDecelInPerS2": {
+      "value": 126.8,
+      "provenance": "APPROX: derived from DriveModel's fallback brake model, stop distance 0.08 v + 0.0028 v^2 = 19.32 in from 70 in/s, so v^2 / (2 d); guesses until ForesightTuner, TODO(2)"
+    },
+    "accelInPerS2": {
+      "value": 242.9,
+      "provenance": "APPROX: DriveModel FALLBACK_FORWARD_SPEED / FORWARD_TIME_CONSTANT (85 / 0.35), its acceleration from rest, under TRACTION_ACCEL 300; optimistic, since DriveModel's acceleration falls as speed rises; TODO(13) DriveModelTuner"
+    },
+    "maxAngularVelRadPerS": {
+      "value": 6.25,
+      "provenance": "APPROX: DriveModel TURN_SPEED_PER_VOLT 0.5 x TUNED_VOLTS 12.5, guesses until DriveModelTuner, TODO(13)"
+    },
+    "defaultPathSpeedFraction": {
+      "value": 1,
+      "provenance": "SET BY HAND: our drives run at full speed unless a path sets its own limit (RobotCommands.driveTo has no speed cap)"
+    },
+    "settleS": {
+      "value": 0.1,
+      "provenance": "PLACEHOLDER: DriveModel.SETTLE_SECONDS, TODO(13) time from reaching a path's end to the follower saying it is done"
+    },
+    "follower": {
+      "library": "pedro",
+      "version": "3.0.1",
+      "holdEnd": true,
+      "brakeLinearForwardS": {
+        "value": 0.06,
+        "provenance": "PLACEHOLDER: DriveModel.FALLBACK_BRAKE_LINEAR_FORWARD, until ForesightTuner, TODO(2)"
+      },
+      "brakeQuadraticForwardS2PerIn": {
+        "value": 0.002,
+        "provenance": "PLACEHOLDER: DriveModel.FALLBACK_BRAKE_QUADRATIC_FORWARD, until ForesightTuner, TODO(2)"
+      },
+      "brakeLinearStrafeS": {
+        "value": 0.08,
+        "provenance": "PLACEHOLDER: DriveModel.FALLBACK_BRAKE_LINEAR_STRAFE, until ForesightTuner, TODO(2)"
+      },
+      "brakeQuadraticStrafeS2PerIn": {
+        "value": 0.0028,
+        "provenance": "PLACEHOLDER: DriveModel.FALLBACK_BRAKE_QUADRATIC_STRAFE, until ForesightTuner, TODO(2)"
+      }
+    }
+  },
+  "mouths": [
+    {
+      "id": "intake",
+      "side": "FRONT",
+      "offsetIn": {
+        "xIn": 6.855,
+        "yIn": 0
+      },
+      "widthIn": 11.02,
+      "depthIn": 2.27,
+      "provenance": "APPROX: CAD (ROBOT.md): from the chassis front, 5.72 in ahead of the turret centre, to the intake front at 7.99 in; as wide as the chassis, 2 x AgateFlow.INTAKE_HALF_WIDTH 5.51; TODO(14)"
+    }
+  ],
+  "capacity": {
+    "elementKind": "pollen",
+    "max": 4,
+    "provenance": "SPEC: G407; the rail holds 4 POLLEN (ROBOT.md)"
+  },
+  "shooter": {
+    "kind": "turret"
+  },
+  "commands": [
+    {
+      "name": "shoot",
+      "summary": "Fires one ball, then stops the feed. Ends after the shot, at once if storage is empty, or after RobotCommands.SHOOT_ONE_TIMEOUT_MS.",
+      "estimateS": "1.5",
+      "requires": [
+        "shooter"
+      ],
+      "stationary": false,
+      "provenance": "PLACEHOLDER: RobotCommands.shoot(); the estimate is its time limit, SHOOT_ONE_TIMEOUT_MS 1500 ms, TODO(9) time a real shot"
+    },
+    {
+      "name": "shootAll",
+      "summary": "Fires every stored ball in one burst. Ends when storage is empty and the burst is over, or after RobotCommands.SHOOT_ALL_TIMEOUT_MS.",
+      "estimateS": "3",
+      "requires": [
+        "shooter"
+      ],
+      "stationary": false,
+      "provenance": "PLACEHOLDER: RobotCommands.shootAll(); the estimate is its time limit, SHOOT_ALL_TIMEOUT_MS 3000 ms, TODO(9) time a full burst"
+    },
+    {
+      "name": "shootAllWithRetry",
+      "summary": "shootAll; if balls are still stored after it, runs the rail backwards and tries again, up to RobotCommands.SHOOT_RETRIES times.",
+      "estimateS": "6.2",
+      "requires": [
+        "shooter",
+        "intake",
+        "transfer"
+      ],
+      "stationary": false,
+      "provenance": "PLACEHOLDER: RobotCommands.shootAllWithRetry(); the estimate is its worst case, 3 s + (0.2 s unjam + 3 s) x SHOOT_RETRIES 1, TODO(9)"
+    },
+    {
+      "name": "shootContinuous",
+      "summary": "Shoots whenever a ball is stored and never ends by itself: run it in a parallel step whose deadline is a path.",
+      "estimateS": "unknown",
+      "requires": [
+        "shooter"
+      ],
+      "stationary": false,
+      "provenance": "SET BY HAND: RobotCommands.shootContinuous(), which has no end of its own"
+    },
+    {
+      "name": "flowerDown",
+      "summary": "Lowers the flower intake. Ends at once; the servo keeps moving after.",
+      "estimateS": "0",
+      "requires": [
+        "flowerIntake"
+      ],
+      "stationary": false,
+      "provenance": "SET BY HAND: RobotCommands.flowerDown(), an instant command"
+    },
+    {
+      "name": "flowerUp",
+      "summary": "Raises the flower intake and waits RobotCommands.FLOWER_RAISE_MS for it, so the next drive starts with it up.",
+      "estimateS": "0.4",
+      "requires": [
+        "flowerIntake"
+      ],
+      "stationary": false,
+      "provenance": "PLACEHOLDER: RobotCommands.flowerUp(); FLOWER_RAISE_MS 400 ms, TODO(14) film the flower intake coming up"
+    },
+    {
+      "name": "waitUntilFull",
+      "summary": "Waits until storage is full or timeoutMs passes. The rail collects on its own meanwhile.",
+      "params": {
+        "timeoutMs": {
+          "type": "number",
+          "min": 0
+        }
+      },
+      "estimateS": "timeoutMs / 1000",
+      "stationary": false,
+      "provenance": "SET BY HAND: RobotCommands.waitUntilFull(timeoutMs); the estimate is its upper bound"
+    },
+    {
+      "name": "unjam",
+      "summary": "Runs the rail and intake backwards for ms, then lets go.",
+      "params": {
+        "ms": {
+          "type": "number",
+          "min": 0
+        }
+      },
+      "estimateS": "ms / 1000",
+      "requires": [
+        "intake",
+        "transfer"
+      ],
+      "stationary": false,
+      "provenance": "SET BY HAND: RobotCommands.unjam(ms)"
+    }
+  ],
+  "conditions": [
+    {
+      "name": "storageEmpty",
+      "summary": "No POLLEN in storage (the rail's break beams).",
+      "ledger": "empty",
+      "provenance": "SET BY HAND: robot.storage.isEmpty(), registered in zenith/TeamZenithRobot"
+    },
+    {
+      "name": "storageFull",
+      "summary": "4 POLLEN in storage: the intake beam at slot 4 trips only then.",
+      "ledger": "full",
+      "provenance": "SET BY HAND: robot.storage.isFull(), registered in zenith/TeamZenithRobot"
+    },
+    {
+      "name": "canFire",
+      "summary": "An alliance is picked and the pose is trusted, so the robot may shoot (Robot.canFire()).",
+      "provenance": "SET BY HAND: Robot.canFire(), registered in zenith/TeamZenithRobot"
+    }
+  ]
+}

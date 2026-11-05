@@ -82,3 +82,6 @@ lint/tmp/
 # AI assistant files (skill pack, runtime state, research): local only, never committed
 .claude/
 research/
+
+# Zenith: rendered pictures of autos (local scratch)
+autos/.renders/

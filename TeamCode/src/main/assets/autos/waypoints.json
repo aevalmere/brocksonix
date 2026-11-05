@@ -1,0 +1,84 @@
+{
+  "$schema": "https://libraries.horizon36596.org/zenith/schema/v1/waypoints.json",
+  "formatVersion": 1,
+  "waypoints": {
+    "templateStart": {
+      "xIn": -62.75,
+      "yIn": -46.75,
+      "headingRad": 3.1416,
+      "provenance": "PLACEHOLDER: AutoTemplate START_X/Y/HEADING_DEG (8, 24, 180 deg), TODO(9) measure where the robot starts"
+    },
+    "templateShoot": {
+      "xIn": -34.75,
+      "yIn": -22.75,
+      "headingRad": 3.1416,
+      "provenance": "PLACEHOLDER: AutoTemplate SHOOT_X/Y/HEADING_DEG (36, 48, 180 deg), TODO(9) pick the shooting spot"
+    },
+    "flowerAllianceWall": {
+      "xIn": -57.41,
+      "yIn": -23.45,
+      "headingRad": 3.1416,
+      "provenance": "APPROX: IntakePoses.flowerPose(ALLIANCE_WALL) (13.34, 47.3, 180 deg), TODO(14) drive into a real FLOWER"
+    },
+    "flowerLeftWall": {
+      "xIn": -23.45,
+      "yIn": 57.41,
+      "headingRad": 1.5708,
+      "provenance": "APPROX: IntakePoses.flowerPose(LEFT_WALL) (47.3, 128.16, 90 deg), TODO(14) drive into a real FLOWER"
+    },
+    "gardenStart": {
+      "xIn": -47.38,
+      "yIn": -64.38,
+      "headingRad": 3.1416,
+      "provenance": "APPROX: IntakePoses.gardenStartPose() (23.37, 6.37, 180 deg), TODO(14) GARDEN_RUN_UP and GARDEN_WALL_GAP"
+    },
+    "gardenEnd": {
+      "xIn": -61.76,
+      "yIn": -64.38,
+      "headingRad": 3.1416,
+      "provenance": "APPROX: IntakePoses.gardenEndPose() (8.99, 6.37, 180 deg), TODO(14) GARDEN_END_GAP"
+    },
+    "cornerRightIntakeToDriver": {
+      "xIn": -62.76,
+      "yIn": -64.88,
+      "headingRad": 3.1416,
+      "provenance": "APPROX: Field.cornerPose(RED, NEAR_RIGHT) (7.99, 5.87, 180 deg), TODO(8) tape-check CENTER_TO_INTAKE_WALL and CENTER_TO_SIDE_WALL"
+    },
+    "cornerLeftIntakeToDriver": {
+      "xIn": -62.76,
+      "yIn": 64.88,
+      "headingRad": 3.1416,
+      "provenance": "APPROX: Field.cornerPose(RED, NEAR_LEFT) (7.99, 135.63, 180 deg), TODO(8) tape-check the wall distances"
+    },
+    "cornerRightIntakeToSideWall": {
+      "xIn": -64.88,
+      "yIn": -62.76,
+      "headingRad": -1.5708,
+      "provenance": "APPROX: Field.CENTER_TO_SIDE_WALL and Field.CENTER_TO_INTAKE_WALL directly (5.87, 7.99, 270 deg); no Corner or button sets this pose now (the right side-wall button fixes only the heading), TODO(8) tape-check the wall distances"
+    },
+    "cornerLeftIntakeToSideWall": {
+      "xIn": -64.88,
+      "yIn": 62.76,
+      "headingRad": 1.5708,
+      "provenance": "APPROX: Field.CENTER_TO_SIDE_WALL and Field.CENTER_TO_INTAKE_WALL directly (5.87, 133.51, 90 deg); no Corner or button sets this pose now (the left side-wall button fixes only the heading), TODO(8) tape-check the wall distances"
+    },
+    "aimCellFar": {
+      "xIn": -12.75,
+      "yIn": 16.5,
+      "headingRad": 0,
+      "provenance": "SPEC: Field.cellTarget(RED, FAR) (58, 87.25), an aim point inside the HIVE, never a place to drive; heading unused"
+    },
+    "aimCellAudience": {
+      "xIn": -12.75,
+      "yIn": -16.5,
+      "headingRad": 0,
+      "provenance": "SPEC: Field.cellTarget(RED, AUDIENCE) (58, 54.25), an aim point inside the HIVE, never a place to drive; heading unused"
+    },
+    "aimPass": {
+      "xIn": -46.75,
+      "yIn": 35.25,
+      "headingRad": 0,
+      "provenance": "PLACEHOLDER: Field.passTarget(RED, FAR) (24, 106), where a pass from the far half lands, never a place to drive; TODO(7)"
+    }
+  }
+}

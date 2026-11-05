@@ -2,7 +2,7 @@
 
 What is new or unusual in our robot code for BIOBUZZ (2026-27), how each part works, and where to find it. Paths are under `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`. Names in capitals are Panels tunables. The numbers given for them are the current defaults, and most are still guesses until the robot is tuned.
 
-**Status (2026-10-10, evening).** None of this has run on the robot yet. Pedro isn't tuned (`Constants.create` still returns null), so no match OpMode can start, and the coax hood isn't built. 181 JUnit tests in 27 classes run on a laptop, and all passed in a Gradle run on 2026-10-10: 74 for AgateFlow, the path planner (against a simulated robot; no match OpMode uses it yet), and 107 for fire control, the shooting math, the turret controller, the write caches, the field frame and the small helpers (section 7). The Pedro Quickstart's latest fix (the Pinpoint tuner reads the pod directions before Stop) is merged. The rest gets checked on the robot with the test OpModes, following `TUNING_GUIDE.md`.
+**Status (2026-11-02).** None of this has run on the robot yet. Pedro isn't tuned (`Constants.create` still returns null), so no match OpMode can start, and the coax hood isn't built. 199 JUnit tests in 30 classes run on a laptop, and all passed in a Gradle run on 2026-11-02: 74 for AgateFlow, the path planner (against a simulated robot; no match OpMode uses it yet), and 125 for fire control, shoot-or-pass, the shooting zone, the shooting math, the turret controller, the write caches, the field frame and the small helpers (section 7). The Pedro Quickstart's latest fix (the Pinpoint tuner reads the pod directions before Stop) is merged. The rest gets checked on the robot with the test OpModes, following `TUNING_GUIDE.md`.
 
 1. [How the code is built](#1-how-the-code-is-built)
 2. [Shooting](#2-shooting)
@@ -11,18 +11,19 @@ What is new or unusual in our robot code for BIOBUZZ (2026-27), how each part wo
 5. [Driving and driver feedback](#5-driving-and-driver-feedback)
 6. [AgateFlow, our path planner](#6-agateflow-our-path-planner)
 7. [How the code is tested](#7-how-the-code-is-tested)
+8. [Zenith and SimLoop](#8-zenith-and-simloop)
 
 ## 1. How the code is built
 
 ### Auto and TeleOp share one brain
 
-`robot/Robot.update()` makes every decision once per loop: what the rail, door, shooter, turret and hood do, and when the rail feeds balls into the shooter. OpModes only say what the drivers want. TeleOp sets `shootHeld`, `passHeld` and `unjamHeld` from the buttons. Autonomous commands (`robot/commands/RobotCommands`) set the same fields and wait on what `Robot` reports, like `shotsFired()` or `storage.isEmpty()`. Aiming, firing and safety rules exist in one copy, so a fix found in TeleOp practice fixes auto too.
+`robot/Robot.update()` makes every decision once per loop: what the rail, door, shooter, turret and hood do, and when the rail feeds balls into the shooter. OpModes only say what the drivers want. TeleOp sets `shootHeld` and `unjamHeld` from the buttons, flips `zoneFire`, and lets driver 2 set `upCell`. Autonomous commands (`robot/commands/RobotCommands`) set the same fields and wait on what `Robot` reports, like `shotsFired()` or `storage.isEmpty()`. Aiming, firing and safety rules exist in one copy, so a fix found in TeleOp practice fixes auto too.
 
 `Retry` reruns an auto command while a check fails. `shootAllWithRetry` uses it: if balls are still stored after a burst times out, it reverses the rail for 200 ms and fires again. An auto with no alliance picked does nothing, because shooting at the wrong goal is worse than sitting still.
 
 ### Read, decide, write
 
-Each loop reads every sensor first, decides, then writes every output at the end. So the decision to fire uses this loop's turret angle and this loop's flywheel speed, never one of each. Shoot versus pass is decided once at the top, so aiming and fire control can't disagree about which target they serve.
+Each loop reads every sensor first, decides, then writes every output at the end. So the decision to fire uses this loop's turret angle and this loop's flywheel speed, never one of each. Shoot versus pass is decided once per loop, from the robot's half of the field, before the aim is solved, so aiming and fire control can't disagree about which target they serve.
 
 The loop stays fast: one bulk read per hub, motor and servo writes only when the value changes (`robot/hardware/Cached*`), battery voltage re-read every 250 ms, and no motor current reads. A motor power of 0 always goes out, however small the change. The shooter's motors use a finer write step (0.002 instead of 0.01), since 0.01 power is about 60 RPM of feedforward and small Panels edits would look dead. Each cache's `raw()` hands out the device itself for anything the cache doesn't wrap, and clears the cache so the next write always goes out: a call through it (a new direction or pulse range, or an encoder reset that zeroes the power) can change what the last write did. With `MainTeleOp.FULL_TELEMETRY` off, telemetry drops to the warnings and loop time every 200 ms. The goal is under 15 ms per loop.
 
@@ -50,7 +51,7 @@ Anything that still needs measuring has a `// TODO(step): what to do` comment ri
 
 `LEAD` and `PREDICT` start off and get turned on one at a time after stationary shots work. On the field, a bad layer can be switched off without touching code.
 
-The HIVE tips during the match, so the robot aims at the cell on its own half of the field. Within 6 in. of the center line it keeps the cell it has, so the turret doesn't flip back and forth while driving along the middle. Passing gets no lead or prediction, and with either hood it is refused outside the `PASS_RPM` table's distances, since a ball sent out of the field is a MAJOR FOUL (G405). It stays off until the coax hood is on.
+The HIVE tips during the match. With no up cell picked, the robot aims at the cell on its own half of the field. Within 6 in. of the center line it keeps the half it has, so the turret doesn't flip back and forth while driving along the middle. With an up cell picked, the half also decides shoot or pass (see below). Passing gets no lead or prediction, and with either hood it is refused outside the `PASS_RPM` table's distances, since a ball sent out of the field is a MAJOR FOUL (G405). The static hood's pass tables are still placeholders.
 
 ### Predicting the robot's motion
 
@@ -75,11 +76,33 @@ Why it works this way:
 - The fire rate comes from the transfer power, not from stopping between balls. The first version fed one ball, waited for the wheel to dip, paused 60 ms and waited for the wheel to be ready again, so every ball paid for the wheel's recovery. Now the rail doesn't stop between balls, and how far apart they go is set by one number per distance that we tune with real shots (step 7).
 - The wheel slowing as balls go through is expected. Each ball takes some speed, and boost (full power whenever the wheel is more than 50 RPM under target) pulls it back up. The ready check only starts a burst; it isn't asked again.
 - The rail pauses for only two reasons, and the door stays open while it does: the turret (or coax hood) is off target, or the wheel has sagged more than 600 RPM under its target (`BURST_RPM_FLOOR`), far more than a normal burst should. It goes on by itself as soon as both are back.
-- Switching between shoot and pass mid-burst closes the burst the same way, since the wheel needs a different speed. The new burst starts like any other.
+- Switching between shoot and pass mid-burst closes the burst the same way, since the wheel needs a different speed. In TeleOp that happens when the robot drives across the half line. The new burst starts like any other.
 
 The flywheel still tells us when a ball went through. A ball hitting the wheel takes it down fast, in tens of ms, so a shot counts when the RPM falls 150 below the highest reading of the last 100 ms (`SHOT_DIP_RPM`, `DIP_WINDOW_MS`). A wheel coasting down to a lower target takes far longer than 100 ms to lose that much, and a wheel still speeding up has its highest reading right now, so neither counts. The rule is the same for both hoods and wherever the wheel is against its target. The old rule measured the dip from the target latched when the feed started, so a wheel that started above its target had to drop more than 150 RPM to count; the 2026-10-10 review found that. After a shot, the next one only counts once the wheel has come back up half a dip, so one deep dip counts once. Two balls that hit before the wheel comes back up count as one, so `shootAll()` ends when storage reads empty, not on the shot count.
 
 The counter only watches. It feeds telemetry and `Robot.shotsFired()`, and in TeleOp it never moves the rail, so a wrong `SHOT_DIP_RPM` can't stop the drivers from shooting. If the rail runs 400 ms with no shot counted (`NO_SHOT_WARN_MS`), the Fire line on the screen adds a note (a jam, or a dip setting that's too big), and that is all it does. The count matters in one place: auto's one-ball `shoot()` sets `stopAfterOneShot`, and the burst closes by itself the moment the first shot is counted. `shootAll()` keeps the button held 300 ms after storage reads empty (`LAST_BALL_MS`), because the last ball has left the beams but not yet reached the wheel, and letting go would stop the rail with that ball still in it. `FireControlTest` checks all of this on its own clock (section 7).
+
+### Shoot or pass, picked by the robot's half
+
+The HIVE tips during the match, so one of our two cells is up, and its opening faces out along y: a ball only goes in from that cell's half of the field. Driver 2 tells the robot which cell is up with a bumper (`Robot.upCell`; the left bumper picks the cell on the driver's left, `Field.cellFromDriver`). Firing then needs no second button. Each loop `Robot.update()` works out the robot's half (`Field.cellForSide`) and calls `Robot.decideAimMode(upCell, half, PASS_ENABLED)`:
+
+- On the up cell's half, or with no up cell picked, the robot shoots at the cell on its half.
+- On the other half the cell can't score, so the robot passes to a target on its own half (`Field.passTarget`, a point in front of the LOADING ZONE on one half and its mirror on the other).
+- With `FireControl.PASS_ENABLED` false it does nothing there.
+
+The mode is worked out every loop, fire held or not, so the flywheel is already at the speed of the shot or the pass when the button goes down. Auto never picks an up cell, so it shoots at its own half's cell as before. The choice is a static method, so `AimModeTest` checks it without a robot.
+
+Not run on the robot. The pass tables (`PASS_RPM`, `PASS_FEED_POWER`) and the pass targets are placeholders, and a pass that leaves the field is a MAJOR FOUL (G405), so checking them is part of step 7.
+
+### Zone fire and a shooting zone found with the separating axis theorem
+
+Driver 1's Triangle turns on zone fire (off at the start of every run). While it is on, the robot fires as if RB were held whenever any part of it is in a shooting zone and `Robot.canFire()` is true. Leaving the zone stops the rail at once unless RB is held, and RB still fires from anywhere. Parked in the zone, the rail keeps feeding, so balls picked up there go straight through. Zone fire needs a trusted pose: from a guessed pose the burst would only wait, and a waiting burst stops the intake.
+
+The zone (`field/ShootingZone`) is a trapezoid in front of the up cell's opening, with the short side near the cell and the long side toward the wall, because the places that can see the opening widen with distance. Its 4 corners are written for red with the FAR cell up and mirrored for the other cell and for blue. They are a placeholder until shots are tried along its edge (step 12).
+
+"Any part of the robot" means the robot's outline (the rectangle AgateFlow uses, flower intake up) overlaps the trapezoid, touching included. The test is the separating axis theorem (`util/SeparatingAxis`). Two convex shapes are apart exactly when a straight line fits between them, and if one does, one parallel to an edge of one of the shapes does too. So for every edge of both shapes the code projects both shapes onto the direction straight across the edge. If the two intervals miss each other for any edge, the shapes are apart. If they meet for every edge, the shapes overlap. It works with the corners in either order and only for convex shapes. `SeparatingAxisTest` includes a diamond off the trapezoid's corner, where the bounding boxes overlap but a slanted edge separates the shapes.
+
+The Driver Station shows the Goal and Zone fire lines in competition mode too. Panels draws the zone and the robot's outline for practice only, since Panels is off at events.
 
 ### Flywheel at speed before the trigger
 
@@ -87,7 +110,7 @@ The counter only watches. It feeds telemetry and `Robot.shotsFired()`, and in Te
 
 ### Flywheel anticipation
 
-When the robot drives toward or away from the HIVE, the distance changes, so the flywheel's target RPM keeps moving, and a wheel that only reacts to its error is always a little behind. `Shooter.KA` adds a push proportional to how fast the target is changing, so the wheel keeps up. It is Ditto's `FLYWHEEL_ACCEL_KFF` (in their [`Shooter`](https://github.com/GNCE/DECODEv2-Ditto/blob/c78b5268930d55c6d5a59c23922d9a8baf9f96e6/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/config/subsystems/Shooter.java)). The target's rate of change is smoothed (`TARGET_RATE_FILTER`, 0.7) and capped at 8000 RPM per second (`MAX_TARGET_RATE`). A change of 200 RPM or more in one loop (spinning up from 0, switching from shot to pass) and a driver's trim press count as no change, since neither is the robot driving. The push is zero while the target holds still, so it never biases a shot. It is off (`KA` is 0) until it is tuned in step 11.
+When the robot drives toward or away from the HIVE, the distance changes, so the flywheel's target RPM keeps moving, and a wheel that only reacts to its error is always a little behind. `Shooter.KA` adds a push proportional to how fast the target is changing, so the wheel keeps up. It is Ditto's `FLYWHEEL_ACCEL_KFF` (in their [`Shooter`](https://github.com/GNCE/DECODEv2-Ditto/blob/c78b5268930d55c6d5a59c23922d9a8baf9f96e6/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/config/subsystems/Shooter.java)). The target's rate of change is smoothed (`TARGET_RATE_FILTER`, 0.7) and capped at 8000 RPM per second (`MAX_TARGET_RATE`). A change of 200 RPM or more in one loop (spinning up from 0, switching from shot to pass) and a driver's trim change count as no change, since neither is the robot driving. The push is zero while the target holds still, so it never biases a shot. It is off (`KA` is 0) until it is tuned in step 11.
 
 ### A coax hood aimed by physics from the wheel's real speed
 
@@ -105,7 +128,7 @@ How the solver picks an angle:
 6. Up close, all 7 heights can fall between the band and the lip even though some angles score. Then it walks the hood's whole range in 0.1° steps and takes the middle of the flattest stretch that scores, which leaves the most room for the hood being a little off.
 7. Exit speed is a small table by RPM (`COAX_EXIT_SPEED`), times a factor by hood angle (`COAX_EXIT_SPEED_ANGLE`): on a coax hood the ball wraps the wheel for a different arc at each angle, so it can leave faster or slower. Ditto switched between a near and a far value at one distance, which was probably catching the same thing. Since the speed now depends on the angle it is solving for, the solver re-solves a few times until the angle settles, then checks that final angle with its own speed before using it.
 
-The same physics gives the flight time for shoot-on-the-move (`LEAD`), so no flight time table is needed, and it works out passes too: a lob at about `CoaxHood.PASS_LAUNCH_DEG`, with the RPM that lands it on the pass target and the hood solved for the real RPM like a shot. When the wheel is within 300 RPM of target and still no angle scores (too close or too far for the hood), the drivers get the out-of-range warning. `Robot.HOOD` only switches between bursts, and a switch resets the trims, since each was set for the other hood. While the coax hood shoots, driver 2's up/down trim moves the hood (0.5° a press, `HOOD_TRIM_STEP_DEG`) instead of the RPM, since an RPM trim would just be solved away.
+The same physics gives the flight time for shoot-on-the-move (`LEAD`), so no flight time table is needed, and it works out passes too: a lob at about `CoaxHood.PASS_LAUNCH_DEG`, with the RPM that lands it on the pass target and the hood solved for the real RPM like a shot. When the wheel is within 300 RPM of target and still no angle scores (too close or too far for the hood), the drivers get the out-of-range warning. `Robot.HOOD` only switches between bursts, and a switch resets the trims, since each was set for the other hood. While the coax hood shoots, driver 2's right stick moves the hood (up to 1° per second, `HOOD_TRIM_RATE_DEG_PER_SEC`) instead of the RPM, since an RPM trim would just be solved away.
 
 ### Hood position without a sensor
 
@@ -129,7 +152,7 @@ The turret runs on our own PIDF controller (`util/PIDF`, 17 desktop tests), scal
 
 - P pushes harder the farther the turret is from its target. There are two gain sets, one for big moves and one for settling, with a 2° band (`CLOSE_ZONE_BAND_DEG`) so it doesn't flicker between them.
 - I closes the last degree or two when friction stops the turret just short. It only builds up within 5° of the target (`I_ZONE_DEG`), never pushes more than 0.1 power (`I_MAX_POWER`), stops growing while the output is already at its limit (anti-windup), and starts over when the turret crosses the target or the target jumps. It holds still while the stuck check tests the turret and starts over while it rests. It stays off (`KI` is 0) unless tuning shows the turret stopping short.
-- D brakes using how fast the turret really turns, not how fast the error changes, so picking a new target, a trim press or the angle wrapping past 180° can't kick it. A reading that jumps faster than 2000°/s is a bad reading, and that loop keeps the last speed.
+- D brakes using how fast the turret really turns, not how fast the error changes, so picking a new target, a trim change or the angle wrapping past 180° can't kick it. A reading that jumps faster than 2000°/s is a bad reading, and that loop keeps the last speed.
 - F turns the turret along with the robot. When the robot spins, the turret's target angle moves, and a push proportional to that speed (`KV`, off until step 11) starts before an error builds up. The target speed is smoothed and capped at 720°/s (`MAX_TARGET_RATE_DEG_PER_SEC`), and a target that jumps more than 30° in one loop counts as a new target, not a fast one.
 
 A static push (`KS`) fades in over the last 5° so it doesn't buzz at the target. Telemetry shows the size of each part, for tuning.
@@ -148,7 +171,7 @@ The door-end rail motor runs at full power until a ball sits in slot 1, then dro
 
 ### Nothing fires without an alliance and a trusted pose
 
-`Robot.canFire()` needs both. A pose is trusted only when it comes fresh from auto or from a relocalize. TeleOp without one still drives, but won't shoot until the drivers relocalize.
+`Robot.canFire()` needs both. A pose is trusted only when it comes fresh from auto or from a corner relocalize (a heading-only one leaves the flag as it was). TeleOp without one still drives, but won't shoot until driver 2 relocalizes in a corner.
 
 ### Nothing moves during INIT
 
@@ -197,13 +220,17 @@ Two things in the libraries could leave an auto stuck or moving. Ivy's ready-mad
 
 ### One-button relocalize
 
-The robot can be pushed into either corner on our alliance wall, intake against the alliance wall or the side wall. That gives 4 spots, each with its own button. The pose snaps to that spot, becomes trusted, and the aim trims reset, since they mostly covered pose drift. Every pose in the code is written once for red and spun 180° about the field center for blue (`field/Alliance.fromRed`). The BIOBUZZ field is a spin, not a mirror.
+The robot can be pushed into any of the 4 corners, with the intake flat on an alliance wall (ours, facing the driver, or the other one, facing away) and one side flat on a side wall. Each corner has its own button on driver 2: the left hand for the left corners (D-pad down and up), the right hand for the right ones (Cross and Triangle), and the direction pressed is the way the intake faces. The pose snaps to that spot, becomes trusted, and the aim trims reset, since they mostly covered pose drift. Two more buttons (D-pad left and Circle) fix only the heading, with the intake flat on the left or right side wall. They keep x, y and whether the pose is trusted, since a heading alone doesn't make a guessed position right, and reset only the turret trim. Every relocalize that happens buzzes both gamepads once, so driver 2 knows the press counted and driver 1 knows the robot can leave the corner. Every pose in the code is written once for red and spun 180° about the field center for blue (`field/Alliance.fromRed`). The BIOBUZZ field is a spin, not a mirror.
+
+### Trims on driver 2's sticks
+
+Driver 2's left stick trims the turret, and the right stick trims the RPM, or the coax hood's angle while the coax hood shoots. A held stick moves the trim at a rate: 4°/s, 75 RPM/s and 1°/s at full stick (`MainTeleOp`), times the loop time, with a 0.15 deadband. A loop counts as at most 0.1 s, so the trim moves the same at any loop speed and one stalled loop can't jump it. The rates are guesses until driver 2 practices (step 12).
 
 ### One source for driver warnings
 
 `robot/Warning` lists everything the drivers must know: no alliance, pose unknown, NaN pose, out of range, shooter off, turret off, shot table out of order, coax hood picked but no hood servo configured (`HOOD_MISSING`), and hood servo at the end of its range (`HOOD_AT_END`). `Robot.warnings()` says which are active. Telemetry prints them even in competition mode, and `driver/Feedback` buzzes them on driver 1's gamepad. A new warning is one line in one place.
 
-Driver 1's gamepad has only two rumbles, so each always means the same thing. Three strong pulses mean a warning appeared (the same warning won't buzz again for 3 s, and "out of range" never buzzes since it's normal while driving). A soft constant rumble means storage is full. Driver 1's gamepad light shows the ball count: red for 0-1 (can't shoot), yellow for 2-3, green for 4. In init both gamepads light up in the alliance color, or white when none is picked.
+There are three rumbles, so each always means the same thing. On driver 1's gamepad, three strong pulses mean a warning appeared (the same warning won't buzz again for 3 s, and "out of range" never buzzes since it's normal while driving). A soft constant rumble means storage is full. On both gamepads, one short, strong pulse (`RELOCALIZE_MS`, 200 ms) means a relocalize happened; driver 1 feels it after a warning buzz that is already playing, and the soft rumble comes back after it. Driver 1's gamepad light shows the ball count: red for 0-1 (can't shoot), yellow for 2-3, green for 4. In init both gamepads light up in the alliance color, or white when none is picked.
 
 ## 6. AgateFlow, our path planner
 
@@ -227,7 +254,7 @@ Where the robot doesn't fit, AgateFlow fixes it or refuses, and writes a note. I
 
 ### The field from the rule book
 
-`field/FieldZones` builds the keep-out zones from the Competition Manual (TU03, Section 9), checked against the official field CAD. The HIVES never come lower than 30.6 in. and our robot is 12.74 in. tall, so it fits under them. The only things it can hit are the 4 FLOWERS and the HIVE A-frames' foot bars and legs, filled in from the tiles up to the robot's top. Coordinates match Pedro Visualizer's frame and its 141.5 in. field, so points copy over 1:1.
+`field/FieldZones` builds the keep-out zones from the Competition Manual (TU07, Section 9), checked against FIRST's field CAD, which we measured ourselves. Section 9.1 says the CAD is the official field and the drawings are nominal, within 1 in., so when sources disagree we go by FIRST's Field Acceptance Checklist first (what events measure), then the CAD, then the manual. The HIVES never come lower than 30.6 in. and our robot is 12.74 in. tall, so it fits under them. The only things it can hit are the 4 FLOWERS and the HIVE A-frames' foot bars and legs, filled in from the tiles up to the robot's top. Coordinates match Pedro Visualizer's frame and its 141.5 in. field, so points copy over 1:1.
 
 ### Picking up POLLEN in the best order
 
@@ -271,7 +298,7 @@ Foresight's gains are read straight from the follower instead of copied by hand.
 
 ## 7. How the code is tested
 
-181 JUnit tests in 27 classes run on a laptop with `./gradlew :TeamCode:testDebugUnitTest`. All passed in a Gradle run on 2026-10-10. They test the planner, fire control and the math. `Robot`'s per-loop decisions and the subsystems' hardware side have no desktop tests yet; they get checked on the robot.
+199 JUnit tests in 30 classes run on a laptop with `./gradlew :TeamCode:testDebugUnitTest`. All passed in a Gradle run on 2026-11-02. They test the planner, fire control and the math. `Robot`'s per-loop decisions (apart from the shoot-or-pass choice) and the subsystems' hardware side have no desktop tests yet; they get checked on the robot.
 
 ### AgateFlow (74 tests)
 
@@ -296,7 +323,7 @@ Three classes test the layer that drives the plans, on the same virtual clock (`
 - `ParkGuardTest` (3): it starts parking when the time left reaches the estimate plus the margin, interrupts the auto and gets there, and it starts again after no plan or after being interrupted.
 - `EtaCalibrationTest` (6): the filter, the legs it ignores, and which legs a drive reports: every leg of a clean drive, only the later legs after a replan, none that gave up settling, and only the later legs of a drive joined partway.
 
-### Fire control, shooting, turret and helpers (107 tests)
+### Fire control, shooting, turret and helpers (125 tests)
 
 - `FireControlTest` (14): a burst starts once the shot stays ready for `READY_HOLD_MS`, and the rail waits for the door to open fully. Feeding goes on while the wheel sags 400 RPM. The rail pauses while the aim is off and below `BURST_RPM_FLOOR`, and goes on after. Release stops the rail at once and closes the door after the delay. A switch to pass ends the burst, and the pass waits for its own shot. `stopAfterOneShot` ends the burst after one dip. A sharp dip counts wherever the wheel starts, a slow coast or a wheel speeding up doesn't, and a deep dip counts once.
 - `HoodSolverTest` (24): every angle it gives crosses inside the band and clears the lip, also when the exit speed changes with the angle. The RPM margin refuses an angle that only scores at the exact reading. Up close it finds every angle a 0.1° walk finds. A sweep every 25 RPM at every distance from 20 to 110 in. checks the hood never moves more than 5° in one step and never flips onto a lob. Bad inputs give NaN, and flight time, seeds and passes agree with the physics.
@@ -306,9 +333,59 @@ Three classes test the layer that drives the plans, on the same virtual clock (`
 - `CachedHardwareTest` (4): the write caches skip repeats, but never a stop, and never the first write after `raw()` handed out the device.
 - `ShotSolverCoaxTest` (6): a coax pass is valid only inside `PASS_RPM`'s distances, gets no hood angle with the wheel too slow, and gives nothing from a bad Panels number. Coax `LEAD` uses the physics flight time, and falls back to `SHOT_FLIGHT_TIME` when no angle scores.
 - `RetryTest` (5): it stops at the first try that works, gives up after the limit, uses the retry command for later tries, and ends each try exactly once, even when it is ended twice from outside.
-- `FieldTest` (7): red poses stay as written, blue is red spun 180° about the center, the cells mirror only in x, corner poses touch the walls, the target cell follows the robot's half with a band in the middle, and the pass target is written for red.
+- `FieldTest` (10): red poses stay as written, blue is red spun 180° about the center, the cells mirror only in x, the 4 corner poses touch the walls for both alliances, the side-wall headings face the driver's left and right, "left" is the same side for corners, side walls and cells, each bumper picks the cell on its side, the robot's half has a band in the middle, and the pass target is on the robot's own half.
+- `AimModeTest` (4): with no up cell picked it shoots at the robot's own half, on the up cell's half it shoots, on the other half it passes, and with passing off it does nothing there.
+- `ShootingZoneTest` (5): a point well inside is in, a far one is out, an outline over the edge is in while its center is outside, each alliance and cell has a zone on that cell's half around its HIVE, and the zones are mirrored, not spun.
+- `SeparatingAxisTest` (6): overlapping squares overlap and separated ones don't, touching counts, one shape inside the other overlaps, a diamond off a trapezoid's corner is apart though the bounding boxes overlap, and a triangle works too. The answer is the same in either order of the shapes and either winding.
 - `AnglesTest` (3): wrapping into -180 to 180 works for negative angles too (Java's `%` keeps the sign), and a difference takes the short way around.
 - `LookupTableTest` (5), `DriveCurveTest` (4), `DebouncerTest` (4): the tables interpolate in a straight line between rows and hold their end values past either end; the stick curve is zero inside the deadband, starts from zero just past it and gives full speed at full stick; the debouncer ignores a flicker shorter than its hold time and reads the hold time on every call.
+
+## 8. Zenith and SimLoop
+
+Zenith and SimLoop are not ours. Zenith is Horizon 36596's tool for writing an auto as a file and playing it on the robot. SimLoop is their headless simulator, which runs robot code on a laptop. We use both as libraries, at fixed versions (Zenith 0.1.2, SimLoop v0.2.0-alpha.2). What follows is our own work around them. None of it has run on the robot. The desktop run is now 207 tests, one of them skipped unless `-Dzenith.auto` is set (sections 1 to 7 count 199).
+
+### A bridge that keeps our loop order and one mirror
+
+A Zenith auto must behave like one of ours. `zenith/TeamZenithRobot` plays Zenith's commands on our `Robot`, so the named commands (`shoot`, `shootAll`, `flowerDown` and the rest) are our `RobotCommands`, with the same time limits. `zenith/ZenithAuto` keeps our loop order, `Scheduler.execute()` then `robot.update()`, so the follower updates once per loop. It also keeps our single mirror. File poses are centre-origin and for red. `ZenithFrame` shifts them by half the field, and `Alliance.fromRed` flips them once for blue. The start pose goes in already flipped, because flipping it a second time would put the robot on the wrong side. `TeamZenithRobotTest` checks the bridge.
+
+### A link check that found a missing method
+
+Zenith's library was built against a different Pedro than ours. We read its compiled code against Pedro 3.0.1 and checked that every method it calls exists. One does not: Zenith's marker runner calls `Follower.curveCompletion()`, which Pedro 3.0.1 lacks. Such a path would have failed in the middle of an auto. So `TeamZenithRobot` refuses a path step with markers when the auto is built, in INIT, and says to use a parallel step with the path as its deadline. The check is run again with each new Zenith version.
+
+### The real robot code in a simulator
+
+`RobotSim` runs our real `Robot` and `ZenithAuto` in SimLoop, with a simulated follower and simulated mechanisms: a rail plant, a flywheel plant, a Pinpoint and a Lynx module. Sim time drives Ivy's `waitMs`, `ElapsedTime` and `DriveRoute.NOW`, so a run is the same every time and takes about 10 s. The template auto gives: drive 1.78 s, shoot 1.02 s, 4 of 4 balls launched, on both alliances. The limits: an exact localizer, placeholder plant constants, no battery sag, no field contact, no coax hood. It has never been compared with the real robot. Its use is catching wrong poses, wrong command order and timeouts before a day at the field, not predicting a match time.
+
+### How we write an auto with Zenith
+
+An auto is a file, `autos/<name>.auto.json`, and every change to it goes through the same five steps. `validate` checks the file. `render` draws a picture of it, kept out of git. `sim` plays it on a laptop in about 10 s. It reads `autos/` directly, so we edit and sim again without deploying. `deploy` copies the autos into the app's assets and writes the OpModes the Driver Station lists. Those OpModes are generated and never edited by hand. Blue is simmed by setting `ZENITH_ALLIANCE=BLUE`, so one file covers both alliances. Each sim writes a trace file, `TeamCode/build/sim/<auto>.trace.json`, that records what happened.
+
+`autos/robot.json` gives every number a label for where it came from: APPROX (from CAD), PLACEHOLDER (a guess until the robot is measured), CALIBRATED FROM SIM, and CALIBRATED FROM ROBOT. The last one is used only for real robot traces. So a number from the simulator is never mistaken for a measurement. Zenith's format may change before its 1.0, so the version is pinned in three places (`.mcp.json`, `build.dependencies.gradle` and the command-line calls). A new version has to be changed in all three on purpose.
+
+### One field for both tools
+
+Zenith's field file came drawn on the manual's nominal 144 in. field, with walls at ±72. Our code uses the real field, 141.5 in. Changing the file's size alone moved Zenith's walls to ±70.75 but left the FLOWERS, GARDEN POLLEN and LOADING ZONES where they were, 1.25 in. through the walls. A path drawn up against a FLOWER in Zenith would have driven 1.25 in. into the real one. We converted the file: everything on a wall is now measured from our walls, with the same numbers as `Field`, `FieldZones` and `IntakePoses`. We also added the FLOWER wall brackets, which Zenith's file did not have. They are 11.4 in. up, under our robot's top. Checking against the CAD found one wrong number of our own: the GARDEN POLLEN line is 11.38 in. long, not 11.2. After the change the template auto validates with no findings and sims the same on both alliances: 2.80 s, 4 balls launched, no contact with the field.
+
+### Zenith's optimizer next to AgateFlow
+
+Zenith has an optimizer that polishes one path step between a fixed start and end pose. We ran it on our template auto on a scratch copy of the project, and changed nothing in the repo. It runs offline on a desktop. It starts from a visibility graph, rounds the corners, searches for a heading, then runs a pattern search, scoring each try by simulating Pedro's `Foresight` follower. It took 13 to 19 s of compute per path step, and a second run gave byte-identical output.
+
+AgateFlow does a related job in a different place. It plans on the robot from the live pose, around zones that can change, within `PLAN_TIME_LIMIT_MS` (100 ms), and replans while driving. The two share ideas: a visibility graph, rounded corners, scoring with the follower in the loop, a check of the robot's whole outline along the path, and heading holds near walls.
+
+On the template's 5 straight path steps with a 2 in margin:
+
+- 2 came back "no better".
+- 1 gained 0.01 s, one sim tick.
+- 1 was infeasible by 0.004 in. AgateFlow's near-miss rule (`NEAR_MISS_FRACTION`) would accept that.
+- 1 was blocked, and got a clear route.
+
+Lines with a linear heading turn drove sideways for 50 to 59% of the way. These runs were made while the field file was being converted, so the exact clearances may differ a little now.
+
+So the two do different jobs. Zenith is where autos are written, checked and simulated, and its optimizer is a yardstick we can compare against offline. AgateFlow is the planner that works live. Neither replaces the other.
+
+### What is next (not built yet)
+
+The first piece is an `agateDrive` named command, so a Zenith auto can call AgateFlow. That would let SimLoop test AgateFlow on a drivetrain simulator it was not modelled on, since AgateFlow's own tests use a simulator built on its own physics. It needs one change first: AgateFlow plans on a background thread, and SimLoop only steps the main thread on sim time, so the sim needs a way to plan on the calling thread. After that comes a desktop test that checks Zenith's field file and `robot.json` against `FieldZones` and AgateFlow's numbers, because the copies already disagree. `robot.json` says 85 in/s forward and the test robot drives at 70.
 
 ---
 

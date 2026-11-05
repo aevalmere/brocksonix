@@ -4,9 +4,9 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 Most important first: work from the top down. Phase 1 gets the robot playing TeleOp, phase 2 adds a scoring auto, phase 3 makes both better, phase 4 adds AgateFlow and auto pickups, phase 5 is the coax hood once it is on the robot.
 
-**166 left.**
+**168 left.**
 
-## Phase 1: TeleOp, bare minimum (65 left)
+## Phase 1: TeleOp, bare minimum (67 left)
 
 ### 1. Wiring and configuration
 
@@ -22,10 +22,8 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 - [ ] [Constants.java:30](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L30) `localizerConfig`: Pinpoint pod offsets from CAD are in ROBOT.md (X pod +2.54 in. left, Y pod -1.55 in. forward). Confirm with PinpointTuner.
 - [ ] [Constants.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java#L31) `localizerConfig`: Pod directions are a guess. Check them with Drive Test (push 48 in. forward and left), or run PinpointTuner.
 - [ ] [TeamTuning.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/TeamTuning.java#L33): After pasting the Foresight output into Constants (as foresightConfig()), add Tests here (code at the bottom).
-- [ ] [Drive.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L24) `STICK_DEADBAND`: Raise if the robot creeps with the sticks let go; lower if small moves feel dead.
-- [ ] [Drive.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L29) `HOLD_WHEN_STOPPED`: Drive around and let go. If holding feels jumpy, set false.
-- [ ] [Drive.java:31](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L31) `HOLD_BELOW_SPEED`: Drive around and let go. Raise if it rolls on before holding; lower if the hold feels jumpy.
-- [ ] [Drive.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L41) `drive()`: Main TeleOp, red: stick up drives away from the driver, stick left to the driver's left. Check blue too.
+- [ ] [Drive.java:27](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L27) `HOLD_WHEN_STOPPED`: Drive around and let go. If holding feels jumpy, set false.
+- [ ] [Drive.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L29) `HOLD_BELOW_SPEED`: Drive around and let go. Raise if it rolls on before holding; lower if the hold feels jumpy.
 
 ### 3. Storage and rail
 
@@ -70,12 +68,12 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 
 ### 6. Shooter
 
-- [ ] [FireControl.java:58](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L58) `READY_HOLD_MS`: Main TeleOp: raise if bursts start while the turret is still settling.
-- [ ] [FireControl.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L61) `BURST_RPM_FLOOR`: Main TeleOp, hold RB with 4 balls: watch the lowest RPM during the burst. Set this well past that sag, so a normal burst never pauses; lower it if the last balls of a burst fall short. 0 turns the check off.
-- [ ] [FireControl.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L64) `DOOR_CLOSE_DELAY_MS`: Main TeleOp: let go of RB in the middle of a burst. Raise it if the door closes on a ball; lower it if the door stays open longer than it needs to.
-- [ ] [FireControl.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L67) `SHOT_DIP_RPM`: Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
-- [ ] [FireControl.java:75](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L75) `DIP_WINDOW_MS`: Shooter Test: longer than a ball's dip takes to reach SHOT_DIP_RPM (watch the RPM as a ball goes through), and far shorter than the wheel takes to coast down SHOT_DIP_RPM with the power off (Cross turns the wheel off: do it at full speed and time it).
-- [ ] [FireControl.java:78](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L78) `NO_SHOT_WARN_MS`: Main TeleOp, hold RB with balls loaded: a bit longer than the slowest time from the rail starting to the first shot counted.
+- [ ] [FireControl.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L61) `READY_HOLD_MS`: Main TeleOp: raise if bursts start while the turret is still settling.
+- [ ] [FireControl.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L64) `BURST_RPM_FLOOR`: Main TeleOp, hold RB with 4 balls: watch the lowest RPM during the burst. Set this well past that sag, so a normal burst never pauses; lower it if the last balls of a burst fall short. 0 turns the check off.
+- [ ] [FireControl.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L67) `DOOR_CLOSE_DELAY_MS`: Main TeleOp: let go of RB in the middle of a burst. Raise it if the door closes on a ball; lower it if the door stays open longer than it needs to.
+- [ ] [FireControl.java:70](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L70) `SHOT_DIP_RPM`: Shooter Test: watch RPM as a ball goes through. Set a bit under the smallest dip you see.
+- [ ] [FireControl.java:78](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L78) `DIP_WINDOW_MS`: Shooter Test: longer than a ball's dip takes to reach SHOT_DIP_RPM (watch the RPM as a ball goes through), and far shorter than the wheel takes to coast down SHOT_DIP_RPM with the power off (Cross turns the wheel off: do it at full speed and time it).
+- [ ] [FireControl.java:81](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L81) `NO_SHOT_WARN_MS`: Main TeleOp, hold RB with balls loaded: a bit longer than the slowest time from the rail starting to the first shot counted.
 - [ ] [Shooter.java:40](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Shooter.java#L40) `LEFT_REVERSED`: The motors are geared together: test each alone at low power first (Shooter Test, hold Square or Circle). Both must push the shooting direction.
 - [ ] [Shooter.java:43](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Shooter.java#L43) `ENCODER_REVERSED`: RPM must read positive while shooting. The encoder must be on the left motor's port. This flag alone sets the RPM sign, LEFT_REVERSED does not change it.
 - [ ] [Shooter.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Shooter.java#L46) `KS`: Raise if low RPMs sit below target.
@@ -88,16 +86,20 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 
 ### 7. Shot tables
 
+- [ ] [Field.java:63](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L63) `PASS_TARGET_RED_X`: Main TeleOp, pick an up cell (driver 2 LB/RB) and fire from the other half: pick where passes should land, set X and Y, and check real passes land there on both halves and none leaves the field (G405).
+- [ ] [FireControl.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L52) `PASS_ENABLED`: ShotTables.PASS_RPM is a placeholder. Until it is filled from real passes, check no pass from the wrong half can leave the field (G405), or set this false.
 - [ ] [ShotTables.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L26) `SHOT_RPM`: Shooter Test at measured distances, about every 10 in. from 20 to 110. Check a few with the other cell up.
 - [ ] [ShotTables.java:42](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L42) `SHOT_FEED_POWER`: Lower at long range if back-to-back balls miss because RPM hasn't recovered.
+- [ ] [ShotTables.java:49](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L49) `PASS_RPM`: Main TeleOp, pick an up cell (driver 2 LB/RB) and fire from the other half: fill it from real passes like SHOT_RPM. Check from the far end of the table that no pass can leave the field (G405).
+- [ ] [ShotTables.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L61) `PASS_FEED_POWER`: Lower it if back-to-back passes land short or scatter.
 
 ### 8. Field and relocalizing
 
-- [ ] [Field.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L61) `CENTER_TO_INTAKE_WALL`: CAD says 203 mm. Check with a tape: intake flat on a wall, wall to turret center. Is the stowed flower intake further out?
-- [ ] [Field.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L64) `CENTER_TO_SIDE_WALL`: CAD outer frame rails say 149 mm (298 wide, not 280). Check with a tape.
-- [ ] [Field.java:90](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L90) `cornerPose()`: Relocalize in all 4 corners, drive to a taped spot, and check the pose.
+- [ ] [Field.java:73](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L73) `CENTER_TO_INTAKE_WALL`: CAD says 203 mm. Check with a tape: intake flat on a wall, wall to turret center. Is the stowed flower intake further out?
+- [ ] [Field.java:76](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L76) `CENTER_TO_SIDE_WALL`: CAD outer frame rails say 149 mm (298 wide, not 280). Check with a tape.
+- [ ] [Field.java:123](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L123) `cornerPose()`: Relocalize in all 4 corners and on both side walls (driver 2: D-pad down/up, Cross, Triangle, D-pad left, Circle), drive to a taped spot, and check the pose.
 
-## Phase 2: Autonomous and competition (12 left)
+## Phase 2: Autonomous and competition (13 left)
 
 ### 9. First autonomous
 
@@ -111,13 +113,14 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 - [ ] [RobotCommands.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/commands/RobotCommands.java#L46) `LAST_BALL_MS`: shootAll with 4 balls: watch the last ball. Raise it until the last ball always reaches the wheel before the rail stops; lower it to end bursts sooner.
 - [ ] [RobotCommands.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/commands/RobotCommands.java#L52) `RETRY_UNJAM_MS`: Jam a ball on purpose and run shootAllWithRetry. Raise until the retry frees it, but balls must not come out of the intake.
 - [ ] [RobotCommands.java:54](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/commands/RobotCommands.java#L54) `SHOOT_RETRIES`: Each retry can cost RETRY_UNJAM_MS + SHOOT_ALL_TIMEOUT_MS. Set to 0 if retries never fix anything.
+- [ ] [TeamZenithRobot.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/zenith/TeamZenithRobot.java#L46) `PATH_TIMEOUT_SECONDS`: Time the longest path in your autos at full speed, then add margin. Too short cuts real paths; too long lets a stuck robot push.
 
 ### 10. Before competition
 
-- [ ] [MainTeleOp.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L33) `FULL_TELEMETRY`: Set to false before competition.
+- [ ] [MainTeleOp.java:45](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L45) `FULL_TELEMETRY`: Set to false before competition.
 - [ ] [PanelsSettings.java:21](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/PanelsSettings.java#L21) `EVENT_BUILD`: set true for event builds so Panels never starts (R704.D).
 
-## Phase 3: Make it better (23 left)
+## Phase 3: Make it better (25 left)
 
 ### 11. Shooting while moving
 
@@ -139,14 +142,16 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 
 ### 12. Driver feel, feedback and loop time
 
-- [ ] [Feedback.java:28](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L28) `WARNING_STRENGTH`: Warning buzz: strong and unmistakable, long enough to feel, short enough not to annoy. Raise the cooldown if a flickering warning still annoys.
-- [ ] [Feedback.java:36](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L36) `FULL_STRENGTH`: Full rumble: soft enough to drive with, strong enough to notice. The gamepad light only works on PlayStation controllers.
-- [ ] [Field.java:45](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L45) `CELL_SWITCH_BAND`: Drive across the middle. Raise it if the turret flips between cells too eagerly.
-- [ ] [MainTeleOp.java:39](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L39) `TELEMETRY_INTERVAL_MS`: Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.
-- [ ] [MainTeleOp.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L41) `TURRET_TRIM_STEP_DEG`: Driver 2 practice: one press should fix a typical miss. Raise if it takes several presses, lower if one press overshoots.
-- [ ] [MainTeleOp.java:43](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L43) `RPM_TRIM_STEP`: Same as the turret trim, for shots that land short or long (static hood).
-- [ ] [MainTeleOp.java:48](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L48) `TRIGGER_THRESHOLD`: Raise it if a resting finger fires RT or LT; lower it if a full pull doesn't register.
-- [ ] [Drive.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Drive.java#L26) `DRIVE_CUBIC`: Drive and adjust DRIVE_CUBIC and TURN_CUBIC to taste. Higher = gentler near center, same top speed.
+- [ ] [Feedback.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L33) `WARNING_STRENGTH`: Warning buzz: strong and unmistakable, long enough to feel, short enough not to annoy. Raise the cooldown if a flickering warning still annoys.
+- [ ] [Feedback.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L41) `RELOCALIZE_STRENGTH`: Relocalized buzz: one short, strong pulse that can't be mistaken for the 3-pulse warning. Long enough to feel while driving.
+- [ ] [Feedback.java:45](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L45) `FULL_STRENGTH`: Full rumble: soft enough to drive with, strong enough to notice. The gamepad light only works on PlayStation controllers.
+- [ ] [Field.java:54](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L54) `CELL_SWITCH_BAND`: Drive across the middle. Raise it if the turret flips between cells (or between shoot and pass) too eagerly.
+- [ ] [ShootingZone.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/ShootingZone.java#L33) `RED_FAR_CORNERS`: Placeholder. Main TeleOp with zone fire on (driver 1 Triangle): shoot from all along the zone's edge and pull in any corner where shots miss. Any part of the robot in the zone fires, so keep the whole trapezoid inside where shots score. Keep it convex.
+- [ ] [MainTeleOp.java:53](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L53) `TELEMETRY_INTERVAL_MS`: Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.
+- [ ] [MainTeleOp.java:55](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L55) `TURRET_TRIM_RATE_DEG_PER_SEC`: Driver 2 practice: a typical miss should take about a second of full stick to fix. Raise it if fixing takes too long, lower it if the trim is hard to stop in the right place.
+- [ ] [MainTeleOp.java:58](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L58) `RPM_TRIM_RATE_PER_SEC`: Same as the turret trim, for shots that land short or long (static hood).
+- [ ] [MainTeleOp.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L64) `TRIM_STICK_DEADBAND`: Raise it if a resting stick still moves a trim; lower it if a small push does nothing.
+- [ ] [MainTeleOp.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L67) `TRIGGER_THRESHOLD`: Raise it if a resting finger fires LT; lower it if a full pull doesn't register.
 
 ## Phase 4: AgateFlow and auto pickups (36 left)
 
@@ -173,9 +178,9 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 - [ ] [IntakePoses.java:30](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L30) `FLOWER_INTAKE_REACH`: Measure on the robot, flower intake down: turret center to where it touches the tiles (ROBOT.md says 275.3 mm).
 - [ ] [IntakePoses.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L33) `FLOWER_REACH_INTO_OPENING`: Drive into a real FLOWER. Raise this if the flower intake doesn't reach the POLLEN, lower it if the robot's front hits the FLOWER.
 - [ ] [IntakePoses.java:40](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L40) `FLOWER_APPROACH`: Shorten it if there's no room to line up, lengthen it if the flower intake catches the FLOWER's side.
-- [ ] [IntakePoses.java:49](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L49) `GARDEN_RUN_UP`: Raise it if the robot isn't lined up yet when the intake reaches the line.
-- [ ] [IntakePoses.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L52) `GARDEN_END_GAP`: Lower it if the POLLEN in the corner is left behind.
-- [ ] [IntakePoses.java:55](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L55) `GARDEN_WALL_GAP`: Raise it if the robot rubs the audience wall on the GARDEN run.
+- [ ] [IntakePoses.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L52) `GARDEN_RUN_UP`: Raise it if the robot isn't lined up yet when the intake reaches the line.
+- [ ] [IntakePoses.java:55](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L55) `GARDEN_END_GAP`: Lower it if the POLLEN in the corner is left behind.
+- [ ] [IntakePoses.java:58](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/IntakePoses.java#L58) `GARDEN_WALL_GAP`: Raise it if the robot rubs the audience wall on the GARDEN run.
 - [ ] [RobotCommands.java:56](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/commands/RobotCommands.java#L56) `FLOWER_RAISE_MS`: Time how long the flower intake takes to come all the way up (film it). Set this a little longer.
 
 ### 15. AgateFlow on the field
@@ -195,27 +200,24 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 - [ ] [ParkGuard.java:51](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/agateflow/ParkGuard.java#L51) `REFRESH_MS`: Run an auto that replans a lot. Raise this if replans come back late (they share the planning thread with park estimates), lower it if parking starts much earlier than needed.
 - [ ] [ParkGuard.java:54](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/agateflow/ParkGuard.java#L54) `FALLBACK_SECONDS`: Block the park route with a vision zone in a test auto and check the robot still parks in time once it is clear.
 
-## Phase 5: Coax hood (once it is on the robot) (30 left)
+## Phase 5: Coax hood (once it is on the robot) (27 left)
 
 ### 16. Coax hood
 
-- [ ] [Field.java:53](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L53) `PASS_TARGET_RED_X`: Once passing is on (FireControl.PASS_ENABLED): pick where passes should land in our LOADING ZONE, set X and Y, and check real passes land there.
-- [ ] [MainTeleOp.java:45](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L45) `HOOD_TRIM_STEP_DEG`: Main TeleOp, COAX: one press should fix a typical high or low miss. Raise if it takes several presses, lower if one overshoots.
-- [ ] [FireControl.java:50](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L50) `PASS_ENABLED`: Once coax shots work, turn on and pass from around the field. Check no pass can leave the field (G405).
-- [ ] [FireControl.java:68](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L68) `SHOT_DIP_RPM`: Coax Hood Test, physics mode: check it again with the wheel anywhere in the 300 RPM ready window (Robot.COAX_RPM_TOLERANCE).
-- [ ] [Robot.java:47](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/Robot.java#L47) `HOOD`: Switch to COAX once the coax hood is on the robot and its servo is in the configuration.
-- [ ] [Robot.java:50](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/Robot.java#L50) `COAX_RPM_TOLERANCE`: Main TeleOp, hold RB with 4 balls: raise for faster bursts while the hood makes up for the dip; lower if balls fired during recovery miss.
+- [ ] [MainTeleOp.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L61) `HOOD_TRIM_RATE_DEG_PER_SEC`: Main TeleOp, COAX: same as the turret trim, for shots that land high or low.
+- [ ] [FireControl.java:71](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/FireControl.java#L71) `SHOT_DIP_RPM`: Coax Hood Test, physics mode: check it again with the wheel anywhere in the 300 RPM ready window (Robot.COAX_RPM_TOLERANCE).
+- [ ] [Robot.java:68](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/Robot.java#L68) `HOOD`: Switch to COAX once the coax hood is on the robot and its servo is in the configuration.
+- [ ] [Robot.java:71](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/Robot.java#L71) `COAX_RPM_TOLERANCE`: Main TeleOp, hold RB with 4 balls: raise for faster bursts while the hood makes up for the dip; lower if balls fired during recovery miss.
 - [ ] [HardwareNames.java:29](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/hardware/HardwareNames.java#L29) `HOOD_SERVO`: When the coax hood goes on, add a servo with this name to the configuration ("Full Range Servo" for goBILDA or Axon) and write its port in ROBOT.md.
 - [ ] [HoodSolver.java:77](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/HoodSolver.java#L77) `LAUNCH_HEIGHT`: Measure the ball center's height above the tiles at the moment it leaves the wheel.
 - [ ] [HoodSolver.java:82](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/HoodSolver.java#L82) `TARGET_BAND`: Smaller = pickier, more accurate shots; larger = shoots in more situations. Keep it above about 2 while RPM_MARGIN is 50 (the margin moves the crossing 1 to 2 in.), or lower both together.
 - [ ] [HoodSolver.java:87](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/HoodSolver.java#L87) `LIP_HEIGHT`: Only if shots clip the CELL's bottom edge: raise it a little, and check LIP_BEFORE against the real CELL.
 - [ ] [HoodSolver.java:95](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/HoodSolver.java#L95) `RPM_MARGIN`: Raise it if shots fired while the wheel recovers miss; lower it if the hood refuses shots it would make.
 - [ ] [HoodSolver.java:102](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/HoodSolver.java#L102) `SEED_RPM_WINDOW`: Keep it equal to Robot.COAX_RPM_TOLERANCE (both 300 now): the seeds leave the hood room for exactly the RPM error a burst may start with.
-- [ ] [ShotTables.java:49](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L49) `PASS_RPM`: Once passing is on (FireControl.PASS_ENABLED): fill it from real passes like SHOT_RPM. Its first and last distances also limit where coax passes fire (G405): check a pass from the far end can't leave the field.
-- [ ] [ShotTables.java:60](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L60) `PASS_FEED_POWER`: Once passing is on: lower it if back-to-back passes land short or scatter.
-- [ ] [ShotTables.java:67](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L67) `COAX_RPM`: Seeds from physics. On the field: if shots from a distance are too steep and slow, raise the RPM there; if too flat, lower it.
-- [ ] [ShotTables.java:89](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L89) `COAX_EXIT_SPEED`: Slow-motion video of a shot at a known hood angle and RPM: (forward in/s) / cos(angle) / RPM. Or in the Coax Hood Test: balls land high at an RPM = they're faster than this says, so raise it at that RPM; low = lower it.
-- [ ] [ShotTables.java:99](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L99) `COAX_EXIT_SPEED_ANGLE`: Calibrate COAX_EXIT_SPEED at one angle first. Then fire at a flat and a steep angle at the same RPM: balls land high at an angle = raise that angle's multiplier; low = lower it.
+- [ ] [ShotTables.java:50](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L50) `PASS_RPM`: With the coax hood, passes come from HoodSolver but only inside this table's distances: check a pass from the far end again in COAX (G405).
+- [ ] [ShotTables.java:68](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L68) `COAX_RPM`: Seeds from physics. On the field: if shots from a distance are too steep and slow, raise the RPM there; if too flat, lower it.
+- [ ] [ShotTables.java:90](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L90) `COAX_EXIT_SPEED`: Slow-motion video of a shot at a known hood angle and RPM: (forward in/s) / cos(angle) / RPM. Or in the Coax Hood Test: balls land high at an RPM = they're faster than this says, so raise it at that RPM; low = lower it.
+- [ ] [ShotTables.java:100](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/shot/ShotTables.java#L100) `COAX_EXIT_SPEED_ANGLE`: Calibrate COAX_EXIT_SPEED at one angle first. Then fire at a flat and a steep angle at the same RPM: balls land high at an angle = raise that angle's multiplier; low = lower it.
 - [ ] [CoaxHood.java:52](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L52) `GEAR_RATIO`: The gearing isn't built yet. Set this when it is: teeth on the hood's gear divided by teeth on the servo's gear.
 - [ ] [CoaxHood.java:61](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L61) `ANCHOR_DEG`: First. Coax Hood Test, angle mode, Circle (raw servo): nudge the hood until it just touches its flat stop. Measure the launch angle there (phone level on the hood's exit lip) and put it here.
 - [ ] [CoaxHood.java:64](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L64) `SERVO_AT_ANCHOR`: First, same spot as ANCHOR_DEG: the raw servo position the test shows there.
@@ -227,5 +229,5 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 - [ ] [CoaxHood.java:94](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L94) `ON_ANGLE_DEG`: Main TeleOp, COAX: raise it if bursts wait on "moving" while the hood angle barely changes; lower it if shots fire before the hood has settled.
 - [ ] [CoaxHood.java:98](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L98) `STATIC_LAUNCH_DEG`: Measure the static hood's launch angle (phone level on its exit lip).
 - [ ] [CoaxHood.java:101](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L101) `IDLE_LAUNCH_DEG`: Main TeleOp, COAX: set it near the angle most shots use, so the hood has the least to move when a shot comes up.
-- [ ] [CoaxHood.java:104](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L104) `PASS_LAUNCH_DEG`: Once passing is on (FireControl.PASS_ENABLED): higher lobs over robots, lower ones get there sooner.
+- [ ] [CoaxHood.java:104](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/CoaxHood.java#L104) `PASS_LAUNCH_DEG`: Main TeleOp, COAX, firing from the wrong half (passing): higher lobs clear robots, lower ones get there sooner.
 - [ ] [Shooter.java:63](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Shooter.java#L63) `AVERAGE_SAMPLES`: Coax hood: if the hood shakes with the wheel's speed reading, raise it. Each sample is one loop; more = steadier but later.

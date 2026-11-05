@@ -1,0 +1,557 @@
+{
+  "$schema": "https://libraries.horizon36596.org/zenith/schema/v1/field.json",
+  "formatVersion": 3,
+  "season": "biobuzz",
+  "name": "BIOBUZZ presented by RTX (FTC 2026-27)",
+  "frame": {
+    "origin": "centre",
+    "xAxis": "audienceRight",
+    "yAxis": "awayFromAudience",
+    "headingZero": "+x",
+    "headingPositive": "ccw",
+    "units": "in",
+    "canonicalAlliance": "RED",
+    "mirror": "pointSymmetry",
+    "view": {
+      "audienceAt": "bottom"
+    }
+  },
+  "sizeIn": {
+    "xIn": 141.5,
+    "yIn": 141.5
+  },
+  "periods": {
+    "autoS": 30,
+    "teleopS": 120
+  },
+  "obstacles": [
+    {
+      "id": "hiveRedPivotBar",
+      "kind": "box",
+      "minXIn": -22.75,
+      "maxXIn": -2.75,
+      "minYIn": -18.58,
+      "maxYIn": 18.58,
+      "minZIn": 25.5,
+      "maxZIn": 65.6,
+      "solidToRobot": true,
+      "provenance": "SPEC plus APPROX (BIOBUZZ Competition Manual V1 §9.6, Figs 9-9 to 9-11). Pivot at x = -12.75: the two hives are 25.5 in centre to centre (Fig 9-10) and the pair is centred on the field (Fig 9-2; FIRST's BIOBUZZ field CAD (STEP v26-27.2) agrees). Cell outer face 18.58 in from the pivot in plan: the cells' inner faces are 18.84 in apart and each cell is 12.04 in deep (Fig 9-9), so the outer face is 21.46 in along the bar, times cos 30 degrees for the 30 degree tilt (Fig 9-10). Opening 20 in wide (§9.6.2, Fig 9-11). z from 25.5 in, the bottom of the down hive, to 65.6 in, the top of the up-cell opening (Fig 9-10). The box is an envelope over both cells' full swing footprint, because either cell may be up. APPROX on the 25.5 in floor: FIRST's BIOBUZZ field CAD (STEP v26-27.2) puts the down-cell floor at 31.981 in and the lowest hive structure at rest at 30.652 in, see TRANSCRIPTION.md."
+    },
+    {
+      "id": "hiveBluePivotBar",
+      "kind": "box",
+      "minXIn": 2.75,
+      "maxXIn": 22.75,
+      "minYIn": -18.58,
+      "maxYIn": 18.58,
+      "minZIn": 25.5,
+      "maxZIn": 65.6,
+      "solidToRobot": true,
+      "provenance": "SPEC plus APPROX, inherited from hiveRedPivotBar: its point mirror, with the BLUE pivot at (+12.75, 0) (Fig 9-10). The z range carries the same APPROX 25.5 in floor."
+    },
+    {
+      "id": "frameBarEast",
+      "kind": "box",
+      "minXIn": 22.54,
+      "maxXIn": 24.76,
+      "minYIn": -19.48,
+      "maxYIn": 19.48,
+      "minZIn": 0,
+      "maxZIn": 2.15,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: the east foot bar, part am-5878 Sheet Metal Foot Bar, spans x 22.750 to 24.735, |y| up to 19.472 and z 0 to 2.148; this box widens it to hold the two feet on it, parts am-5879-A and am-5879-B, which reach |y| 19.477, and their fasteners, whose screw heads reach x 22.548 and 24.754, rounded outward to 0.01 in). Agrees with BIOBUZZ Competition Manual V1 §9.6.1: the frame is 49.46 in wide and 38.95 in deep at its base, so the bar's outer face is 24.73 in from the centre and its ends 19.475 in. See TRANSCRIPTION.md, Hive frame."
+    },
+    {
+      "id": "frameBarWest",
+      "kind": "box",
+      "minXIn": -24.76,
+      "maxXIn": -22.54,
+      "minYIn": -19.48,
+      "maxYIn": 19.48,
+      "minZIn": 0,
+      "maxZIn": 2.15,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5878 Sheet Metal Foot Bar, the west one, with its feet and fasteners. It is frameBarEast's point mirror, which the CAD's west bar matches to within 0.015 in). See TRANSCRIPTION.md, Hive frame."
+    },
+    {
+      "id": "frameLegNorthEast",
+      "kind": "strut",
+      "fromIn": {
+        "xIn": 23.8,
+        "yIn": 18.56,
+        "zIn": 0.53
+      },
+      "toIn": {
+        "xIn": 12.74,
+        "yIn": 0.51,
+        "zIn": 41.08
+      },
+      "radiusIn": 0.73,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5876 A-Frame Leg, a 1 in square tube 45.75 in long, cut square at both ends. fromIn and toIn are the centres of its two end faces; the CAD's east and west legs differ by 0.015 in in x, so each value is the mean of the four legs over the field's point mirror, rounded to 0.01 in. radiusIn is the round envelope, rounded up to 0.01 in, that holds every point of the tube after that rounding: 0.707 in to its corners plus 0.014 in). Agrees with BIOBUZZ Competition Manual V1 §9.6.1, two triangular frames 49.46 by 38.95 in at the base, and Fig 9-10, the frames' tops under the pivots at x = ±12.75. See TRANSCRIPTION.md, Hive frame."
+    },
+    {
+      "id": "frameLegSouthEast",
+      "kind": "strut",
+      "fromIn": {
+        "xIn": 23.8,
+        "yIn": -18.56,
+        "zIn": 0.53
+      },
+      "toIn": {
+        "xIn": 12.74,
+        "yIn": -0.51,
+        "zIn": 41.08
+      },
+      "radiusIn": 0.73,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5876 A-Frame Leg, the same part and extraction as frameLegNorthEast. The CAD's frame is symmetric about y = 0 to within 0.001 in, so this leg is frameLegNorthEast reflected in y = 0). See TRANSCRIPTION.md, Hive frame."
+    },
+    {
+      "id": "frameLegNorthWest",
+      "kind": "strut",
+      "fromIn": {
+        "xIn": -23.8,
+        "yIn": 18.56,
+        "zIn": 0.53
+      },
+      "toIn": {
+        "xIn": -12.74,
+        "yIn": 0.51,
+        "zIn": 41.08
+      },
+      "radiusIn": 0.73,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5876 A-Frame Leg, inherited from frameLegSouthEast as its point mirror, the field being point-symmetric, BIOBUZZ Competition Manual V1 Fig 9-2). See TRANSCRIPTION.md, Hive frame."
+    },
+    {
+      "id": "frameLegSouthWest",
+      "kind": "strut",
+      "fromIn": {
+        "xIn": -23.8,
+        "yIn": -18.56,
+        "zIn": 0.53
+      },
+      "toIn": {
+        "xIn": -12.74,
+        "yIn": -0.51,
+        "zIn": 41.08
+      },
+      "radiusIn": 0.73,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5876 A-Frame Leg, inherited from frameLegNorthEast as its point mirror, the field being point-symmetric, BIOBUZZ Competition Manual V1 Fig 9-2). See TRANSCRIPTION.md, Hive frame."
+    },
+    {
+      "id": "flower0Foot",
+      "kind": "box",
+      "minXIn": -70.75,
+      "maxXIn": -65.85,
+      "minYIn": -26.425,
+      "maxYIn": -20.475,
+      "minZIn": 0,
+      "maxZIn": 21.5,
+      "solidToRobot": true,
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §9.7, Fig 9-12; FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: parts am-5858 and am-5859, the flower's ring plates). Flush with the x = -70.75 wall, centred 23.45 in from the field centre along it (FieldZones.FLOWER_ALONG_WALL 47.3; the CAD's 23.39 is 0.06 in off). 4.9 in deep (FieldZones.FLOWER_DEPTH; the CAD's ring plates reach 4.95 in off the wall rail) and 5.95 in wide (CAD), up to the top ring at 21.5 in (Fig 9-12). In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower0Bracket",
+      "kind": "box",
+      "minXIn": -70.75,
+      "maxXIn": -69.17,
+      "minYIn": -26.8,
+      "maxYIn": -20.1,
+      "minZIn": 11.44,
+      "maxZIn": 11.84,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5860 Flower Field Bracket, which rests on top of the wall, Event Field Setup Guide V1.0 §10.1). 6.7 in wide along the x = -70.75 wall (FieldZones.FLOWER_WIDTH; CAD 6.67), reaching 1.58 in off the wall rail, 11.44 to 11.84 in above the tiles: under a 12.74 in robot's top and wider than the ring plates, so it is a second obstacle. In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower1Foot",
+      "kind": "box",
+      "minXIn": -26.425,
+      "maxXIn": -20.475,
+      "minYIn": 65.85,
+      "maxYIn": 70.75,
+      "minZIn": 0,
+      "maxZIn": 21.5,
+      "solidToRobot": true,
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §9.7, Fig 9-12; FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: parts am-5858 and am-5859, the flower's ring plates). Flush with the y = +70.75 wall, centred 23.45 in from the field centre along it (FieldZones.FLOWER_ALONG_WALL 47.3; the CAD's 23.39 is 0.06 in off). 4.9 in deep (FieldZones.FLOWER_DEPTH; the CAD's ring plates reach 4.95 in off the wall rail) and 5.95 in wide (CAD), up to the top ring at 21.5 in (Fig 9-12). In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower1Bracket",
+      "kind": "box",
+      "minXIn": -26.8,
+      "maxXIn": -20.1,
+      "minYIn": 69.17,
+      "maxYIn": 70.75,
+      "minZIn": 11.44,
+      "maxZIn": 11.84,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5860 Flower Field Bracket, which rests on top of the wall, Event Field Setup Guide V1.0 §10.1). 6.7 in wide along the y = +70.75 wall (FieldZones.FLOWER_WIDTH; CAD 6.67), reaching 1.58 in off the wall rail, 11.44 to 11.84 in above the tiles: under a 12.74 in robot's top and wider than the ring plates, so it is a second obstacle. In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower2Foot",
+      "kind": "box",
+      "minXIn": 65.85,
+      "maxXIn": 70.75,
+      "minYIn": 20.475,
+      "maxYIn": 26.425,
+      "minZIn": 0,
+      "maxZIn": 21.5,
+      "solidToRobot": true,
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §9.7, Fig 9-12; FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: parts am-5858 and am-5859, the flower's ring plates). Flush with the x = +70.75 wall, centred 23.45 in from the field centre along it (FieldZones.FLOWER_ALONG_WALL 47.3; the CAD's 23.39 is 0.06 in off). 4.9 in deep (FieldZones.FLOWER_DEPTH; the CAD's ring plates reach 4.95 in off the wall rail) and 5.95 in wide (CAD), up to the top ring at 21.5 in (Fig 9-12). In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower2Bracket",
+      "kind": "box",
+      "minXIn": 69.17,
+      "maxXIn": 70.75,
+      "minYIn": 20.1,
+      "maxYIn": 26.8,
+      "minZIn": 11.44,
+      "maxZIn": 11.84,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5860 Flower Field Bracket, which rests on top of the wall, Event Field Setup Guide V1.0 §10.1). 6.7 in wide along the x = +70.75 wall (FieldZones.FLOWER_WIDTH; CAD 6.67), reaching 1.58 in off the wall rail, 11.44 to 11.84 in above the tiles: under a 12.74 in robot's top and wider than the ring plates, so it is a second obstacle. In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower3Foot",
+      "kind": "box",
+      "minXIn": 20.475,
+      "maxXIn": 26.425,
+      "minYIn": -70.75,
+      "maxYIn": -65.85,
+      "minZIn": 0,
+      "maxZIn": 21.5,
+      "solidToRobot": true,
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §9.7, Fig 9-12; FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: parts am-5858 and am-5859, the flower's ring plates). Flush with the y = -70.75 wall, centred 23.45 in from the field centre along it (FieldZones.FLOWER_ALONG_WALL 47.3; the CAD's 23.39 is 0.06 in off). 4.9 in deep (FieldZones.FLOWER_DEPTH; the CAD's ring plates reach 4.95 in off the wall rail) and 5.95 in wide (CAD), up to the top ring at 21.5 in (Fig 9-12). In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "flower3Bracket",
+      "kind": "box",
+      "minXIn": 20.1,
+      "maxXIn": 26.8,
+      "minYIn": -70.75,
+      "maxYIn": -69.17,
+      "minZIn": 11.44,
+      "maxZIn": 11.84,
+      "solidToRobot": true,
+      "provenance": "SPEC (FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5860 Flower Field Bracket, which rests on top of the wall, Event Field Setup Guide V1.0 §10.1). 6.7 in wide along the y = -70.75 wall (FieldZones.FLOWER_WIDTH; CAD 6.67), reaching 1.58 in off the wall rail, 11.44 to 11.84 in above the tiles: under a 12.74 in robot's top and wider than the ring plates, so it is a second obstacle. In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    }
+  ],
+  "zones": [
+    {
+      "id": "loadingZoneRed",
+      "kind": "rect",
+      "minXIn": -70.75,
+      "maxXIn": -59.75,
+      "minYIn": 23.91,
+      "maxYIn": 46.6,
+      "rule": "G304: no start here",
+      "ledger": "loadingZone",
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §9.3, Figs 9-2 and 9-3; FIRST's Field Acceptance Checklist V26-27.2 items 3.2 and 3.4; Event Field Setup Guide V1.0 §8.3). From the wall out to 11 in, the checklist's controlled depth (11 ± 0.125 in, inside of the wall to the far edge of the tape). Along the wall, y 23.91 to 46.6 from the centre: the tape's outer edges in FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00, just inside tile seams 4 and 5. The CAD's tape far edge is 11.48 in off the wall rail, outside the checklist's tolerance; this file follows the checklist. In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame. The ledger counts it as this alliance's LOADING ZONE (ledger: loadingZone): SPEC, Competition Manual §9.3 and G427, humans enter NECTAR only through the LOADING ZONE."
+    },
+    {
+      "id": "loadingZoneBlue",
+      "kind": "rect",
+      "minXIn": 59.75,
+      "maxXIn": 70.75,
+      "minYIn": -46.6,
+      "maxYIn": -23.91,
+      "rule": "G304: no start here",
+      "ledger": "loadingZone",
+      "provenance": "SPEC, inherited from loadingZoneRed: its point mirror (Fig 9-2). The ledger counts it as this alliance's LOADING ZONE (ledger: loadingZone): SPEC, Competition Manual §9.3 and G427, humans enter NECTAR only through the LOADING ZONE."
+    }
+  ],
+  "elements": [
+    {
+      "id": "gardenRed0",
+      "kind": "pollen",
+      "container": null,
+      "xIn": -69.44,
+      "yIn": -69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §10.3.1, Fig 10-2; Event Field Setup Guide V1.0 §11.3; FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: part am-5851 Pollen). The red garden's four pollen lie in a line along the audience wall from the red corner. In the CAD each centre is 1.31 in off both wall rails and 2.89 in from the next, so ball i sits at x = -(70.75 - 1.31 - 2.89 i), y = -(70.75 - 1.31), and the line ends 11.38 in from the red wall (IntakePoses.GARDEN_LINE_LENGTH). In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame."
+    },
+    {
+      "id": "gardenRed1",
+      "kind": "pollen",
+      "container": null,
+      "xIn": -66.55,
+      "yIn": -69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (same source and construction as gardenRed0, i = 1)."
+    },
+    {
+      "id": "gardenRed2",
+      "kind": "pollen",
+      "container": null,
+      "xIn": -63.66,
+      "yIn": -69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (same source and construction as gardenRed0, i = 2)."
+    },
+    {
+      "id": "gardenRed3",
+      "kind": "pollen",
+      "container": null,
+      "xIn": -60.77,
+      "yIn": -69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (same source and construction as gardenRed0, i = 3)."
+    },
+    {
+      "id": "gardenBlue0",
+      "kind": "pollen",
+      "container": null,
+      "xIn": 69.44,
+      "yIn": 69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (point mirror of gardenRed0: the blue garden runs along the rear wall from the blue corner, Fig 10-2)."
+    },
+    {
+      "id": "gardenBlue1",
+      "kind": "pollen",
+      "container": null,
+      "xIn": 66.55,
+      "yIn": 69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (point mirror of gardenRed1)."
+    },
+    {
+      "id": "gardenBlue2",
+      "kind": "pollen",
+      "container": null,
+      "xIn": 63.66,
+      "yIn": 69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (point mirror of gardenRed2)."
+    },
+    {
+      "id": "gardenBlue3",
+      "kind": "pollen",
+      "container": null,
+      "xIn": 60.77,
+      "yIn": 69.44,
+      "radiusIn": 1.4,
+      "provenance": "SPEC (point mirror of gardenRed3)."
+    },
+    {
+      "id": "flower0",
+      "kind": "container",
+      "container": "flower",
+      "xIn": -68.25,
+      "yIn": -23.45,
+      "holds": [
+        "pollen",
+        "pollen",
+        "pollen",
+        "pollen"
+      ],
+      "provenance": "SPEC (BIOBUZZ Competition Manual TU07 §9.7, Figs 9-2, 9-4 and 9-12; FIRST's BIOBUZZ field CAD, STEP v26-27.2, sha256 5e768b73…fe00: the bottom pollen's centre). On the x = -70.75 wall, 23.45 in from the field centre along it, as flower0Foot. The ring centre is 2.5 in off the wall: FieldZones.FLOWER_DEPTH 4.9 less the 2.40 in from the front face to the ring centre (Fig 9-12); the CAD puts it 2.55 in off the wall rail. Retrieval opening 3.55 in tall by 3.57 in deep at the bottom (Fig 9-12), taken as 5.95 in wide, the ring plates' width. Holds 4 pollen at the start of the match (§10.3.1, Fig 10-2). In our 141.5 in frame: the walls are at ±70.75 (sizeIn), and this is measured from the wall, as on the real field. Zenith's upstream file puts it against a ±72 wall (the manual's nominal 144 in field), which would put it 1.25 in through our walls. See CLAUDE.md, Zenith, Frame.",
+      "retrieval": {
+        "side": "field",
+        "openingIn": {
+          "widthIn": 5.95,
+          "heightIn": 3.55,
+          "depthIn": 3.57
+        },
+        "takes": [
+          "pollen"
+        ]
+      }
+    },
+    {
+      "id": "flower1",
+      "kind": "container",
+      "container": "flower",
+      "xIn": -23.45,
+      "yIn": 68.25,
+      "holds": [
+        "pollen",
+        "pollen",
+        "pollen",
+        "pollen"
+      ],
+      "provenance": "SPEC (same source and construction as flower0). On the y = +70.75 wall, 23.45 in from the field centre along it; the ring centre is 2.5 in off the wall. Retrieval opening and staging as flower0.",
+      "retrieval": {
+        "side": "field",
+        "openingIn": {
+          "widthIn": 5.95,
+          "heightIn": 3.55,
+          "depthIn": 3.57
+        },
+        "takes": [
+          "pollen"
+        ]
+      }
+    },
+    {
+      "id": "flower2",
+      "kind": "container",
+      "container": "flower",
+      "xIn": 68.25,
+      "yIn": 23.45,
+      "holds": [
+        "pollen",
+        "pollen",
+        "pollen",
+        "pollen"
+      ],
+      "provenance": "SPEC (same source and construction as flower0). On the x = +70.75 wall, 23.45 in from the field centre along it; the ring centre is 2.5 in off the wall. Retrieval opening and staging as flower0.",
+      "retrieval": {
+        "side": "field",
+        "openingIn": {
+          "widthIn": 5.95,
+          "heightIn": 3.55,
+          "depthIn": 3.57
+        },
+        "takes": [
+          "pollen"
+        ]
+      }
+    },
+    {
+      "id": "flower3",
+      "kind": "container",
+      "container": "flower",
+      "xIn": 23.45,
+      "yIn": -68.25,
+      "holds": [
+        "pollen",
+        "pollen",
+        "pollen",
+        "pollen"
+      ],
+      "provenance": "SPEC (same source and construction as flower0). On the y = -70.75 wall, 23.45 in from the field centre along it; the ring centre is 2.5 in off the wall. Retrieval opening and staging as flower0.",
+      "retrieval": {
+        "side": "field",
+        "openingIn": {
+          "widthIn": 5.95,
+          "heightIn": 3.55,
+          "depthIn": 3.57
+        },
+        "takes": [
+          "pollen"
+        ]
+      }
+    },
+    {
+      "id": "hiveRed",
+      "kind": "container",
+      "container": "hive",
+      "holds": [
+        "nectarRed",
+        "nectarRed",
+        "nectarRed"
+      ],
+      "provenance": "SPEC (BIOBUZZ Competition Manual V1 §9.6 and §10.3.1, Figs 9-10 and 10-2): pivot at (-12.75, 0), as hiveRedPivotBar. At the start the red hive's up cell is the SOUTH one, and it holds 3 red nectar.",
+      "pivotIn": {
+        "xIn": -12.75,
+        "yIn": 0
+      },
+      "upSide": "SOUTH"
+    },
+    {
+      "id": "hiveBlue",
+      "kind": "container",
+      "container": "hive",
+      "holds": [
+        "nectarBlue",
+        "nectarBlue",
+        "nectarBlue"
+      ],
+      "provenance": "SPEC (same source as hiveRed): pivot at (+12.75, 0); the blue hive's up cell is the NORTH one at the start, and it holds 3 blue nectar.",
+      "pivotIn": {
+        "xIn": 12.75,
+        "yIn": 0
+      },
+      "upSide": "NORTH"
+    }
+  ],
+  "targets": [
+    {
+      "id": "hiveRedUpCell",
+      "kind": "cell",
+      "provenance": "SPEC plus SET BY HAND. Aim at 59.5 in, the middle of the up-cell opening at 53.5 to 65.6 in (BIOBUZZ Competition Manual V1 Fig 9-10). A launch enters the cell's open outer end (§9.6.2, Fig 9-11), so it approaches along y from outboard of the outer face. The 6 in margin outboard of that face is SET BY HAND: a planning choice, not a game figure.",
+      "hive": "hiveRed",
+      "aimZIn": 59.5,
+      "legalApproach": {
+        "outboardOfOuterFaceByIn": 6,
+        "alongAxis": "y"
+      }
+    },
+    {
+      "id": "hiveBlueUpCell",
+      "kind": "cell",
+      "provenance": "SPEC plus SET BY HAND (same source as hiveRedUpCell; the approach rule is the same for both hives).",
+      "hive": "hiveBlue",
+      "aimZIn": 59.5,
+      "legalApproach": {
+        "outboardOfOuterFaceByIn": 6,
+        "alongAxis": "y"
+      }
+    },
+    {
+      "id": "flower0Top",
+      "kind": "hole",
+      "provenance": "SPEC (BIOBUZZ Competition Manual V1 §9.7, Fig 9-12): the top ring is 21.5 in above the tiles with a 4.0 in hole, so a 2 in radius. FIRST's BIOBUZZ field CAD (STEP v26-27.2) measures the bore at 4.171 in across (radius 2.086), a 0.086 in disagreement, see TRANSCRIPTION.md.",
+      "element": "flower0",
+      "zIn": 21.5,
+      "radiusIn": 2
+    },
+    {
+      "id": "flower1Top",
+      "kind": "hole",
+      "provenance": "SPEC (same source as flower0Top, including the 0.086 in CAD disagreement recorded there).",
+      "element": "flower1",
+      "zIn": 21.5,
+      "radiusIn": 2
+    },
+    {
+      "id": "flower2Top",
+      "kind": "hole",
+      "provenance": "SPEC (same source as flower0Top, including the 0.086 in CAD disagreement recorded there).",
+      "element": "flower2",
+      "zIn": 21.5,
+      "radiusIn": 2
+    },
+    {
+      "id": "flower3Top",
+      "kind": "hole",
+      "provenance": "SPEC (same source as flower0Top, including the 0.086 in CAD disagreement recorded there).",
+      "element": "flower3",
+      "zIn": 21.5,
+      "radiusIn": 2
+    }
+  ],
+  "startRules": {
+    "touchingWall": true,
+    "ownHalf": true,
+    "notInZones": [
+      "loadingZoneRed"
+    ],
+    "notTouchingContainers": [
+      "flower"
+    ],
+    "holds": {
+      "pollen": 4
+    }
+  },
+  "rules": {
+    "plugin": "season-biobuzz",
+    "tipTable": [
+      8,
+      7,
+      6,
+      3,
+      1,
+      0
+    ],
+    "capacity": 4,
+    "humanPlayer": {
+      "nectar": 5,
+      "perTip": 1,
+      "provenance": "SPEC (BIOBUZZ Competition Manual V1 §10.3.1 B.ii, §10.1 and G426.A): each alliance's human player starts with 5 nectar in its ALLIANCE AREA, and may enter one of them each time that alliance's hive is TIPPED. G427.C puts an entered nectar on the tiles of the alliance's own LOADING ZONE. G426.B (all remaining nectar with 60 s or less left) is TELEOP only, so it never applies to an auto. DSim agrees: BB_NECTAR_COUNT 8 is 3 staged in the cell and 5 in stock, and bbHumanPlayerTick enters one per tip into the loading zone."
+    }
+  }
+}

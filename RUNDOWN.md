@@ -14,15 +14,15 @@ OpModes don't decide anything. Main TeleOp turns buttons into requests on `Robot
 
 1. `Scheduler.reset()` clears Ivy commands left over from the last OpMode.
 2. `new Robot(hardwareMap)` builds the Pedro `Follower` with `Constants.create` (it throws a clear error while that still returns null), then every subsystem. Constructors only look up hardware and set motor modes. No motor power or servo position is sent in INIT (G304.H, G403). The coax hood is built only if the configuration has its servo (`CoaxHood.isConfigured`).
-3. `new Feedback(gamepad1)`: rumble and light, driver 1 only.
+3. `new Feedback(gamepad1, gamepad2)`: the warning and full-storage rumbles and the light go to driver 1, and the relocalize buzz goes to both.
 4. `new AllianceSelector(gamepad1, gamepad2)` calls `RobotState.forgetIfStale()`: with no pose saved in the last 60 s (`RobotState.MAX_SAVED_AGE_SEC`), the alliance from an old match is cleared.
 5. The init loop (`while (opModeInInit())`). `allianceSelector.update(screen)` switches the alliance on a press (buttons and lights: `TELEOP_PLAN.md`, Init). Switching drops the saved pose, since it is in the other alliance's frame (the init loop checks `RobotState.alliance` against the saved one, and `RobotState.setAlliance` drops it too). The screen says whether a saved pose will be used.
 
 At Start, right after the init loop:
 
-- `gamepad1.resetEdgeDetection()` and `gamepad2.resetEdgeDetection()` throw away presses made in INIT. A `...WasPressed()` call remembers a press until it is read, and most buttons aren't read in INIT. Without the reset, a thumb resting on LB or D-pad right during INIT would toggle the intake or relocalize in the first loop.
+- `gamepad1.resetEdgeDetection()` and `gamepad2.resetEdgeDetection()` throw away presses made in INIT. A `...WasPressed()` call remembers a press until it is read, and most buttons aren't read in INIT. Without the reset, a thumb resting on driver 1's LB during INIT would toggle the intake in the first loop, and one on driver 2's D-pad down would relocalize.
 - Saved pose from auto: `robot.setPose(savedPose, true)`. The pose is trusted.
-- No saved pose, alliance picked: the pose is set to the right corner with the intake facing the driver (`Corner.RIGHT_INTAKE_TO_DRIVER`), untrusted. Field-centric driving uses that heading right away. Nothing fires until a relocalize.
+- No saved pose, alliance picked: the pose is set to the near right corner with the intake facing the driver (`Corner.NEAR_RIGHT`), untrusted. Field-centric driving uses that heading right away. Nothing fires until driver 2 relocalizes.
 - No alliance: no pose is set at all.
 
 Panels: telemetry goes to the Driver Station and Panels at once (the `JoinedTelemetry` made at the top of `runOpMode()`). Every `public static` field in a `@Configurable` class can be changed live from Panels in practice. Panels is not allowed at events (R704.D): `PanelsSettings.EVENT_BUILD = true` keeps it off.
@@ -33,12 +33,12 @@ The `while (opModeIsActive())` loop in `runOpMode()`, in code order. Which butto
 
 | # | Code | What it does |
 |---|---|---|
-| 1 | `driverOne(gamepad1)` | Sticks go to `robot.drive.drive(...)`, field-centric (as red until an alliance is picked). The sticks are negated first, since a stick pushed up reads -1. Every loop it sets `robot.shootHeld`, `robot.passHeld` and `robot.unjamHeld` from the buttons (triggers count past `TRIGGER_THRESHOLD`). An LB press calls `robot.flowerIntake.toggle()`, the only thing that moves the flower intake in TeleOp. The four relocalize buttons call `robot.relocalize(...)` with their `Corner`. |
-| 2 | `driverTwo(gamepad2)` | Turret trim: `robot.turret.addTrim` by `TURRET_TRIM_STEP_DEG`. Up/down trim: `robot.shooter.addTrim` by `RPM_TRIM_STEP`, or `robot.coaxHood.addTrim` by `HOOD_TRIM_STEP_DEG` while `robot.usingCoaxHood()`. |
-| 3 | `Scheduler.execute()` | Runs Ivy commands. TeleOp schedules none yet; the call is there so one-button macros can be added. A macro that sets `shootHeld`, `passHeld` or `unjamHeld` must be OR-ed into `driverOne`, or the button overwrites it next loop. |
+| 1 | `driverOne(gamepad1)` | Sticks go to `robot.drive.drive(...)`, field-centric (as red until an alliance is picked). The sticks are negated first, since a stick pushed up reads -1. Every loop it sets `robot.shootHeld` (RB) and `robot.unjamHeld` (LT, past `TRIGGER_THRESHOLD`) from the buttons. An LB press calls `robot.flowerIntake.toggle()`, the only thing that moves the flower intake in TeleOp. A Triangle press flips `robot.zoneFire`. Those are all of driver 1's buttons. |
+| 2 | `driverTwo(gamepad2, loopSec)` | LB and RB set `robot.upCell` to `Field.cellFromDriver(alliance, left)` (ignored without an alliance). Four buttons call `robot.relocalize(Corner)` (D-pad down `NEAR_LEFT`, D-pad up `FAR_LEFT`, Cross `NEAR_RIGHT`, Triangle `FAR_RIGHT`) and two call `robot.relocalizeHeading(leftWall)` (D-pad left, Circle). Each one that ran calls `feedback.relocalized()`. The trims are rates: the stick (zero inside `TRIM_STICK_DEADBAND`) times the rate times the loop time, counted as at most 0.1 s. Left stick X: `robot.turret.addTrim` at `TURRET_TRIM_RATE_DEG_PER_SEC`. Right stick Y: `robot.shooter.addTrim` at `RPM_TRIM_RATE_PER_SEC`, or `robot.coaxHood.addTrim` at `HOOD_TRIM_RATE_DEG_PER_SEC` while `robot.usingCoaxHood()`. |
+| 3 | `Scheduler.execute()` | Runs Ivy commands. TeleOp schedules none yet; the call is there so one-button macros can be added. A macro that sets `shootHeld` or `unjamHeld` must be OR-ed into `driverOne`, or the button overwrites it next loop. |
 | 4 | `robot.update()` | Reads sensors, decides, writes hardware. See 2c. |
-| 5 | `feedback.update(robot.storage, robot.warnings())` | Rumble for new warnings and full storage, light for the ball count. |
-| 6 | Telemetry | Warnings and loop time, plus everything when `FULL_TELEMETRY` is true. With it false, only every `TELEMETRY_INTERVAL_MS` (200 ms). |
+| 5 | `feedback.update(robot.storage, robot.warnings())` | Rumble for new warnings and full storage, light for the ball count, and the relocalize pulse on driver 1 (once no warning buzz is playing). |
+| 6 | Telemetry | Warnings, the Goal and Zone fire lines (`robot.goalStatus()`, `robot.zoneFireStatus()`) and loop time, plus everything when `FULL_TELEMETRY` is true, with the shooting zone drawn on the Panels field page. With it false, only every `TELEMETRY_INTERVAL_MS` (200 ms). |
 
 Not in this list: the bulk-read clear and the battery reading. `Robot.update()` clears the bulk cache at its top, and `VoltageCache` re-reads the battery at most every 250 ms, when the shooter or turret asks for `compensation()`.
 
@@ -48,26 +48,28 @@ Drive powers: `driverOne` only tells the `Follower` what to do (`follower.manual
 
 `Robot.update()` in `robot/Robot.java`, top to bottom. Read first, decide, write last, so every decision uses this loop's readings.
 
-1. **Mode**: `shootHeld` means SHOOT. Else `passHeld` with `FireControl.PASS_ENABLED` means PASS. Else NONE. Shoot wins if both are held.
-2. **Read**: `bulkReads.clear()`, `drive.update()` (odometry in, drive motors out), `storage.update()` (beams), `shooter.readSensors()` (wheel RPM), `turret.readSensors()` (turret angle).
-3. **Hood switch**: only while no burst is firing. If `Robot.HOOD` changed which hood shoots, the RPM and hood trims reset.
-4. **Aim**: `solve()` gives null with no alliance, or a NaN in the pose or velocity. Otherwise it picks the target cell by which half of the field the robot is on (`Field.cellForSide`, with a 6 in. band so it doesn't flicker), then solves the turret angle, RPM, feed power, in-range, and the coax launch angle.
-5. **Last good aim**: no aim in the middle of a burst keeps the last RPM, turret angle and feed power, so a ball already fed isn't ruined. No aim and no burst: turret target 0, wheel 0.
-6. **Targets**: turret to the aim angle. Wheel to the aim RPM while a burst is firing or any ball is stored, else 0. A fitted coax hood is aimed (`aimHood()`) and written here, early, so `atTarget()` already counts this loop's move.
-7. **Ready**:
+1. **Read**: `bulkReads.clear()`, `drive.update()` (odometry in, drive motors out), `storage.update()` (beams), `shooter.readSensors()` (wheel RPM), `turret.readSensors()` (turret angle).
+2. **Hood switch**: only while no burst is firing. If `Robot.HOOD` changed which hood shoots, the RPM and hood trims reset.
+3. **Half and aim mode**: the robot's half is `Field.cellForSide(pose.y(), half)`, with a 6 in. band so it doesn't flicker. A NaN pose keeps the last half, and the first one is the cell the last OpMode aimed at (`RobotState.targetCell`). Then `Robot.decideAimMode(upCell, half, FireControl.PASS_ENABLED)`: SHOOT with no up cell or on the up cell's half, PASS on the other half, NONE there with passing off. This runs every loop, fire held or not, so the wheel already spins for the shot or the pass.
+4. **Zone and fire**: `inZone` is true with an alliance, a good pose and any part of the robot's outline overlapping `ShootingZone` (`Robot.shootingZoneCell()`: the up cell, else the half's cell). Fire is wanted when `shootHeld` is set, or `zoneFire` is on with `inZone` and `canFire()`. `FireControl` is asked for the aim mode if fire is wanted, else NONE.
+5. **Aim**: `solve(pose, aimMode)` gives null with no alliance, a NaN in the pose or velocity, or aim mode NONE. PASS aims at `Field.passTarget(alliance, half)`. SHOOT aims at the cell on the robot's half and saves it in `RobotState.targetCell`. Either way it solves the turret angle, RPM, feed power, in-range, and the coax launch angle.
+6. **Last good aim**: no aim in the middle of a burst keeps the last RPM, turret angle and feed power, so a ball already fed isn't ruined. No aim and no burst: turret target 0, wheel 0.
+7. **Targets**: turret to the aim angle. Wheel to the aim RPM while a burst is firing or any ball is stored, else 0. A fitted coax hood is aimed (`aimHood()`) and written here, early, so `atTarget()` already counts this loop's move.
+8. **Ready**:
    - `aimed()`: an aim that is in range, `canFire()` (alliance and trusted pose), `turret.onTarget()` (within `ON_TARGET_DEG`, 3°, and not off or being tested), and the hood. Static with a coax hood fitted: the hood is at `STATIC_LAUNCH_DEG`. Coax: some angle scores, and the hood is there.
    - `wheelReady()`: static, `shooter.atSpeed()` (within `RPM_TOLERANCE`, 90). Coax, within `COAX_RPM_TOLERANCE` (300).
    - Enough balls: 2 in TeleOp (`storage.hasAtLeastTwo()`), 1 when `singleBallBursts` is on (auto).
-8. **Fire**: `fireControl.update(...)`, then `shooter.setBoost(isFiring())`.
-9. **Door**: open while `fireControl.doorOpen()` says so.
-10. **Intake and transfer**, first match wins, the same call on both: `unjamHeld` runs them backwards (`reverse()`). Feeding runs them at the aim's feed power (`feed(...)`). A burst going, or the door not fully closed: stopped (the rail holds balls back). Otherwise they collect (`intake.collect(storage.isFull())`, `transfer.collect(storage.slot1Occupied())`).
-11. **Write**: `door.update()`, `flowerIntake.update()`, `shooter.update()`, `turret.update()`. `Robot` doesn't pick the flower intake's position, even with storage full: it writes what LB or an auto command last set.
-12. **Save**: the pose goes to `RobotState` only if trusted and not NaN.
+9. **Fire**: `fireControl.update(...)`, then `shooter.setBoost(isFiring())`.
+10. **Door**: open while `fireControl.doorOpen()` says so.
+11. **Intake and transfer**, first match wins, the same call on both: `unjamHeld` runs them backwards (`reverse()`). Feeding runs them at the aim's feed power (`feed(...)`). A burst going, or the door not fully closed: stopped (the rail holds balls back). Otherwise they collect (`intake.collect(storage.isFull())`, `transfer.collect(storage.slot1Occupied())`).
+12. **Write**: `door.update()`, `flowerIntake.update()`, `shooter.update()`, `turret.update()`. `Robot` doesn't pick the flower intake's position, even with storage full: it writes what LB or an auto command last set.
+13. **Save**: the pose goes to `RobotState` only if trusted and not NaN.
 
 | Guard | What happens |
 |---|---|
 | No alliance | No aim: turret to 0, wheel off, nothing fires. |
-| Alliance, pose not trusted | Aims and spins up from the guessed pose, but `canFire()` is false, so no burst starts. |
+| Wrong half, passing off | Aim mode NONE: no aim, turret to 0, wheel off, nothing fires. |
+| Alliance, pose not trusted | Aims and spins up from the guessed pose, but `canFire()` is false, so no burst starts. Zone fire isn't wanted at all then, since a burst that only waits would stop the intake. |
 | NaN pose or velocity | No aim. A burst already going keeps the last good targets, but the rail pauses (not aimed). The pose isn't saved. |
 | Shooter watchdog | Power over 0.5 for `Shooter.WATCHDOG_MS` (500) while RPM stays under 100: shooter off until the OpMode restarts. |
 | Turret watchdog | Turns against its own push (REVERSED flags disagree), or full power that doesn't close the error, or 3 failed stuck tests in a row: off until restart. A held turret rests and retries first. |
@@ -88,18 +90,19 @@ Drive powers: `driverOne` only tells the `Follower` what to do (`follower.manual
 
 `robot/FireControl.java` runs each burst in three steps, the cases of `FireControl.update`: WAIT, FIRE, CLOSE. Its tests are in `FireControlTest`.
 
-- **Hold RB.** A burst starts once 2 or more balls are stored (light yellow or green). The wheel is usually at speed already, since it spins whenever a ball is stored.
+- **Hold RB** (or sit in the zone with zone fire on). A burst starts once 2 or more balls are stored (light yellow or green). The wheel is usually at speed already, since it spins whenever a ball is stored.
 - **WAIT**: the shot must stay ready for `READY_HOLD_MS` (40 ms). Then the door opens, and the rail starts once it is fully open (`Door.OPEN_TIME_MS`, 150 ms).
 - **FIRE**: the rail runs without stopping while RB is held. The feed power (`ShotTables.SHOT_FEED_POWER`, by distance) sets the gap between balls. The wheel sags as balls go through, and ready is not asked again. The rail pauses only while the aim is off or the wheel is more than `BURST_RPM_FLOOR` (600) under target, and goes again when both are back. Running out of balls doesn't end the burst.
-- **CLOSE**: let go and the rail stops at once. The door stays open `DOOR_CLOSE_DELAY_MS` (100 ms) so it doesn't close on a ball already past it. Then it closes, and the rail stays stopped until it is fully closed (`Door.CLOSE_TIME_MS`, 150 ms), then collects.
+- **CLOSE**: let go (or leave the zone, with zone fire on and RB not held) and the rail stops at once. The door stays open `DOOR_CLOSE_DELAY_MS` (100 ms) so it doesn't close on a ball already past it. Then it closes, and the rail stays stopped until it is fully closed (`Door.CLOSE_TIME_MS`, 150 ms), then collects.
 - **Shot count**: a shot counts when the RPM falls `SHOT_DIP_RPM` (150) under the highest reading of the last `DIP_WINDOW_MS` (100 ms). It is for telemetry and auto's `shoot()`. If the rail runs `NO_SHOT_WARN_MS` (400) with no shot counted, the "Fire" line says "jam?".
-- **Trims** (driver 2): the turret, and the RPM or (with the coax hood) the hood angle. A relocalize resets all of them.
+- **Trims** (driver 2's sticks): the turret, and the RPM or (with the coax hood) the hood angle. A corner relocalize resets all of them; a heading-only one resets only the turret trim.
 - **Hood switch**: `Robot.HOOD` in Panels, applied only between bursts. It resets the RPM and hood trims.
-- **Pass (RT)**: does nothing now. `FireControl.PASS_ENABLED` is false, so `Robot` treats RT as not held. Once on, switching between shoot and pass mid-burst ends the burst, and the new one waits for its own ready.
+- **Shoot or pass**: set by the aim mode (2c, step 3), not by a button. On the half the up cell isn't on, firing passes: with the static hood from `PASS_RPM` and `PASS_FEED_POWER` (placeholders), with the coax hood from the physics. Crossing the half line mid-burst ends the burst, and the new one waits for its own ready.
+- **Zone fire** (driver 1's Triangle, `Robot.zoneFire`): in the zone, fire is held for you. Parked there with balls coming in, the rail keeps feeding, so they go straight through.
 - **Unjam (LT)**: intake and transfer backwards. It beats everything, even a burst.
-- **Relocalize**: `Robot.relocalize(corner)` snaps the pose to that corner (`Field.cornerPose`), marks it trusted and resets all trims. It needs an alliance. Buttons and corner poses: `TELEOP_PLAN.md`, Relocalize poses.
+- **Relocalize** (driver 2): `Robot.relocalize(corner)` snaps the pose to that corner (`Field.cornerPose`), marks it trusted and resets all trims. `Robot.relocalizeHeading(leftWall)` sets only the heading (`Field.sideWallHeading`), keeps x, y and the trust flag, and resets the turret trim. Both need an alliance, and the second a pose that isn't NaN. They return whether they ran, and `MainTeleOp` calls `feedback.relocalized()` when one did. Buttons and poses: `TELEOP_PLAN.md`, Relocalize poses.
 
-Warnings come from `Robot.warnings()`, with text in `robot/Warning.java`. Telemetry always shows them. `Feedback.update` (`driver/Feedback.java`) buzzes 3 strong pulses when one appears, and the same one buzzes again only after `WARNING_COOLDOWN_MS` (3 s). `OUT_OF_RANGE` is screen only. What each warning means, the full-storage rumble and the light colors: `TELEOP_PLAN.md`, Driver feedback.
+Warnings come from `Robot.warnings()`, with text in `robot/Warning.java`. Telemetry always shows them. `Feedback.update` (`driver/Feedback.java`) buzzes 3 strong pulses when one appears, and the same one buzzes again only after `WARNING_COOLDOWN_MS` (3 s). `OUT_OF_RANGE` is screen only. `Feedback.relocalized()` gives driver 2 one strong pulse (`RELOCALIZE_MS`, 200 ms) at once, and driver 1 the same on the next `update`, after any warning buzz that is playing. What each warning means, the rumbles and the light colors: `TELEOP_PLAN.md`, Driver feedback.
 
 ### 2e. Stop
 
@@ -218,6 +221,20 @@ sequential(commands.withFlowerIntake(toFlower), commands.waitUntilFull(1500), co
 
 `agateflow/DriverAssist.java` is one-button driving for TeleOp along a `Route`. Call `update(button)` before `Scheduler.execute()`. A press schedules a `DriveRoute`. Touching the sticks cancels it at once. A second press starts again from where the robot is. `driving()` tells the OpMode not to drive with the sticks, and `failed()` is true after no plan or a timeout. It is **not** in `MainTeleOp`.
 
+### 3f. Zenith autos
+
+An auto made in Zenith is a file, `autos/<name>.auto.json`: a list of steps (drive a path, run a named command, wait, run steps in parallel). `deploy` copies it into the app's assets and writes a small OpMode for it. That OpMode extends `zenith/ZenithAuto`, which does the same job as `AutoTemplate`, in this order:
+
+1. INIT: `AllianceSelector` picks the alliance. If it changes, the routine is built again from the file. With no alliance, the auto sits still and shows a warning.
+2. Build: `TeamZenithRobot` makes the `Robot` and registers the named commands (`shoot`, `shootAll`, `shootAllWithRetry`, `shootContinuous`, `flowerDown`, `flowerUp`, `waitUntilFull`, `unjam`) and the conditions (`storageEmpty`, `storageFull`, `canFire`). They are `RobotCommands` under other names. The file is read here, so a bad file fails at init, not in the match. A path step with markers is refused (see `CLAUDE.md`, Zenith).
+3. Poses: the file's poses are centre-origin and for red. `ZenithAuto.alliance()` moves them to our corner frame (`ZenithFrame`) and flips them once for blue. The start goes in through `Robot.setPose(pose, true)`, because `setStartPose` would flip it a second time.
+4. Start: the routine is scheduled as one Ivy command.
+5. The loop is `periodic` (empty), `Scheduler.execute()`, then `afterLoop`, which is `robot.update()`. That is the same order as the auto loop in 3a, so `follower.update()` runs once per loop.
+6. Each path step is a Pedro path with a time limit: its own `timeoutS`, or `PATH_TIMEOUT_SECONDS` divided by the path's speed fraction. `atSpeed` lowers Foresight's top speed for that path only.
+7. Stop: `onStop` calls `robot.stop()`, which puts back any speed limit.
+
+Pose handoff to TeleOp is the same as in 3a. The same OpMode runs in the desktop sim (`ZenithAutoHeadlessTest`): the sim overrides `buildRobot()` to hand in a simulated follower and mechanisms, and the rest of the code is the real code.
+
 ## 4. Ivy gotchas we code around
 
 The list of Ivy 1.1.1 traps is in `CLAUDE.md` (Architecture, "Ivy 1.1.1 gotchas"). What our code does about them:
@@ -236,13 +253,15 @@ The list of Ivy 1.1.1 traps is in `CLAUDE.md` (Architecture, "Ivy 1.1.1 gotchas"
 |---|---|
 | `opmodes/teleop/MainTeleOp.java` | Button mapping and the TeleOp loop |
 | `opmodes/auto/AutoTemplate.java` | Auto skeleton to copy |
-| `robot/Robot.java` | `update()`, the per-loop decisions; `warnings()` |
+| `robot/Robot.java` | `update()`, the per-loop decisions (shoot or pass, zone fire; `AimModeTest`); `warnings()` |
 | `robot/FireControl.java` | Burst steps and the shot count (`FireControlTest`) |
 | `robot/subsystems/` | One class per mechanism |
 | `robot/shot/ShotSolver.java`, `ShotTables.java` | Aim, RPM and feed power |
 | `robot/RobotState.java` | Alliance and pose carried between OpModes |
 | `robot/Warning.java`, `driver/Feedback.java` | Warning text, rumble and light |
 | `driver/AllianceSelector.java` | Alliance picking in INIT |
+| `field/ShootingZone.java`, `util/SeparatingAxis.java` | Zone fire's trapezoid and the overlap test behind it (`ShootingZoneTest`, `SeparatingAxisTest`) |
 | `robot/commands/RobotCommands.java`, `Retry.java` | Auto building blocks (`RetryTest`) |
 | `agateflow/AgateFlowCommands.java`, `DriveRoute.java`, `ParkGuard.java`, `Route.java`, `Heading.java`, `DriverAssist.java` | AgateFlow drives (`DriveRouteTest`, `ParkGuardTest`) |
+| `zenith/TeamZenithRobot.java`, `ZenithAuto.java`, `ZenithFrame.java` | Zenith auto files on our `Robot` (`TeamZenithRobotTest`) |
 | `TELEOP_PLAN.md`, `TUNING_GUIDE.md` | Button map and field numbers; how to tune |

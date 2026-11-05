@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.field;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.math.Pose;
 
+import org.firstinspires.ftc.teamcode.util.Angles;
+
 /**
  * Where things are on the BIOBUZZ field, in inches.
  *
@@ -21,10 +23,17 @@ import com.pedropathing.math.Pose;
  * visualizer's "mirror" export: it flips left to right, but the BIOBUZZ field
  * is a 180° spin.
  *
- * Positions follow Pedro Visualizer, and sizes come from Competition Manual
- * Section 9 (TU03). Both were checked against the official field CAD (141.06
- * wide; the manual says about 144). See TELEOP_PLAN.md, "Field coordinates",
- * for where each number came from.
+ * Which number wins: the real field. The Field Acceptance Checklist where it
+ * controls a dimension (events measure those), then the official field CAD (STEP
+ * v26-27.2, which manual 9.1 calls the official field), then the Competition
+ * Manual's figures (TU07, Section 9). A distance off a wall is measured from the
+ * wall. Anything in the middle, or placed by tile seams or wall panel joints, is
+ * at the CAD's distance from the center. A number already within 0.1 in. of that
+ * stays. Zenith's field file (autos/field/biobuzz.field.json) uses the same numbers.
+ *
+ * The CAD field is 141.17 between the wall rails (the tiles fill it) and 141.35
+ * between the wall panels; the manual says about 144. SIZE stays at Pedro
+ * Visualizer's 141.5. See TELEOP_PLAN.md, "Field coordinates", for each number.
  */
 @Configurable
 public final class Field {
@@ -42,18 +51,21 @@ public final class Field {
     /** Center of the upward cell's opening when the audience cell is up: 70.75 - 16.5. */
     public static double AUDIENCE_CELL_Y = 54.25;
 
-    // TODO(12): Drive across the middle. Raise it if the turret flips between cells too eagerly.
+    // TODO(12): Drive across the middle. Raise it if the turret flips between cells (or between shoot and pass) too eagerly.
     /**
-     * The robot aims at the cell on its own half (far or audience). Within this
-     * many inches of the center line it keeps the current cell, so it doesn't
-     * flip back and forth while driving along the middle.
+     * Which half of the field the robot is on (far or audience) picks the cell it
+     * aims at, or with an up cell picked, shoot or pass. Within this many inches
+     * of the center line the half stays what it was, so it doesn't flip back and
+     * forth while driving along the middle.
      */
     public static double CELL_SWITCH_BAND = 6;
 
-    // TODO(16): Once passing is on (FireControl.PASS_ENABLED): pick where passes should land in our LOADING ZONE, set X and Y, and check real passes land there.
+    // TODO(7): Main TeleOp, pick an up cell (driver 2 LB/RB) and fire from the other half: pick where passes should land, set X and Y, and check real passes land there on both halves and none leaves the field (G405).
     /**
-     * Where a pass lands, written for red: in front of the middle of our LOADING
-     * ZONE (y 94.5 to 117.6). Placeholder: passing is on hold until the coax hood is on the robot.
+     * Where a pass lands, written for red's far half: in front of the middle of
+     * our LOADING ZONE (y 94.66 to 117.35, official field CAD). A pass goes to the
+     * target on the robot's own half (passTarget), and the audience half's is this
+     * one mirrored across the center line. Placeholder.
      */
     public static double PASS_TARGET_RED_X = 24;
     public static double PASS_TARGET_RED_Y = 106;
@@ -76,6 +88,10 @@ public final class Field {
         return new Pose(x, y);
     }
 
+    /**
+     * The robot's half of the field, named by the cell on that half (FAR or
+     * AUDIENCE). Within CELL_SWITCH_BAND of the center line it keeps current.
+     */
     public static Cell cellForSide(double robotY, Cell current) {
         double center = SIZE / 2;
         if (robotY > center + CELL_SWITCH_BAND) return Cell.FAR;
@@ -83,30 +99,58 @@ public final class Field {
         return current;
     }
 
-    public static Pose passTarget(Alliance alliance) {
-        return alliance.fromRed(new Pose(PASS_TARGET_RED_X, PASS_TARGET_RED_Y));
+    /**
+     * Our HIVE's cell on the driver's left (or right), as the driver sees it from
+     * the ALLIANCE AREA. Red's left is the far side, blue's the audience side.
+     */
+    public static Cell cellFromDriver(Alliance alliance, boolean left) {
+        if (alliance == Alliance.RED) return left ? Cell.FAR : Cell.AUDIENCE;
+        return left ? Cell.AUDIENCE : Cell.FAR;
     }
 
-    // TODO(8): Relocalize in all 4 corners, drive to a taped spot, and check the pose.
+    /**
+     * Where a pass from this half of the field lands: always on the robot's own
+     * half, near its own alliance wall. Like the cells, only x flips for blue.
+     * (That is the same as spinning red's target for the other half with
+     * Alliance.fromRed.)
+     */
+    public static Pose passTarget(Alliance alliance, Cell robotHalf) {
+        double x = alliance == Alliance.RED ? PASS_TARGET_RED_X : SIZE - PASS_TARGET_RED_X;
+        double y = robotHalf == Cell.FAR ? PASS_TARGET_RED_Y : SIZE - PASS_TARGET_RED_Y;
+        return new Pose(x, y);
+    }
+
+    // TODO(8): Relocalize in all 4 corners and on both side walls (driver 2: D-pad down/up, Cross, Triangle, D-pad left, Circle), drive to a taped spot, and check the pose.
     public static Pose cornerPose(Alliance alliance, Corner corner) {
         double intake = CENTER_TO_INTAKE_WALL;
         double side = CENTER_TO_SIDE_WALL;
+        // Written for red: the driver looks along +x, so the driver's left is +y (the far wall).
         Pose red;
         switch (corner) {
-            case RIGHT_INTAKE_TO_DRIVER:
-                red = new Pose(intake, side, Math.PI);
-                break;
-            case LEFT_INTAKE_TO_DRIVER:
+            case NEAR_LEFT:
                 red = new Pose(intake, SIZE - side, Math.PI);
                 break;
-            case RIGHT_INTAKE_TO_SIDE_WALL:
-                red = new Pose(side, intake, 1.5 * Math.PI);
+            case NEAR_RIGHT:
+                red = new Pose(intake, side, Math.PI);
                 break;
-            case LEFT_INTAKE_TO_SIDE_WALL:
+            case FAR_LEFT:
+                red = new Pose(SIZE - intake, SIZE - side, 0);
+                break;
+            case FAR_RIGHT:
             default:
-                red = new Pose(side, SIZE - intake, 0.5 * Math.PI);
+                red = new Pose(SIZE - intake, side, 0);
                 break;
         }
         return alliance.fromRed(red);
+    }
+
+    /**
+     * The heading, in radians, with the intake flat against the left (or right)
+     * side wall, as the driver sees it from the ALLIANCE AREA. Red's left side wall
+     * is the far wall, blue's the audience wall.
+     */
+    public static double sideWallHeading(Alliance alliance, boolean left) {
+        double turn = left ? Math.PI / 2 : -Math.PI / 2;
+        return Angles.wrapRadians(alliance.driverHeading() + turn);
     }
 }
