@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
 import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.util.Angles;
+import org.firstinspires.ftc.teamcode.util.DriveCurve;
 
 /**
  * First drive, before any tuning. It builds only Pedro's Mecanum drivetrain and
@@ -35,7 +36,8 @@ import org.firstinspires.ftc.teamcode.util.Angles;
  *
  * Sticks start robot-centric: left stick up drives intake first, left stick
  * left strafes left, right stick left turns left (counter-clockwise from
- * above). Right trigger (hold): slow mode, all three sticks times SLOW_SCALE.
+ * above). The sticks have Main TeleOp's curve (Drive.DRIVE_CUBIC, TURN_CUBIC).
+ * Right trigger (hold): slow mode, all three sticks times SLOW_SCALE.
  *
  * Cross: field-centric and back. In field-centric, stick up drives along
  * heading 0. Red's driver heading is 0, so press Options with the intake
@@ -147,22 +149,26 @@ public class DriveTest extends LinearOpMode {
     }
 
     /**
-     * Robot-centric drive powers from the sticks: deadband, then SLOW_SCALE while
-     * RT is held. Standard signs, as in Main TeleOp: a stick reads -1 pushed up
-     * or left, and Pedro takes forward, left and counter-clockwise as positive.
-     * Intake Test drives with this too, so a sign changed here changes both OpModes.
+     * Robot-centric drive powers from the sticks, shaped like Main TeleOp (Drive.drive):
+     * deadband and the DRIVE_CUBIC / TURN_CUBIC curves from Drive (Panels page "Drive"),
+     * then SLOW_SCALE while RT is held. The drive stick is shaped as one vector, so a
+     * diagonal keeps its angle. Standard signs, as in Main TeleOp: a stick reads -1 pushed
+     * up or left, and Pedro takes forward, left and counter-clockwise as positive.
+     * Intake, Transfer, Shooter and Continuous Test drive with this too, so a change here
+     * changes all of them.
      */
     static DrivePowers stickPowers(Gamepad pad) {
         double forward = -pad.left_stick_y;
         double left = -pad.left_stick_x;
         double turnLeft = -pad.right_stick_x;
-        if (Math.hypot(forward, left) <= Drive.STICK_DEADBAND) {
-            forward = 0;
-            left = 0;
-        }
-        if (Math.abs(turnLeft) <= Drive.STICK_DEADBAND) turnLeft = 0;
+
+        double speed = Math.min(Math.hypot(forward, left), 1);
+        double shapedSpeed = DriveCurve.shape(speed, Drive.STICK_DEADBAND, Drive.DRIVE_CUBIC);
+        double stretch = speed > 0 ? shapedSpeed / speed : 0;
+        double turn = DriveCurve.shape(turnLeft, Drive.STICK_DEADBAND, Drive.TURN_CUBIC);
+
         double scale = slowHeld(pad) ? SLOW_SCALE : 1;
-        return new DrivePowers(forward * scale, left * scale, turnLeft * scale);
+        return new DrivePowers(forward * stretch * scale, left * stretch * scale, turn * scale);
     }
 
     /** Right trigger held: slow mode. */

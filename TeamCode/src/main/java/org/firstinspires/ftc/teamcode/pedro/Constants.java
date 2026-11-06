@@ -15,7 +15,6 @@ public class Constants {
 
     // Starting values, so Drive Test runs before any tuning. The MecanumTuner output (drivetrainConfig)
     // and the PinpointTuner output (localizerConfig) replace these two as printed.
-    // TODO(2): All four motor directions were flipped on 2026-10-25, because Drive Test only drove correctly without the stick minus signs. Confirm with Drive Test's D-pad: each wheel alone must roll the robot intake first.
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
         c.frontLeftName.set("frontLeft");
         c.frontRightName.set("frontRight");
@@ -34,8 +33,8 @@ public class Constants {
         c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         c.xPodOffset.set(2.54);
         c.yPodOffset.set(-1.55);
-        c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-        c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+        c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
         c.globalDistanceUnit.set(DistanceUnit.INCH);
         c.offsetUnits.set(DistanceUnit.INCH);
     });

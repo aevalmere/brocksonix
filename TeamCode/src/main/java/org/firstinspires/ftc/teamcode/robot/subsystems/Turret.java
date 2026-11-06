@@ -24,7 +24,8 @@ import org.firstinspires.ftc.teamcode.util.PIDF;
  *
  * Control: our own PIDF (util/PIDF, its top comment explains each part) plus a KS push.
  * Every gain is power at 12 V: the sum is multiplied by the battery voltage
- * compensation, then clipped to MAX_POWER.
+ * compensation, then clipped to MAX_POWER (PREDICTED_MAX_POWER while a caller gives the
+ * target speed, since the robot turns faster than the turret).
  *   P: kP * error                       (two gain sets: FAR when the error is big, CLOSE to settle)
  *   I: KI * the error added up over time. Only under I_ZONE_DEG, never more than I_MAX_POWER
  *      (before the voltage compensation, like every gain), and it stops adding up while the
@@ -36,7 +37,9 @@ import org.firstinspires.ftc.teamcode.util.PIDF;
  *      can't kick it. D_FILTER smooths the turret speed.
  *   F: KV * how fast the target moves   (cancels the robot turning underneath the turret).
  *      The target speed is smoothed (TARGET_RATE_FILTER), capped (MAX_TARGET_RATE_DEG_PER_SEC),
- *      and 0 in a loop where the target jumps more than TARGET_JUMP_DEG.
+ *      and 0 in a loop where the target jumps more than TARGET_JUMP_DEG. A caller that knows
+ *      the target speed ahead of time (shot/TurnPredictor, from the turn stick) passes it
+ *      with setTargetRateDegPerSec instead: no smoothing, so no lag.
  *   + KS toward the target              (ramped in near zero so it doesn't buzz)
  * Telemetry shows each part ("Turret P / I / D / F / KS") for tuning.
  *
@@ -73,24 +76,26 @@ public class Turret {
      * ENCODER_ZERO_DEG: changing them moves every angle a little.
      */
     public static double ENCODER_MIN_VOLTS = 0;
-    // TODO(5): Point the shooter straight out the front, read the angle, put it here.
-    /** Raw encoder angle when the shooter points straight out the front. */
-    public static double ENCODER_ZERO_DEG = 0;
-    // TODO(5): The angle must increase when the turret turns counter-clockwise.
-    public static boolean ENCODER_REVERSED = false;
+    // To re-measure: point the shooter straight out the front, read "Turret raw encoder deg" in Turret Test.
+    /**
+     * Raw encoder angle (volts turned into 0 to 360, before ENCODER_REVERSED) when the shooter
+     * points straight out the front. It is taken off before the flip, so flipping
+     * ENCODER_REVERSED doesn't change it. Measured -40 on the robot (the same as 320).
+     */
+    public static double ENCODER_ZERO_DEG = -40;
+    // The angle must increase when the turret turns counter-clockwise. It went down with false, so true.
+    public static boolean ENCODER_REVERSED = true;
     // TODO(5): Turret Test, manual: stick left must turn the turret counter-clockwise (seen from above).
     public static boolean SERVO_REVERSED = false;
 
-    // TODO(5): Aiming mode, D-pad 0 to 180: tune FAR_KP and FAR_KD for fast moves with a small overshoot.
-    public static double FAR_KP = 0.01;
-    public static double FAR_KD = 0.0005;
-    // TODO(5): Aiming mode, bumper nudges: tune CLOSE_KP and CLOSE_KD so it settles without buzzing.
-    public static double CLOSE_KP = 0.006;
-    public static double CLOSE_KD = 0.0003;
-    // TODO(5): Aiming mode: if it chatters near the target, adjust this.
+    // Tuned in Turret Test: FAR for big moves (fast, small overshoot), CLOSE to settle without buzzing.
+    public static double FAR_KP = 0.006;
+    public static double FAR_KD = 0.0001;
+    public static double CLOSE_KP = 0.003;
+    public static double CLOSE_KD = 0.00015;
     /** Use CLOSE gains under this error; the band stops it flickering between sets. */
-    public static double CLOSE_ZONE_DEG = 15;
-    public static double CLOSE_ZONE_BAND_DEG = 2;
+    public static double CLOSE_ZONE_DEG = 5;
+    public static double CLOSE_ZONE_BAND_DEG = 3;
 
     // TODO(5): Aiming mode, bumper nudges: if it stops a degree or two short of the target and stays there, raise KI until it closes the gap without overshoot. If it never stops short, leave it at 0.
     /** Power per degree-second of error. Only near the target (I_ZONE_DEG), capped at I_MAX_POWER. 0 = off. */
@@ -101,9 +106,9 @@ public class Turret {
     // TODO(5): Aiming mode, with KI on: start a little above KS. Lower it if KI makes the turret jump past the target.
     /** The most power the KI part may add (before the voltage compensation, like every gain here). */
     public static double I_MAX_POWER = 0.1;
-    // TODO(5): Aiming mode: only if the turret buzzes or "Turret P / I / D / F / KS" shows D jittering while it holds still, raise this toward 0.5. Too high and it overshoots more.
+    // Tuned in Turret Test (practically no smoothing). Raise toward 0.5 only if D jitters while the turret holds still.
     /** Smooths the turret speed that D uses: 0 = no smoothing, closer to 1 = smoother but slower to react. */
-    public static double D_FILTER = 0;
+    public static double D_FILTER = 0.0001;
 
     // TODO(5): Manual mode (KS isn't used there): push the stick slowly, note the power where the turret starts to move, set KS a bit below it.
     public static double KS = 0.05;
@@ -111,15 +116,22 @@ public class Turret {
     public static double KS_RAMP_DEG = 5;
     // TODO(11): Main TeleOp: spin the robot in place. Raise until the turret stops lagging behind the cell.
     /** Power per degree/second of target motion. */
-    public static double KV = 0.0;
+    public static double KV = 0.0006;
     // TODO(11): Main TeleOp, while tuning KV: if the turret jerks when the robot starts or stops turning, raise this toward 0.8. 0 = no smoothing.
     /** Smooths the target speed that KV and D use: 0 = no smoothing, closer to 1 = smoother but slower to react. */
     public static double TARGET_RATE_FILTER = 0.5;
     // TODO(11): Time a full-stick spin in place (degrees divided by seconds) and set this a little above it.
     /** The target speed is capped here, so a quick target step (like switching cells) can't send one huge push. */
-    public static double MAX_TARGET_RATE_DEG_PER_SEC = 720;
+    public static double MAX_TARGET_RATE_DEG_PER_SEC = 900;
     // TODO(5): Lower if the gearing or wiring complains.
     public static double MAX_POWER = 0.8;
+    // TODO(11): Lower toward MAX_POWER if the gearing or wiring complains during fast turns.
+    /**
+     * The power limit while a caller gives the target speed (setTargetRateDegPerSec: the
+     * turn predictor). The robot turns faster than the turret, so the turret may use full
+     * power to keep up with it. Never below MAX_POWER.
+     */
+    public static double PREDICTED_MAX_POWER = 1.0;
 
     // TODO(5): Largest aim error that still scores. Find it once the shooter works.
     public static double ON_TARGET_DEG = 3;
@@ -194,6 +206,10 @@ public class Turret {
     private double staticPush = 0;
     private double power = 0;
     private Double manualPower = null;
+    // How fast the target moves, when the caller knows it (deg/s). NaN: worked out from the target steps.
+    private double knownTargetRate = Double.NaN;
+    // This loop's power limit: MAX_POWER, or PREDICTED_MAX_POWER with a predicted target speed.
+    private double powerLimit = MAX_POWER;
     private boolean wasFullPower = false;
     private double errorAtFullPowerStart = 0;
     private double targetMovedDeg = 0;
@@ -227,6 +243,16 @@ public class Turret {
         targetDeg = degrees;
     }
 
+    /**
+     * How fast the target moves this loop, in deg/s, when the caller knows it ahead of time
+     * (TurnPredictor: from the turn stick, before the robot turns). KV and D then use it as
+     * is instead of the smoothed target steps, so they act with no lag. Call it every loop:
+     * update() forgets it, and without it the target steps are used as before.
+     */
+    public void setTargetRateDegPerSec(double degPerSec) {
+        knownTargetRate = degPerSec;
+    }
+
     public void addTrim(double degrees) {
         trimDeg += degrees;
     }
@@ -238,6 +264,16 @@ public class Turret {
     /** For tuning only: drive the servo directly. Pass null to go back to aiming. */
     public void setTestPower(Double power) {
         manualPower = power;
+    }
+
+    /** The target plus trim, wrapped to -180..180: where the turret is trying to point. */
+    public double aimDeg() {
+        return Angles.wrapDegrees(targetDeg + trimDeg);
+    }
+
+    /** The output sent to the servo last update(), before SERVO_REVERSED. */
+    public double power() {
+        return power;
     }
 
     public double angleDeg() {
@@ -267,11 +303,19 @@ public class Turret {
         return encoder.getVoltage();
     }
 
-    private double readAngle() {
+    /** The encoder's own angle, 0 to 360 over one turn of its output, before ENCODER_ZERO_DEG and ENCODER_REVERSED. */
+    public double rawEncoderDeg() {
         double span = Math.max(ENCODER_FULL_TURN_VOLTS - ENCODER_MIN_VOLTS, MIN_DIVISOR);
-        double raw = (encoder.getVoltage() - ENCODER_MIN_VOLTS) / span * 360;
-        if (ENCODER_REVERSED) raw = -raw;
-        return Angles.wrapDegrees(raw - ENCODER_ZERO_DEG);
+        return (encoder.getVoltage() - ENCODER_MIN_VOLTS) / span * 360;
+    }
+
+    // The zero comes off first, then the flip, then the wrap to -180..180. The wrap makes the
+    // jump where the volts drop back to the bottom (raw 360 -> 0) disappear: both sides land on
+    // the same angle, since 360 and 0 differ by exactly one turn.
+    private double readAngle() {
+        double fromFront = rawEncoderDeg() - ENCODER_ZERO_DEG;
+        if (ENCODER_REVERSED) fromFront = -fromFront;
+        return Angles.wrapDegrees(fromFront);
     }
 
     /** Reads the turret angle. Call it at the start of the loop, after the bulk-read clear, before anything uses angleDeg() or onTarget(). */
@@ -307,12 +351,18 @@ public class Turret {
         pidf.setFilters(D_FILTER, TARGET_RATE_FILTER);
         pidf.setTargetRateLimits(TARGET_JUMP_DEG, MAX_TARGET_RATE_DEG_PER_SEC);
         pidf.setMaxMeasuredRate(TOO_FAST_DEG_PER_SEC);
-        // The output gets multiplied by the compensation below, so before that, MAX_POWER is this much.
-        pidf.setOutputLimit(MAX_POWER / compensation);
+        // With a predicted target speed the turret may go up to PREDICTED_MAX_POWER to keep up.
+        powerLimit = Double.isNaN(knownTargetRate) ? MAX_POWER
+                : Math.max(MAX_POWER, Math.min(PREDICTED_MAX_POWER, 1));
+        // The output gets multiplied by the compensation below, so before that, the limit is this much.
+        pidf.setOutputLimit(powerLimit / compensation);
         // While the stuck check tests, its push sets the power, so KI stops adding up. It isn't emptied:
         // the test only goes on while the controller still pushes at KS or more, and near the target
         // that push comes from KI.
         pidf.setIntegralPaused(stuckStep == StuckStep.TEST);
+        pidf.setKnownTargetRate(knownTargetRate);
+        // Only for this loop: a caller that stops sending it gets the target steps again.
+        knownTargetRate = Double.NaN;
         // The trim goes in apart from the target, so a trim change doesn't count as the target moving.
         double raw = pidf.update(targetDeg, trimDeg, angleDeg, staticPush, dt);
 
@@ -332,7 +382,7 @@ public class Turret {
         } else {
             // Last loop's push moved the turret between last loop's reading and this one.
             checkWrongWay(turnedDeg, dt);
-            power = Range.clip(raw * compensation, -MAX_POWER, MAX_POWER);
+            power = Range.clip(raw * compensation, -powerLimit, powerLimit);
             // Range.clip lets NaN through (NaN target, bad Panels value). Never send that to the servo.
             if (Double.isNaN(power)) power = 0;
             // The stuck check may push harder or rest, so it goes first: the full-power check
@@ -395,7 +445,8 @@ public class Turret {
      */
     private void checkWatchdog(double absError, double targetStep) {
         // power != 0 matters if MAX_POWER is set to 0: no power at all isn't "full power".
-        boolean fullPower = power != 0 && Math.abs(power) >= NEAR_MAX_POWER * MAX_POWER;
+        // Against this loop's limit, not MAX_POWER, or a turret pushing past it would always count as full.
+        boolean fullPower = power != 0 && Math.abs(power) >= NEAR_MAX_POWER * powerLimit;
         if (!fullPower) {
             wasFullPower = false;
             return;

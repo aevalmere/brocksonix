@@ -25,7 +25,7 @@ What is new or unusual in our robot code for BIOBUZZ (2026-27), how each part wo
 
 Each loop reads every sensor first, decides, then writes every output at the end. So the decision to fire uses this loop's turret angle and this loop's flywheel speed, never one of each. Shoot versus pass is decided once per loop, from the robot's half of the field, before the aim is solved, so aiming and fire control can't disagree about which target they serve.
 
-The loop stays fast: one bulk read per hub, motor and servo writes only when the value changes (`robot/hardware/Cached*`), battery voltage re-read every 250 ms, and no motor current reads. A motor power of 0 always goes out, however small the change. The shooter's motors use a finer write step (0.002 instead of 0.01), since 0.01 power is about 60 RPM of feedforward and small Panels edits would look dead. Each cache's `raw()` hands out the device itself for anything the cache doesn't wrap, and clears the cache so the next write always goes out: a call through it (a new direction or pulse range, or an encoder reset that zeroes the power) can change what the last write did. With `MainTeleOp.FULL_TELEMETRY` off, telemetry drops to the warnings and loop time every 200 ms. The goal is under 15 ms per loop.
+The loop stays fast: one bulk read per hub, motor and servo writes only when the value changes (`robot/hardware/Cached*`), battery voltage re-read every 250 ms, and no motor current reads. A motor power of 0 always goes out, however small the change. The shooter's motors use a finer write step (0.002 instead of 0.01), since 0.01 power is about 60 RPM of wheel speed and small Panels edits would look dead. Each cache's `raw()` hands out the device itself for anything the cache doesn't wrap, and clears the cache so the next write always goes out: a call through it (a new direction or pulse range, or an encoder reset that zeroes the power) can change what the last write did. With `MainTeleOp.FULL_TELEMETRY` off, telemetry drops to the warnings and loop time every 200 ms. The goal is under 15 ms per loop.
 
 ### Everything tunable live
 
@@ -74,7 +74,7 @@ Two things are ours, not Ditto's: an axis the lag correction finds already stopp
 Why it works this way:
 
 - The fire rate comes from the transfer power, not from stopping between balls. The first version fed one ball, waited for the wheel to dip, paused 60 ms and waited for the wheel to be ready again, so every ball paid for the wheel's recovery. Now the rail doesn't stop between balls, and how far apart they go is set by one number per distance that we tune with real shots (step 7).
-- The wheel slowing as balls go through is expected. Each ball takes some speed, and boost (full power whenever the wheel is more than 50 RPM under target) pulls it back up. The ready check only starts a burst; it isn't asked again.
+- The wheel slowing as balls go through is expected. Each ball takes some speed, and boost (full power whenever the wheel is more than 1000 RPM under target) pulls it back up. The ready check only starts a burst; it isn't asked again.
 - The rail pauses for only two reasons, and the door stays open while it does: the turret (or coax hood) is off target, or the wheel has sagged more than 600 RPM under its target (`BURST_RPM_FLOOR`), far more than a normal burst should. It goes on by itself as soon as both are back.
 - Switching between shoot and pass mid-burst closes the burst the same way, since the wheel needs a different speed. In TeleOp that happens when the robot drives across the half line. The new burst starts like any other.
 
@@ -106,7 +106,7 @@ The Driver Station shows the Goal and Zone fire lines in competition mode too. P
 
 ### Flywheel at speed before the trigger
 
-`robot/subsystems/Shooter` uses feedforward plus P control, scaled for battery voltage (capped at 1.5×, so a bad 0 V reading can't run away). During a burst, boost switches to full power whenever the wheel falls more than 50 RPM below target, so it recovers between balls as fast as the motors can. The wheel spins up whenever a ball is stored and stays up through the whole burst, so it is ready when the trigger is pulled and isn't cut while the last ball goes through.
+`robot/subsystems/Shooter` uses PID control plus feedforward (`KF`, a fixed friction push, and `KV`, power per RPM of target), scaled for battery voltage (capped at 1.5×, so a bad 0 V reading can't run away). During a burst, boost switches to full power whenever the wheel falls more than 1000 RPM below target, so it recovers between balls as fast as the motors can. The wheel spins up whenever a ball is stored and stays up through the whole burst, so it is ready when the trigger is pulled and isn't cut while the last ball goes through.
 
 ### Flywheel anticipation
 

@@ -68,6 +68,7 @@ public class PIDF {
     private double maxMeasuredRate = Double.POSITIVE_INFINITY;
     private double maxOutput = Double.POSITIVE_INFINITY;
     private boolean integralPaused = false;
+    private double knownTargetRate = Double.NaN;
 
     private boolean firstUpdate = true;
     private double lastTarget = 0;
@@ -138,6 +139,17 @@ public class PIDF {
         this.integralPaused = paused;
     }
 
+    /**
+     * When the caller already knows how fast the target moves (the turret: from the turn
+     * stick, before the robot has even started turning), pass it here, in units per second.
+     * D and F then use it as is: not worked out from the target steps, not smoothed (so
+     * no lag), only capped at maxTargetRate. A target jump still empties the integral.
+     * NaN (the default) goes back to working it out from the target steps.
+     */
+    public void setKnownTargetRate(double ratePerSecond) {
+        this.knownTargetRate = ratePerSecond;
+    }
+
     /** Same as the full update() with no offset and no extra. */
     public double update(double target, double measured, double dt) {
         return update(target, 0, measured, 0, dt);
@@ -161,19 +173,24 @@ public class PIDF {
         firstUpdate = false;
         double error = difference(target + offset, measured);
 
+        boolean rateKnown = !Double.isNaN(knownTargetRate);
         if (first) {
             // Nothing to compare with yet: no speeds, and the integral starts at 0.
-            targetRate = 0;
+            targetRate = rateKnown ? clip(knownTargetRate, maxTargetRate) : 0;
             measuredRate = 0;
             integral = 0;
         } else {
             // Target speed, for D and F. The offset is left out on purpose.
             double targetStep = difference(target, lastTarget);
-            if (Double.isNaN(targetStep) || Math.abs(targetStep) > targetJump) {
-                // A new target: speed 0, and the integral was for the old target.
-                // (A NaN step means last loop's target was NaN; treat it the same.)
+            boolean jumped = Double.isNaN(targetStep) || Math.abs(targetStep) > targetJump;
+            // A new target: the integral was for the old one.
+            // (A NaN step means last loop's target was NaN; treat it the same.)
+            if (jumped) integral = 0;
+            if (rateKnown) {
+                // The caller knows the speed, jump or not: use it as is.
+                targetRate = clip(knownTargetRate, maxTargetRate);
+            } else if (jumped) {
                 targetRate = 0;
-                integral = 0;
             } else {
                 double rate = clip(targetStep / dt, maxTargetRate);
                 targetRate = smooth(targetRate, rate, targetRateFilter);

@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.robot.hardware.CachedMotor;
@@ -26,6 +27,8 @@ public class Intake {
     // TODO(3): Storage Test, hold Circle with balls loaded: they must back out without flying out of the intake. Lower it (toward 0) if they do.
     /** Unjam power, negative: balls move away from the door. */
     public static double REVERSE_POWER = -1.0;
+    /** No power above this, either way, whatever the caller asks for (collect, feed or reverse). */
+    public static double MAX_POWER = 0.8;
 
     private final CachedMotor motor;
     private String state = "stopped";
@@ -38,8 +41,9 @@ public class Intake {
         motor = new CachedMotor(intakeMotor);
     }
 
-    /** The motor stays FORWARD. REVERSED is applied here, so flipping it in Panels works live. */
+    /** The motor stays FORWARD. REVERSED and MAX_POWER are applied here, so Panels edits work live. */
     private void setPower(double power) {
+        power = Range.clip(power, -MAX_POWER, MAX_POWER);
         motor.setPower(REVERSED ? -power : power);
     }
 

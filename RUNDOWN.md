@@ -78,7 +78,7 @@ Drive powers: `driverOne` only tells the `Follower` what to do (`follower.manual
 |---|---|---|
 | `Drive` | Odometry, in `follower.update()` | Four drive motors |
 | `Storage` | Three break beams, debounced | Nothing |
-| `Shooter` | Wheel speed, in `readSensors()` | Both wheel motors, in `update()`: kS + kV + kP + kA, times voltage compensation. Boost: full power when 50+ RPM under target. |
+| `Shooter` | Wheel speed, in `readSensors()` | Both wheel motors, in `update()`: kF (fixed friction push) + kV + kP + kI + kD + kA, times voltage compensation. Boost: full power when 1000+ RPM under target. |
 | `Turret` | Absolute encoder, in `readSensors()` | CR servo power, in `update()` (PIDF plus KS) |
 | `CoaxHood` (optional) | Nothing: no feedback, it estimates arrival from `SPEED_DEG_PER_SEC` | Servo position |
 | `Door` | Nothing: timers say fully open or closed | Servo position |

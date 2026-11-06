@@ -28,6 +28,7 @@ public final class ShotTables {
     public static double[][] SHOT_RPM = {
             {20, 2600},
             {50, 3200},
+            {70, 2200}, // measured: Shooter Test from the NEAR_RIGHT start, AUDIENCE cell (69.6 in.)
             {80, 3900},
             {110, 4600},
     };

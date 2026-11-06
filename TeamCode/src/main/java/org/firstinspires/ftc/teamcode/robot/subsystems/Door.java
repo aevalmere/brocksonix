@@ -12,15 +12,13 @@ import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
 /** Servo gate between slot 1 and the shooter. Closed holds balls back, open lets them feed. */
 @Configurable
 public class Door {
-    // TODO(3): Find open and closed with Servo Position Finder, before Storage Test (it holds the door closed).
-    public static double OPEN_POSITION = 0.6;
-    public static double CLOSED_POSITION = 0.3;
-    // TODO(4): Closed to fully open. Slow-motion video in Shooter Test (wheel off, hold RB), or after step 6 lower it until a ball catches the door.
+    /** The servo was zeroed with the door open. */
+    public static double OPEN_POSITION = 1;
+    public static double CLOSED_POSITION = 0.76;
     /** Time for the servo to swing fully open. Feeding waits for this. */
-    public static double OPEN_TIME_MS = 150;
-    // TODO(4): Fully open to closed. Slow-motion video in Shooter Test (let go of RB), or after step 6 lower it in Main TeleOp until a ball reaches the door while it's still closing.
+    public static double OPEN_TIME_MS = 55;
     /** Time for the servo to swing fully closed. The rail waits for this after a burst. */
-    public static double CLOSE_TIME_MS = 150;
+    public static double CLOSE_TIME_MS = 55;
 
     private final CachedServo servo;
     private final ElapsedTime sinceOpened = new ElapsedTime();

@@ -269,8 +269,12 @@ public final class RobotSim {
 
     /** Sets what the turret encoder and the beams read, and truth, from the plants. */
     private void readSensors() {
-        double raw = turretPlant.getPosition() + Turret.ENCODER_ZERO_DEG;
-        if (Turret.ENCODER_REVERSED) raw = -raw;
+        // The plant turns with the servo's own power. The sim turret is wired so that the flags
+        // are right: Turret's power (positive = counter-clockwise) reaches it through
+        // SERVO_REVERSED, so undo that to get the turret's real angle.
+        double angle = Turret.SERVO_REVERSED ? -turretPlant.getPosition() : turretPlant.getPosition();
+        // The inverse of Turret.readAngle(): flip first, then add the zero back.
+        double raw = (Turret.ENCODER_REVERSED ? -angle : angle) + Turret.ENCODER_ZERO_DEG;
         double turn = ((raw % 360) + 360) % 360 / 360;
         turretEncoder.setVoltage(Turret.ENCODER_MIN_VOLTS + turn * (Turret.ENCODER_FULL_TURN_VOLTS - Turret.ENCODER_MIN_VOLTS));
 

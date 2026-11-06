@@ -248,6 +248,32 @@ public class PIDFTest {
     }
 
     @Test
+    public void aKnownTargetRateIsUsedAtOnceWithoutSmoothing() {
+        PIDF pidf = new PIDF(true);
+        pidf.setGains(0, 0, 0.01, 0.002);
+        pidf.setFilters(0, 0.9);
+        pidf.setTargetRateLimits(30, 500);
+        pidf.update(0, 0, DT);
+        // The target hasn't moved yet, but the caller says it moves at 100 deg/s.
+        pidf.setKnownTargetRate(100);
+        pidf.update(0, 0, DT);
+        assertEquals("F at once, no smoothing", 0.2, pidf.lastF(), EPS);
+        assertEquals(1.0, pidf.lastD(), EPS);
+        // Capped at maxTargetRate.
+        pidf.setKnownTargetRate(900);
+        pidf.update(0, 0, DT);
+        assertEquals(1.0, pidf.lastF(), EPS);
+        // Kept through a target jump too.
+        pidf.setKnownTargetRate(100);
+        pidf.update(90, 0, DT);
+        assertEquals(0.2, pidf.lastF(), EPS);
+        // NaN: back to the smoothed target steps (the target is still, so 0 after the jump).
+        pidf.setKnownTargetRate(Double.NaN);
+        pidf.update(90, 0, DT);
+        assertEquals(0.9 * 0.2, pidf.lastF(), EPS);
+    }
+
+    @Test
     public void aNaNTargetDoesNotStick() {
         PIDF pidf = new PIDF(true);
         pidf.setGains(1, 1, 1, 1);

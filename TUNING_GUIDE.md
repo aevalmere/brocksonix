@@ -25,7 +25,7 @@ How to measure and tune everything the code can't know until someone tries it on
 ## 2. Drivetrain and localization (Pedro)
 
 - [ ] Run the `Drive Test` OpMode first (no tuning needed). Hold the D-pad to spin one wheel at low power: up = frontLeft, right = frontRight, down = backRight, left = backLeft. Each must roll the robot forward, intake first. If a wheel goes backward, flip that motor's direction in `Constants.drivetrainConfig`. If a different wheel spins, the port is wrong. All four directions were flipped on 2026-10-25 (the sticks only drove right with their minus signs taken out), so do this check again.
-- [ ] In `Drive Test`, check the sticks: left stick up drives toward the intake end, left stick left strafes left, right stick X left turns left. Right trigger held is slow mode. Intake Test drives with the same code (`DriveTest.stickPowers`). The sticks have Main TeleOp's signs (a stick pushed up reads -1, so the code negates it), so if the robot drives the wrong way, fix the motor directions in `Constants.drivetrainConfig`, never the stick signs: a sign changed in Drive Test leaves Main TeleOp wrong.
+- [ ] In `Drive Test`, check the sticks: left stick up drives toward the intake end, left stick left strafes left, right stick X left turns left. Right trigger held is slow mode. The sticks have Main TeleOp's curve (`Drive.DRIVE_CUBIC`, `Drive.TURN_CUBIC`), so half stick is well under half power. Intake, Transfer, Shooter and Continuous Test drive with the same code (`DriveTest.stickPowers`). The sticks have Main TeleOp's signs (a stick pushed up reads -1, so the code negates it), so if the robot drives the wrong way, fix the motor directions in `Constants.drivetrainConfig`, never the stick signs: a sign changed in Drive Test leaves Main TeleOp wrong.
 - [ ] In `Drive Test`, Cross switches to field-centric, the same rotation Main TeleOp uses (`Drive.driverToField`). Point the intake away from you and press Options: stick up must drive away from you whichever way the robot turns.
 - [ ] In `Drive Test`, check the Pinpoint (Options resets the pose to 0, 0, 0). Push the robot 48 in. forward by hand and x rises 48. Push it 48 in. left and y rises 48. Turn it left and heading goes positive. If x or y runs the wrong way, flip that pod's direction in `Constants.localizerConfig`.
 - [ ] Pinpoint pod offsets: `ROBOT.md` has them from CAD, measured from the **turret center** (the robot's center in all our code). PinpointTuner confirms them; fix `ROBOT.md` if it disagrees.
@@ -42,12 +42,12 @@ How to measure and tune everything the code can't know until someone tries it on
 
 ## 3. Storage and rail (Storage Test OpMode)
 
-- [ ] First, `Door.CLOSED_POSITION` and `Door.OPEN_POSITION` with the Servo Position Finder OpMode. Storage Test holds the door closed, and the balls stack up against it for the rest of this section.
+- [ ] First, `Door.CLOSED_POSITION` and `Door.OPEN_POSITION`: in Shooter Test with the wheel off, Triangle swings the door open and closed with the rail stopped, and the Panels edits (page "Door") move the servo live. The servo was zeroed with the door open, so `OPEN_POSITION` starts at 0. The Servo Position Finder OpMode works too. Storage Test holds the door closed, and the balls stack up against it for the rest of this section.
 - [ ] `Storage.BLOCKED_READS_LOW`: block each beam by hand. Telemetry must show `true` when blocked. If it's backwards, flip this.
 - [ ] `Transfer.REVERSED` (Panels page "Transfer", default false): in Transfer Test, with no button held, the transfer end must move balls **toward the door**; LT must back both ends away. `Intake.REVERSED` (page "Intake") is already checked in Intake Test.
-- [ ] After checking each shooter motor alone at low power in Shooter Test, run Continuous Test with a safe target: it holds the door open, runs the shooter at 3000 RPM, and feeds with both rail motors. LT reverses the rail motors while the shooter keeps spinning.
+- [ ] After checking each shooter motor alone at low power in Shooter Test, run Continuous Test: Cross turns the shooter on at full power (open loop, so the watchdog is off), and holding RB opens the door and feeds with both rail motors. Letting go of RB, or the shooter off, closes the door and stops the rail. LT reverses the rail motors either way. Square turns turret tracking on (only after the turret is tuned in step 5): start the robot in the NEAR_RIGHT corner (Options resets the pose there), and the turret keeps pointing at the cell (`ContinuousTest.FAR_CELL` picks which) while you drive. The "Pinpoint" line shows the device status, loop time and firmware. If the heading freezes, write that line down before power cycling (READY with a loop time: the Pinpoint's IMU stopped; FAULT_BAD_READ or NOT_READY: the whole device stopped answering, so check its cable and power), then try Share with the robot still: it resets the Pinpoint and its IMU and puts the pose back at the NEAR_RIGHT corner.
 - [ ] `Transfer.HOLD_POWER`: with a ball against the closed door, the lowest power that keeps it seated without the motor straining.
-- [ ] `Intake.COLLECT_POWER`, `Transfer.COLLECT_POWER`: lower them if balls jam or bounce.
+- [ ] `Intake.COLLECT_POWER`, `Transfer.COLLECT_POWER`: lower them if balls jam or bounce. The intake never gets more than `Intake.MAX_POWER` (0.8) either way, whatever these say.
 - [ ] `Intake.REVERSE_POWER`, `Transfer.REVERSE_POWER` (both -1.0, the unjam power): hold Circle with balls loaded. They must back out without flying out of the intake. Move them toward 0 if they do.
 - [ ] `Storage.FULL_HOLD_MS`: feed balls one at a time. "Full" must only appear on the 4th. Raise it if a passing ball triggers full.
 - [ ] `Storage.DEBOUNCE_MS`: raise it (in ms) if the count flickers. A beam change only counts after it holds this long.
@@ -60,7 +60,7 @@ The door positions were found in step 3.
 - [ ] `FlowerIntake.UP_POSITION`, `FlowerIntake.DOWN_POSITION`: find them on the **left** servo. The right one is reversed in code.
 - [ ] `FlowerIntake.RIGHT_REVERSED`: in Main TeleOp, LB must move both servos the same way. Flip it right away if they fight, or the servos can burn out.
 - [ ] Check the flower intake reaches into a real FLOWER's Retrieval Opening (3.55 in. tall) and pulls POLLEN out.
-- [ ] `Door.OPEN_TIME_MS`: time from closed to fully open. Film the door in slow motion in Shooter Test with the wheel off and no balls: hold RB to open it, let go to close it. Or, after step 6, start high and lower it until a ball catches the door.
+- [ ] `Door.OPEN_TIME_MS`: time from closed to fully open. Film the door in slow motion in Continuous Test with no balls: Cross turns the shooter on (the door only opens with it on), hold RB to open the door, let go to close it. Or, after step 6, start high and lower it until a ball catches the door.
 - [ ] `Door.CLOSE_TIME_MS`: time from fully open to closed. The rail waits this long after a burst before pushing the next ball toward the door. Film it the same way. Or, after step 6, in Main TeleOp, start high and lower it until a ball reaches the door while it's still closing.
 
 ## 5. Turret (Turret Test OpMode)
@@ -70,16 +70,18 @@ Manual mode first (Cross toggles; left stick X drives the servo, capped at `Turr
 - [ ] `Turret.SERVO_REVERSED`: stick **left** must turn the turret **counter-clockwise** (seen from above).
 - [ ] `Turret.ENCODER_FULL_TURN_VOLTS`: turn the turret slowly through several full turns and watch "Encoder volts". Use the highest clean reading before it jumps back to 0 (Meta-Infinity found 3.2 V on the same encoder).
 - [ ] `Turret.ENCODER_MIN_VOLTS`: same slow turns. Use the lowest clean reading just after the voltage drops at the wrap. Leave it 0 if it reads 0.000 there. Set it before `ENCODER_ZERO_DEG`, since changing it moves every angle a little.
-- [ ] `Turret.ENCODER_REVERSED`: the angle must **increase** when the turret turns counter-clockwise. If the two REVERSED flags disagree, aiming mode turns the turret off within about 1.5 s (the "TURRET OFF" line says "turned ... against its push"): fix the flags and restart the OpMode.
-- [ ] `Turret.ENCODER_ZERO_DEG`: point the shooter straight out the robot's front and read the angle. Put that number here so the angle reads 0.
+- [x] `Turret.ENCODER_REVERSED` (true): the angle must **increase** when the turret turns counter-clockwise. If the two REVERSED flags disagree, aiming mode turns the turret off within about 1.5 s (the "TURRET OFF" line says "turned ... against its push"): fix the flags and restart the OpMode.
+- [x] `Turret.ENCODER_ZERO_DEG` (-40): point the shooter straight out the robot's front and read "Turret raw encoder deg". Put that number here so "Turret angle" reads 0. The zero comes off before the `ENCODER_REVERSED` flip, so flipping that flag doesn't change it. Re-measure after changing either volts value.
 - [ ] `Turret.KS`: manual mode sends the stick to the servo without KS, so changing KS there does nothing. Instead, push the stick very slowly and watch "Turret error / power". Note the power where the turret just starts to move, and set KS a little below it.
 
-Aiming mode (D-pad picks targets, bumpers nudge ±10°):
+Aiming mode. The target is `TurretTest.TARGET_DEG`, live on the Panels page "TurretTest": type an angle there, or D-pad picks 0 / 90 / -90 / 180 and bumpers nudge ±10°. Graph "target" against "angle" (and "error", "power") in Panels while tuning. Square starts a step test (the target jumps `STEP_DEG` and back every `STEP_MS`), so a gain change shows on the next step without touching the gamepad. Triangle starts a sweep (the target turns at `SWEEP_DEG_PER_SEC`).
 
-- [ ] `Turret.FAR_KP`, `Turret.FAR_KD`: big moves (D-pad 0 to 180). Fast, small overshoot.
-- [ ] `Turret.CLOSE_KP`, `Turret.CLOSE_KD`: small moves (bumper nudges). Settles without buzzing.
-- [ ] `Turret.CLOSE_ZONE_DEG`, `Turret.KS_RAMP_DEG`: adjust if it chatters near the target.
-- [ ] `Turret.D_FILTER`: only if the turret buzzes, or the D number in "Turret P / I / D / F / KS" jitters while it holds still, raise it toward 0.5 (0 = no smoothing). Too high and D reacts late, so it overshoots more.
+- [x] `Turret.FAR_KP`, `Turret.FAR_KD` (0.006, 0.0001): big moves (D-pad 0 to 180, or a step test with `STEP_DEG` 90 to 180). Fast, small overshoot.
+- [x] `Turret.CLOSE_KP`, `Turret.CLOSE_KD` (0.003, 0.00015): small moves (bumper nudges, or a step test with `STEP_DEG` about 10). Settles without buzzing.
+- [x] `Turret.CLOSE_ZONE_DEG`, `Turret.CLOSE_ZONE_BAND_DEG` (5, 3): CLOSE gains start once the error is under 2° (5 − 3) and stop once it is over 8° (5 + 3).
+- [ ] Optional head start on `Turret.KV` (step 11): a sweep at a steady speed. Raise KV until "error" stays near 0 while the target turns. Re-check it in Main TeleOp by spinning the robot.
+- [ ] `Turret.KS_RAMP_DEG`: adjust if it chatters near the target.
+- [x] `Turret.D_FILTER` (0.0001, practically none): only if the turret buzzes, or the D number in "Turret P / I / D / F / KS" jitters while it holds still, raise it toward 0.5 (0 = no smoothing). Too high and D reacts late, so it overshoots more.
 - [ ] `Turret.KI`, `Turret.I_ZONE_DEG`, `Turret.I_MAX_POWER`: only if it stops a degree or two short of the target and stays there (bumper nudges). Set `I_ZONE_DEG` a little above the biggest gap and `I_MAX_POWER` a little above `KS`, then raise `KI` from 0 until the gap closes without overshoot. In "Turret P / I / D / F / KS", I should grow while the turret is short and drop to 0 once it crosses the target.
 - [ ] `Turret.MAX_POWER`: lower it if the gearing or wiring complains.
 - [ ] `Turret.WATCHDOG_MS`: only if a normal big move (D-pad 0 to 180) trips the watchdog, raise it.
@@ -93,9 +95,12 @@ Aiming mode (D-pad picks targets, bumpers nudge ±10°):
 - [ ] `Shooter.LEFT_REVERSED`, `Shooter.RIGHT_REVERSED`: both push the wheel in the shooting direction.
 - [ ] `Shooter.ENCODER_REVERSED`: RPM reads positive while shooting.
 - [ ] Check the encoder is on the **left** shooter motor's port. If it's on the right, change `encoderMotor` in `Shooter`.
-- [ ] `Shooter.KV`: set KS and KP to 0. Raise KV until the wheel settles at the target at 2000, 3500 and 5000 RPM.
-- [ ] `Shooter.KS`: raise it if low RPMs sit below target.
-- [ ] `Shooter.KP`: raise it until it recovers quickly without oscillating.
+- [ ] Turn boost off while tuning: set `Shooter.BOOST_BELOW_RPM` to 99999 in Panels (boost is full power under target, which hides the gains). Put it back to 1000 after. The "Shooter parts" line shows each part's power.
+- [ ] `Shooter.KF` (fixed friction push): KP, KI, KD at 0. Raise it until the wheel barely starts turning at a low target, then back off a little.
+- [ ] `Shooter.KV` (power per RPM of target): KP, KI, KD still at 0. Raise it until the wheel settles close to target at 2000, 3500 and 5000 RPM.
+- [ ] `Shooter.KP`: raise it until the wheel gets back fast after a ball without oscillating.
+- [ ] `Shooter.KI`: only if it still settles a little off target. Raise from 0 until it reaches target without overshooting.
+- [ ] `Shooter.KD` (and `D_FILTER`): only if it overshoots with KI in. Raise from 0, keep it small: the RPM reading moves in steps of about 43.
 - [ ] `Shooter.WATCHDOG_MS`: only if the watchdog trips on a normal spin-up, raise it (or lower `WATCHDOG_MIN_RPM`).
 - [ ] `Shooter.BOOST_BELOW_RPM`: fire 4 balls (RB) and watch RPM through the burst. Recovery should be quick, with no big overshoot.
 - [ ] `Shooter.RPM_TOLERANCE`: the largest RPM error that still scores at mid range. Not under 90: the 28-count encoder's reading moves in steps of about 43 RPM, so a tighter band flickers on and off (it was 75, now 90 for this reason).
@@ -103,9 +108,9 @@ Aiming mode (D-pad picks targets, bumpers nudge ±10°):
 
 How a burst fires in Main TeleOp (`robot/FireControl`): fire is continuous. Once the shot has stayed ready for `READY_HOLD_MS`, the door opens, and from the moment it is fully open the rail runs at `ShotTables.SHOT_FEED_POWER` until RB is let go. So the fire rate comes from that feed power (step 7), not from stopping between balls, and the wheel slowing as balls go through is expected. Mid-burst the rail only pauses while the aim is off or the wheel is more than `BURST_RPM_FLOOR` under its target. The shot counter (an RPM dip) only reports shots: in TeleOp it never stops the rail.
 
-- [ ] `FireControl.SHOT_DIP_RPM` (150): in Shooter Test, hold RB and watch RPM as a ball goes through. Set it a bit under the smallest dip you see. A shot counts when the RPM falls this far below the highest reading of the last `DIP_WINDOW_MS`, wherever the wheel was against its target. Keep it at least 86 (2 steps of the 43 RPM reading) plus what the wheel coasts down in `DIP_WINDOW_MS`. Counted shots show on the "Fire" line in Main TeleOp, and auto's `shoot()` ends on the first one (step 9).
+- [ ] `FireControl.SHOT_DIP_RPM` (150): in Shooter Test, turn the wheel on (it fires nonstop) and watch RPM as a ball goes through. Set it a bit under the smallest dip you see. A shot counts when the RPM falls this far below the highest reading of the last `DIP_WINDOW_MS`, wherever the wheel was against its target. Keep it at least 86 (2 steps of the 43 RPM reading) plus what the wheel coasts down in `DIP_WINDOW_MS`. Counted shots show on the "Fire" line in Main TeleOp, and auto's `shoot()` ends on the first one (step 9).
 - [ ] `FireControl.DIP_WINDOW_MS` (100): in Shooter Test, longer than a ball's dip takes to reach `SHOT_DIP_RPM`, and far shorter than the wheel takes to coast down `SHOT_DIP_RPM` with the power off (Cross turns the wheel off: do it at full speed and time it).
-- [ ] The rest of `FireControl` is **tuned in Main TeleOp, not Shooter Test.** Shooter Test skips `FireControl`: RB just opens the door and runs the rail at `ShooterTest.FEED_POWER` once the door is open.
+- [ ] The rest of `FireControl` is **tuned in Main TeleOp, not Shooter Test.** Shooter Test skips `FireControl`: with the wheel on it just opens the door and runs the rail at `ShooterTest.FEED_POWER` once the door is open, nonstop.
   - [ ] `FireControl.READY_HOLD_MS` (40): raise it if bursts start while the turret is still settling.
   - [ ] `FireControl.BURST_RPM_FLOOR` (600): hold RB with 4 balls and watch the lowest RPM during the burst. Set this well past that sag, so a normal burst never pauses; lower it if the last balls of a burst fall short. 0 turns the check off.
   - [ ] `FireControl.DOOR_CLOSE_DELAY_MS` (100): let go of RB in the middle of a burst. Raise it if the door closes on a ball; lower it if the door stays open longer than it needs to.
@@ -115,7 +120,7 @@ How a burst fires in Main TeleOp (`robot/FireControl`): fire is continuous. Once
 
 All values there now are placeholders. Panels can change the numbers but can't add or remove rows; to add a row, edit the code. Keep the distances increasing from top to bottom (a warning shows if they aren't).
 
-- [ ] `SHOT_RPM`: put the robot at measured distances (turret center to the center of the upward cell's opening, along the floor: `Field.RED_HIVE_X` and `Field.FAR_CELL_Y` / `Field.AUDIENCE_CELL_Y`) about every 10 in. from 20 to 110 in. At each one, find the RPM that scores reliably and write `{distance, rpm}`.
+- [ ] `SHOT_RPM`: put the robot at measured distances (turret center to the center of the upward cell's opening, along the floor: `Field.RED_HIVE_X` and `Field.FAR_CELL_Y` / `Field.AUDIENCE_CELL_Y`) about every 10 in. from 20 to 110 in. At each one, find the RPM that scores reliably and write `{distance, rpm}`. Shooter Test needs no break beams, and the Pinpoint gives the distance: start the robot in the NEAR_RIGHT corner (red's GARDEN corner, intake flat on the alliance wall, side on the audience wall; Options sets the pose there again), drive to the spot, and it shows the pose and the distance to the cell (`FAR_CELL` picks which), with the robot drawn on the Panels field. Set the RPM there with `TARGET_RPM` (or the D-pad).
 - [ ] Repeat a few distances with the **other** cell up to check one table works for both.
 - [ ] `SHOT_FEED_POWER`: the rail's power for the whole burst, so it sets how fast the balls go out. Lower it at long range if back-to-back balls miss because RPM hasn't recovered.
 - [ ] Check the robot can't reach a spot closer than the table's first row. If it can, add a row (in the code).
@@ -191,6 +196,12 @@ Only after stationary shots are reliable.
 - [ ] `Shooter.KA` (and `TARGET_RATE_FILTER`): in Main TeleOp, drive straight toward and away from the HIVE with a ball stored and watch Shooter RPM. Raise KA from 0 until the wheel keeps up with the target without overshooting it.
 - [ ] `Shooter.MAX_TARGET_RATE` (8000 RPM/s): with KA on, drive full speed straight at the HIVE and watch "target changing" in telemetry. Set it a little above the biggest number you see.
 - [ ] `Turret.KV`: in Main TeleOp, spin the robot in place. The turret should keep pointing at the cell. Raise KV until it stops lagging behind.
+- [ ] Turn prediction (`robot/shot/TurnPredictor`, Panels page "TurnPredictor"), in Continuous Test with tracking on (Square) and prediction on (Triangle). Tune `Turret.KV` first (Turret Test sweep), since the prediction reaches the turret through KV:
+  - `MAX_TURN_RATE_DEG_PER_SEC`: hold the turn stick fully (no drive stick, no slow mode) and read "Yaw rate predicted / measured" once steady. Put the measured number here; then both match.
+  - `TURN_TIME_CONSTANT_SEC`: snap the turn stick fully and back. Predicted should rise and fall with measured: raise it if predicted gets there first, lower it if measured does.
+  - While prediction is on, the turret may use up to `Turret.PREDICTED_MAX_POWER` (1.0) instead of `MAX_POWER`, since the robot turns faster than the turret. Lower it if the gearing or wiring complains during fast turns.
+  - `TURRET_RESPONSE_SEC`: snap the turn stick from 0 to full. Raise it until the orange turret line no longer falls behind the yellow one at the start of the turn; lower it if it jumps ahead. It only adds push while the turn rate changes, so a steady turn isn't affected.
+  - `LEAD_SEC`: turn in place and watch the Panels field. Raise until the orange turret line stops trailing the yellow goal line, lower if it runs ahead. Triangle turns prediction off to compare.
 - [ ] `Turret.TARGET_RATE_FILTER`, `Turret.MAX_TARGET_RATE_DEG_PER_SEC`: while tuning KV, if the turret jerks when the robot starts or stops turning, raise the filter toward 0.8 (0 = no smoothing). Time a full-stick spin in place (degrees divided by seconds) and set the max a little above it, so a quick target step (like switching cells) can't send one huge KV push.
 - [ ] `ShotTables.SHOT_FLIGHT_TIME`: slow-motion video of shots at near, mid and far distances. Count frames from leaving the wheel to entering the cell.
 - [ ] Turn `LEAD` on. Drive slowly past the HIVE at a steady speed and fire. A ball that lands ahead of the cell along the driving direction means the flight times are too short; one that lands behind means they are too long.

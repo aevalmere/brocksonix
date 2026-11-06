@@ -20,10 +20,15 @@ import org.firstinspires.ftc.teamcode.util.PIDF;
  * With the coax hood, the hood angle is solved from averageRpm(), the speed the
  * wheel really has, so the wheel doesn't have to be exactly at target.
  *
- * Normal control: power = kS + kV * target + kP * error + kA * how fast the target
- * changes, scaled for battery voltage. The kA part pushes the wheel along while the
- * target changes as the robot drives closer or farther, so it doesn't lag behind. It
- * is 0 when the target holds still, so it never biases a shot. It is GNCE Ditto's
+ * Normal control is PID plus feedforward, scaled for battery voltage:
+ * power = kF + kV * target + kP * error + kI * integral + kD part + kA * how fast the target changes.
+ * kF is the same small push at any target, to get past friction. kV * target is the
+ * power the wheel usually needs at that speed (about 0.5 at 3000 RPM), given before any
+ * error builds up. kP reacts to the error right now, and the integral adds up what is
+ * left over time, so kI clears a small steady miss. The kD part brakes when the wheel speeds up fast, so
+ * it doesn't overshoot. The kA part pushes the wheel along while the target changes as
+ * the robot drives closer or farther, so it doesn't lag behind. It is 0 when the target
+ * holds still, so it never biases a shot. It is GNCE Ditto's
  * FLYWHEEL_ACCEL_KFF: https://github.com/GNCE/DECODEv2-Ditto/blob/c78b5268930d55c6d5a59c23922d9a8baf9f96e6/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/config/subsystems/Shooter.java
  * While a burst is firing, "boost" switches to full power whenever the wheel
  * drops below target, so it recovers between balls as fast as possible.
@@ -38,18 +43,29 @@ public class Shooter {
     // written, so they take effect live. (The SDK's setDirection would also flip the encoder
     // reading, which is why it isn't used.)
     // TODO(6): The motors are geared together: test each alone at low power first (Shooter Test, hold Square or Circle). Both must push the shooting direction.
-    public static boolean LEFT_REVERSED = false;
-    public static boolean RIGHT_REVERSED = true;
+    public static boolean LEFT_REVERSED = true;
+    public static boolean RIGHT_REVERSED = false;
     // TODO(6): RPM must read positive while shooting. The encoder must be on the left motor's port. This flag alone sets the RPM sign, LEFT_REVERSED does not change it.
-    public static boolean ENCODER_REVERSED = false;
+    public static boolean ENCODER_REVERSED = true;
 
-    // TODO(6): Raise if low RPMs sit below target.
-    public static double KS = 0.02;
-    // TODO(6): Shooter Test with KS and KP at 0: raise until the wheel settles on target at 2000, 3500 and 5000 RPM.
-    /** Power per RPM. Start near 1 / free speed (6000). */
-    public static double KV = 1.0 / 6000;
-    // TODO(6): Raise until it recovers fast without oscillating.
-    public static double KP = 0.0005;
+    // TODO(6): Shooter Test, KI and KD at 0: raise until the wheel barely starts turning at a low target, then back off a little.
+    /** Fixed friction push, the same at any target (only while the target is above 0). */
+    public static double KF = 0.002;
+    // TODO(6): KP, KI, KD at 0: raise until the wheel settles close to target at 2000, 3500 and 5000 RPM.
+    /** Power per RPM of target. */
+    public static double KV = 0.0005;
+    // TODO(6): Raise until it gets back fast after a ball without oscillating.
+    /** Power per RPM of error. */
+    public static double KP = 0.025;
+    // TODO(6): Only if it still settles a little off target: raise from 0 until it reaches target without overshooting.
+    /** Power per RPM-second of built-up error. */
+    public static double KI = 0;
+    // TODO(6): Only if it overshoots with KI in: raise from 0. The RPM reading moves in steps of about 43, so keep it small.
+    /** Power per RPM-per-second the wheel speeds up (brakes the climb). */
+    public static double KD = 0.008;
+    // TODO(6): Only with KD on: raise (smoother) if the D part jumps around.
+    /** Smoothing for the wheel's acceleration in the D part: 0 = none, closer to 1 = smoother but later. */
+    public static double D_FILTER = 0.7;
     // TODO(11): Main TeleOp: drive straight toward and away from the HIVE while watching Shooter RPM. Raise from 0 until the wheel keeps up with the target without overshooting it.
     /** Power per RPM-per-second that the target changes. */
     public static double KA = 0;
@@ -73,7 +89,7 @@ public class Shooter {
     public static double RPM_TOLERANCE = 90;
     // TODO(6): Fire 4 balls: quick recovery between balls, no big overshoot.
     /** In boost, full power whenever the wheel is more than this far below target. */
-    public static double BOOST_BELOW_RPM = 50;
+    public static double BOOST_BELOW_RPM = 1000;
 
     // Runaway watchdog. With the encoder unplugged (RPM reads 0) or ENCODER_REVERSED wrong
     // (RPM reads negative), the controller thinks the wheel is stuck and holds full power forever.
@@ -92,14 +108,16 @@ public class Shooter {
     // 20 ticks/s: 20 * 60 / 28 = about 43 RPM per step. Full speed is 2800 ticks/s, far under
     // 32767, where the hub's 16-bit velocity would wrap around.
     private static final double TICKS_PER_REV = 28;
-    // Finer than the 0.01 default. KV is 1/6000, so 0.01 power is about 60 RPM of feedforward
-    // and small KV edits in Panels would look dead.
+    // Finer than the 0.01 default. 0.01 power is about 60 RPM of wheel speed, so small
+    // gain edits in Panels would look dead.
     private static final double MIN_POWER_CHANGE = 0.002;
     // A target change bigger than this in one loop is a jump (spin-up from 0, shoot to pass),
     // not the robot driving, so it doesn't feed the kA estimate. Trim changes are left out too.
     private static final double TARGET_JUMP_RPM = 200;
     // Room for AVERAGE_SAMPLES; Panels values above this are capped.
     private static final int MAX_AVERAGE_SAMPLES = 20;
+    // A long loop (a hiccup) would add a big chunk to the integral at once.
+    private static final double MAX_INTEGRAL_DT = 0.1;
 
     private final CachedMotor left, right;
     private final DcMotorEx encoderMotor;
@@ -117,6 +135,10 @@ public class Shooter {
     private double power = 0;
     private double lastTarget = 0;
     private double targetRate = 0;
+    private double integral = 0;
+    private double lastRpm = 0;
+    private double acceleration = 0;
+    private double partF = 0, partP = 0, partI = 0, partD = 0;
     private boolean openLoop = false;
     private double openLeftPower = 0;
     private double openRightPower = 0;
@@ -215,6 +237,7 @@ public class Shooter {
         double dt = loopTimer.seconds();
         loopTimer.reset();
         updateTargetRate(dt);
+        updateAcceleration(dt);
 
         double leftPower;
         double rightPower;
@@ -222,17 +245,17 @@ public class Shooter {
             leftPower = openLeftPower;
             rightPower = openRightPower;
             wasRunaway = false;
+            integral = 0;
         } else {
             double target = effectiveTargetRpm();
             if (target <= 0) {
                 power = 0;
+                integral = 0;
             } else if (boost && rpm < target - BOOST_BELOW_RPM) {
+                // Full power: the integral holds its value, more of it would only overshoot later.
                 power = 1;
             } else {
-                double raw = KS + KV * target + KP * (target - rpm) + KA * targetRate;
-                power = Range.clip(raw * voltage.compensation(), 0, 1);
-                // Range.clip lets NaN through (a bad Panels value). Never send that to the motors.
-                if (Double.isNaN(power)) power = 0;
+                power = pidPower(target, dt);
             }
             checkWatchdog();
             leftPower = power;
@@ -240,12 +263,43 @@ public class Shooter {
         }
 
         if (watchdogTripped) {
+            integral = 0;
             power = 0;
             leftPower = 0;
             rightPower = 0;
         }
         left.setPower(LEFT_REVERSED ? -leftPower : leftPower);
         right.setPower(RIGHT_REVERSED ? -rightPower : rightPower);
+    }
+
+    /** PID plus the feedforward (kF, kV) and kA, times voltage compensation, 0 to 1. Adds to the integral unless the power is already at a limit. */
+    private double pidPower(double target, double dt) {
+        double error = target - rpm;
+        partF = KF + KV * target;
+        partP = KP * error;
+        partD = -KD * acceleration;
+        double rest = (partF + partP + partD + KA * targetRate) * voltage.compensation();
+        // Anti-windup: while the power is already at 0 or 1 in the direction the error pushes, don't add up more.
+        double before = rest + KI * integral * voltage.compensation();
+        boolean atLimit = (before >= 1 && error > 0) || (before <= 0 && error < 0);
+        if (!atLimit && dt > 0) integral += error * Math.min(dt, MAX_INTEGRAL_DT);
+        // The I part alone never pushes more than full power, or less than 0.
+        if (KI > 0) integral = Range.clip(integral, 0, 1 / KI);
+        else integral = 0;
+        partI = KI * integral;
+        double result = rest + partI * voltage.compensation();
+        // A bad Panels value (NaN) would stay in the integral for good, and never goes to the motors.
+        if (Double.isNaN(integral)) integral = 0;
+        if (Double.isNaN(result)) return 0;
+        return Range.clip(result, 0, 1);
+    }
+
+    /** How fast the wheel speeds up, smoothed, for the kD part. */
+    private void updateAcceleration(double dt) {
+        double raw = (dt > 0.001 && dt < 0.1) ? (rpm - lastRpm) / dt : 0;
+        lastRpm = rpm;
+        acceleration = PIDF.smooth(acceleration, raw, D_FILTER);
+        if (Double.isNaN(acceleration)) acceleration = 0;
     }
 
     /** How fast the target RPM is changing, smoothed, for the kA part. Jumps and odd loop times count as no change. */
@@ -278,6 +332,7 @@ public class Shooter {
             telemetry.addData("Shooter power", "open-loop test, left %.2f right %.2f", openLeftPower, openRightPower);
         } else {
             telemetry.addData("Shooter power", "%.2f%s (target changing %+.0f rpm/s)", power, boost ? " boost" : "", targetRate);
+            telemetry.addData("Shooter parts", "F %.2f  P %.2f  I %.2f  D %.2f", partF, partP, partI, partD);
         }
         if (watchdogTripped) {
             telemetry.addData("SHOOTER OFF", "Power was over %.2f for %.0f ms but RPM stayed under %.0f. "
