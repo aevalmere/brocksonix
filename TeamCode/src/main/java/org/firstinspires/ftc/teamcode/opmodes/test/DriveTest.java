@@ -6,7 +6,6 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.math.Pose;
 import com.pedropathing.revhub.drivetrains.Mecanum;
-import com.pedropathing.revhub.localizers.PinpointLocalizer;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -14,7 +13,6 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.opmodes.teleop.MainTeleOp;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
@@ -25,8 +23,8 @@ import org.firstinspires.ftc.teamcode.util.DriveCurve;
 
 /**
  * First drive, before any tuning. It builds only Pedro's Mecanum drivetrain and
- * Pinpoint localizer, from Constants.drivetrainConfig and localizerConfig: no
- * Follower, no Robot. Start on blocks or in open space.
+ * Pinpoint localizer (through TestPose), from Constants.drivetrainConfig and
+ * localizerConfig: no Follower, no Robot. Start on blocks or in open space.
  *
  * D-pad (hold): spins one wheel at WHEEL_TEST_POWER. Up = front left, right =
  * front right, down = back right, left = back left. Each must turn the way that
@@ -39,14 +37,16 @@ import org.firstinspires.ftc.teamcode.util.DriveCurve;
  * above). The sticks have Main TeleOp's curve (Drive.DRIVE_CUBIC, TURN_CUBIC).
  * Right trigger (hold): slow mode, all three sticks times SLOW_SCALE.
  *
- * Cross: field-centric and back. In field-centric, stick up drives along
- * heading 0. Red's driver heading is 0, so press Options with the intake
- * pointed away from you, and stick up then drives away from you. While the
- * heading reads NaN, the sticks drive robot-centric.
+ * Cross: field-centric and back. Field-centric uses the heading carried from the
+ * last OpMode or set by driver 2's relocalize (TestPose), so relocalize if it is
+ * off: stick up then drives away from the driver. While the heading reads NaN,
+ * the sticks drive robot-centric.
  *
- * Options: pose to (0, 0, 0). Then push the robot 48 in. forward (x rises 48),
- * 48 in. left (y rises 48), and turn it left (heading goes positive). If x or y
- * runs the wrong way, flip that pod's direction in Constants.localizerConfig.
+ * Options only zeroes the "Moved since Options" numbers; the pose stays. Then push
+ * the robot 48 in. forward ("forward" rises 48), 48 in. left ("left" rises 48), and
+ * turn it left ("turn" goes positive). If forward or left runs the wrong way, flip
+ * that pod's direction in Constants.localizerConfig. A relocalize moves the pose,
+ * so press Options again after one.
  */
 @Configurable
 @TeleOp(name = "Drive Test", group = "Test")
@@ -66,7 +66,7 @@ public class DriveTest extends LinearOpMode {
         VoltageCache voltage = new VoltageCache(hardwareMap);
         // Neither moves anything: Mecanum only sets directions and float mode, the Pinpoint recalibrates its IMU.
         Mecanum drivetrain = new Mecanum(hardwareMap, Constants.drivetrainConfig);
-        PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, Constants.localizerConfig);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
         // hardwareMap hands back the same motor objects Mecanum got, so these carry the config's directions.
         DcMotorEx[] wheels = {
                 hardwareMap.get(DcMotorEx.class, Constants.drivetrainConfig.frontLeftName.get()),
@@ -76,14 +76,16 @@ public class DriveTest extends LinearOpMode {
         };
         int spinningWheel = -1; // index into wheels, -1 = none
         boolean fieldCentric = false;
+        Pose movedFrom = null; // where "Moved since Options" counts from
 
+        screen.addLine(testPose.startDescription());
         screen.addLine("Ready. Robot on blocks or in open space.");
         screen.update();
 
         waitForStart();
         // "WasPressed" remembers presses made during init, which would fire on the first loop.
         gamepad1.resetEdgeDetection();
-        localizer.setPose(new Pose(0, 0, 0));
+        testPose.start();
 
         ElapsedTime loopTimer = new ElapsedTime();
         while (opModeIsActive()) {
@@ -92,10 +94,12 @@ public class DriveTest extends LinearOpMode {
             bulkReads.clear();
 
             if (gamepad1.crossWasPressed()) fieldCentric = !fieldCentric;
-            if (gamepad1.optionsWasPressed()) localizer.setPose(new Pose(0, 0, 0));
-            localizer.update();
-            Pose pose = localizer.pose();
+            Pose pose = testPose.update();
             boolean noHeading = Double.isNaN(pose.heading());
+            boolean poseOk = !Double.isNaN(pose.x()) && !Double.isNaN(pose.y()) && !noHeading;
+            // Options only moves this display reference, never the pose. The first good pose sets it too.
+            boolean zeroMoved = gamepad1.optionsWasPressed();
+            if (poseOk && (zeroMoved || movedFrom == null)) movedFrom = pose;
 
             int wheel = -1;
             if (gamepad1.dpad_up) wheel = 0;
@@ -117,16 +121,17 @@ public class DriveTest extends LinearOpMode {
                 DrivePowers powers = stickPowers(gamepad1);
                 // A NaN heading would make every power NaN, so field-centric waits for a real one.
                 if (fieldCentric && !noHeading) {
-                    // Main TeleOp's rotation, for red.
-                    powers = Drive.driverToField(powers, pose.heading(), Alliance.RED);
+                    // Main TeleOp's rotation.
+                    powers = Drive.driverToField(powers, pose.heading(), TestPose.alliance());
                 }
                 // true = driver input, so the wheels brake at 0 power (as in Main TeleOp).
                 drivetrain.drive(powers, true);
             }
 
             screen.addData("Drive (Cross)", fieldCentric ? "field-centric" : "robot-centric");
-            screen.addLine("D-pad: one wheel. Sticks: drive. Cross: field/robot. RT: slow. Options: pose to 0.");
-            if (Double.isNaN(pose.x()) || Double.isNaN(pose.y()) || noHeading) {
+            screen.addLine("D-pad: one wheel. Sticks: drive. Cross: field/robot. RT: slow. Options: zero \"Moved since Options\".");
+            testPose.addTelemetry(screen);
+            if (!poseOk) {
                 screen.addLine("!! Pose is NaN: the Pinpoint is not reading. Check its cable and pods.");
             }
             if (fieldCentric && noHeading) {
@@ -141,6 +146,15 @@ public class DriveTest extends LinearOpMode {
             screen.addData("x", "%.1f in.", pose.x());
             screen.addData("y", "%.1f in.", pose.y());
             screen.addData("Heading", "%.1f deg", Angles.wrapDegrees(Math.toDegrees(pose.heading())));
+            if (poseOk && movedFrom != null) {
+                double dx = pose.x() - movedFrom.x();
+                double dy = pose.y() - movedFrom.y();
+                double h0 = movedFrom.heading();
+                screen.addData("Moved since Options", "forward %.1f in.  left %.1f in.  turn %.1f deg",
+                        dx * Math.cos(h0) + dy * Math.sin(h0),
+                        -dx * Math.sin(h0) + dy * Math.cos(h0),
+                        Angles.wrapDegrees(Math.toDegrees(pose.heading() - h0)));
+            }
             screen.addData("Loop", "%.1f ms", loopMs);
             screen.addData("Battery", "%.2f V", voltage.get());
             screen.update();

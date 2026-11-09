@@ -50,6 +50,11 @@ public final class Field {
     public static double FAR_CELL_Y = 87.25;
     /** Center of the upward cell's opening when the audience cell is up: 70.75 - 16.5. */
     public static double AUDIENCE_CELL_Y = 54.25;
+    /**
+     * Half of the upward cell's 20 in. wide opening, along x. The HIVE's side walls of the
+     * opening are this far either side of the cell center, so an aim point never goes past them.
+     */
+    public static double CELL_OPENING_HALF_WIDTH = 10;
 
     // TODO(12): Drive across the middle. Raise it if the turret flips between cells (or between shoot and pass) too eagerly.
     /**

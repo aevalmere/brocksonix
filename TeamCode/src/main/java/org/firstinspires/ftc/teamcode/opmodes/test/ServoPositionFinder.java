@@ -32,11 +32,14 @@ public class ServoPositionFinder extends LinearOpMode {
             positions[i] = 0.5;
         }
         int selected = 0;
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
 
         waitForStart();
         // "WasPressed" remembers presses made during init, which would move a servo on the first loop.
         gamepad1.resetEdgeDetection();
+        testPose.start();
         while (opModeIsActive()) {
+            testPose.update();
             if (gamepad1.dpadRightWasPressed()) selected = (selected + 1) % NAMES.length;
             if (gamepad1.dpadLeftWasPressed()) selected = (selected + NAMES.length - 1) % NAMES.length;
 
@@ -56,6 +59,7 @@ public class ServoPositionFinder extends LinearOpMode {
             if (FlowerIntake.RIGHT_REVERSED) {
                 telemetry.addLine("The right flower servo is reversed in FlowerIntake, so its number here is 1 minus the one to use.");
             }
+            testPose.addTelemetry(telemetry);
             telemetry.update();
         }
     }

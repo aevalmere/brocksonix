@@ -15,7 +15,8 @@ import org.firstinspires.ftc.teamcode.util.LookupTable;
  * angle and an RPM. Built in layers, each with its own switch so it can be
  * turned on or off on the field (LEAD and PREDICT start off):
  *
- * 1. Static: aim at the target, RPM from distance. Always on.
+ * 1. Static: aim at the target, RPM from the angle around the cell, then the distance (ShotTables.staticShotRpm).
+ *    Always on.
  * 2. LEAD: a ball keeps the robot's velocity, so aim at
  *    target - velocity * flightTime instead. Repeated a few times, because
  *    moving the aim point changes the distance, which changes the flight time.
@@ -112,32 +113,40 @@ public class ShotSolver {
         }
         lastLaunchVelocity = launchVelocity;
 
-        double aimX = target.x();
-        double aimY = target.y();
+        // From the side, aim toward the HIVE wall that faces the robot (ShotTables.AIM_SHIFT_IN).
+        // LEAD then leads that point.
+        Pose goal = ShotTables.shiftedAim(shotFrom.x(), shotFrom.y(), target);
+        double aimX = goal.x();
+        double aimY = goal.y();
         if (LEAD) {
             for (int i = 0; i < LEAD_ITERATIONS; i++) {
                 double distance = Math.hypot(aimX - shotFrom.x(), aimY - shotFrom.y());
                 double flightTime = coax ? coaxFlightTime(distance, measuredRpm)
                         : LookupTable.at(ShotTables.SHOT_FLIGHT_TIME, distance);
-                aimX = target.x() - launchVelocity.vx * flightTime;
-                aimY = target.y() - launchVelocity.vy * flightTime;
+                aimX = goal.x() - launchVelocity.vx * flightTime;
+                aimY = goal.y() - launchVelocity.vy * flightTime;
             }
         }
 
         double distance = Math.hypot(aimX - shotFrom.x(), aimY - shotFrom.y());
-        // The real distance to the target, so telemetry can show it next to the led one.
-        double targetDistance = Math.hypot(target.x() - shotFrom.x(), target.y() - shotFrom.y());
-        double[][] rpmTable = coax ? ShotTables.COAX_RPM : ShotTables.SHOT_RPM;
+        // The real distance to the (shifted) goal, so telemetry can show it next to the led one.
+        double targetDistance = Math.hypot(goal.x() - shotFrom.x(), goal.y() - shotFrom.y());
         double launchDeg = coax
                 ? HoodSolver.launchDeg(distance, measuredRpm, CoaxHood.MIN_LAUNCH_DEG, CoaxHood.MAX_LAUNCH_DEG)
                 : Double.NaN;
+        // Static hood: the RPM comes from the angle the robot sits at around the cell (the real
+        // cell, not LEAD's aim point), and the distance only decides whether it may fire.
+        double rpm = coax ? LookupTable.at(ShotTables.COAX_RPM, distance)
+                : ShotTables.staticShotRpm(shotFrom.x(), shotFrom.y(), target);
+        boolean valid = coax ? inRange(ShotTables.COAX_RPM, distance)
+                : distance >= ShotTables.SHOT_MIN_DISTANCE && distance <= ShotTables.SHOT_MAX_DISTANCE;
         return new ShotSolution(
                 turretAngle(turretFrom, aimX, aimY),
                 distance,
                 targetDistance,
-                LookupTable.at(rpmTable, distance),
+                rpm,
                 LookupTable.at(ShotTables.SHOT_FEED_POWER, distance),
-                inRange(rpmTable, distance),
+                valid,
                 launchDeg);
     }
 

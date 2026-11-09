@@ -36,7 +36,7 @@ public final class ShootingZone {
      * order around the shape (either way round). Placeholder values. The first two
      * are the short side, near the cell's opening at (58, 87.25): 16.75 in. from it
      * straight out (y 104) and 19.5 in. at the corners. That is closer than
-     * ShotTables.SHOT_RPM's first row (20 in.), so near the short side the shot is
+     * ShotTables.SHOT_MIN_DISTANCE (20 in.), so near the short side the shot is
      * out of range and zone fire doesn't fire. The last two are the long side toward
      * the far wall. That is roughly ±35° either side of straight out from the cell.
      */

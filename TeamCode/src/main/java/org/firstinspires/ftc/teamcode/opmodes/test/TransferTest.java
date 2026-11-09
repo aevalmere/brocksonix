@@ -15,8 +15,9 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
 
 /**
  * Drive around while checking both ends of the rail. It builds Pedro's Mecanum
- * drivetrain and the Intake and Transfer subsystems: no Robot or break beams.
- * The configuration needs the four drive motors, "intake", and "transfer".
+ * drivetrain, the Pinpoint (TestPose, so the pose carries through this test) and
+ * the Intake and Transfer subsystems: no Robot or break beams. The configuration
+ * needs the four drive motors, "pinpoint", "intake", and "transfer".
  *
  * Sticks drive robot-centric with Drive Test's stick code
  * (DriveTest.stickPowers). Right trigger (hold): slow mode. From Start, both
@@ -31,19 +32,23 @@ public class TransferTest extends LinearOpMode {
         BulkReads bulkReads = new BulkReads(hardwareMap);
         // Moves nothing: Mecanum only sets directions and float mode.
         Mecanum drivetrain = new Mecanum(hardwareMap, Constants.drivetrainConfig);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
 
         // Use the match subsystems so this checks their motor directions and power settings.
         Intake intake = new Intake(hardwareMap);
         Transfer transfer = new Transfer(hardwareMap);
 
+        screen.addLine(testPose.startDescription());
         screen.addLine("Ready. Intake and transfer start spinning at Start, with no button.");
         screen.update();
 
         waitForStart();
         // So a "WasPressed" button added later can't fire on a press made during init.
         gamepad1.resetEdgeDetection();
+        testPose.start();
         while (opModeIsActive()) {
             bulkReads.clear();
+            testPose.update();
 
             // true = driver input, so the wheels brake at 0 power (as in Drive Test).
             drivetrain.drive(DriveTest.stickPowers(gamepad1), true);
@@ -63,6 +68,7 @@ public class TransferTest extends LinearOpMode {
                     reversing ? "reversing (LT)" : "running", reversing ? Transfer.REVERSE_POWER : Transfer.COLLECT_POWER);
             screen.addData("Slow mode (RT)", DriveTest.slowHeld(gamepad1) ? "on" : "off");
             screen.addLine("Sticks: drive. RT (hold): slow. No button: both motors run. LT (hold): reverse both.");
+            testPose.addTelemetry(screen);
             screen.update();
         }
         drivetrain.stop();

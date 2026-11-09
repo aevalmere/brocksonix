@@ -52,17 +52,26 @@ public class Shooter {
     /** Fixed friction push, the same at any target (only while the target is above 0). */
     public static double KF = 0.002;
     // TODO(6): KP, KI, KD at 0: raise until the wheel settles close to target at 2000, 3500 and 5000 RPM.
-    /** Power per RPM of target. */
-    public static double KV = 0.0005;
+    /**
+     * Power per RPM of target. A bare 6000 RPM motor needs about 1 / 6000 (0.5 power at 3000 RPM).
+     * Much higher and kF + kV alone pushes the wheel past target, and only kP can pull it back.
+     */
+    public static double KV = 1.0 / 6000;
     // TODO(6): Raise until it gets back fast after a ball without oscillating.
-    /** Power per RPM of error. */
-    public static double KP = 0.025;
-    // TODO(6): Only if it still settles a little off target: raise from 0 until it reaches target without overshooting.
-    /** Power per RPM-second of built-up error. */
-    public static double KI = 0;
-    // TODO(6): Only if it overshoots with KI in: raise from 0. The RPM reading moves in steps of about 43, so keep it small.
-    /** Power per RPM-per-second the wheel speeds up (brakes the climb). */
-    public static double KD = 0.008;
+    /** Power per RPM of error. 0.003 = full power at about 300 RPM of error. */
+    public static double KP = 0.003;
+    // TODO(6): Only if it still settles a little off target: raise until it reaches target without overshooting.
+    /** Power per RPM-second of built-up error. Clears what kV gets wrong, in either direction. */
+    public static double KI = 0.001;
+    // TODO(6): Leave at 0 unless it overshoots after KV, KP and KI are tuned, and then only up to about 0.0002.
+    /**
+     * Power per RPM-per-second the wheel speeds up (brakes the climb). Keep it 0 or tiny. The RPM
+     * reading moves in steps of 43, so one step in one loop reads as thousands of RPM per second.
+     * With 0.008, every step down gave the wheel full power, but the motors can't brake (power
+     * stops at 0), so each step up only let it coast. The wheel climbed until kP was big enough to
+     * drown those kicks: it sat about 400 RPM above target.
+     */
+    public static double KD = 0;
     // TODO(6): Only with KD on: raise (smoother) if the D part jumps around.
     /** Smoothing for the wheel's acceleration in the D part: 0 = none, closer to 1 = smoother but later. */
     public static double D_FILTER = 0.7;
@@ -283,8 +292,9 @@ public class Shooter {
         double before = rest + KI * integral * voltage.compensation();
         boolean atLimit = (before >= 1 && error > 0) || (before <= 0 && error < 0);
         if (!atLimit && dt > 0) integral += error * Math.min(dt, MAX_INTEGRAL_DT);
-        // The I part alone never pushes more than full power, or less than 0.
-        if (KI > 0) integral = Range.clip(integral, 0, 1 / KI);
+        // The I part alone stays within full power either way. It may go below 0, so it can
+        // pull the wheel down when kF + kV ask for more power than the wheel needs.
+        if (KI > 0) integral = Range.clip(integral, -1 / KI, 1 / KI);
         else integral = 0;
         partI = KI * integral;
         double result = rest + partI * voltage.compensation();

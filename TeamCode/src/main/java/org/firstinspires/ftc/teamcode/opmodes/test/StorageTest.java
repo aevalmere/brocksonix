@@ -29,14 +29,17 @@ public class StorageTest extends LinearOpMode {
         Intake intake = new Intake(hardwareMap);
         Transfer transfer = new Transfer(hardwareMap);
         Door door = new Door(hardwareMap);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
         boolean collecting = false;
 
         waitForStart();
         // "WasPressed" remembers presses made during init, which would fire on the first loop.
         gamepad1.resetEdgeDetection();
+        testPose.start();
         while (opModeIsActive()) {
             bulkReads.clear();
             storage.update();
+            testPose.update();
 
             if (gamepad1.crossWasPressed()) collecting = !collecting;
             if (gamepad1.circle) {
@@ -59,6 +62,7 @@ public class StorageTest extends LinearOpMode {
             intake.addTelemetry(screen);
             transfer.addTelemetry(screen);
             door.addTelemetry(screen);
+            testPose.addTelemetry(screen);
             screen.update();
         }
     }

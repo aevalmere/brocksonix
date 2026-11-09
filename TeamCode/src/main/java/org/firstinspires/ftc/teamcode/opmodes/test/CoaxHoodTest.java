@@ -92,6 +92,7 @@ public class CoaxHoodTest extends LinearOpMode {
         Transfer transfer = new Transfer(hardwareMap);
         Storage storage = new Storage(hardwareMap);
         CoaxHood hood = new CoaxHood(hardwareMap);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
 
         boolean physics = false;
         boolean raw = false;
@@ -101,6 +102,7 @@ public class CoaxHoodTest extends LinearOpMode {
         double rpmOffset = 0;
         boolean doorWanted = false;
 
+        screen.addLine(testPose.startDescription());
         screen.addLine(String.format("Physics seeds for ShotTables.COAX_RPM (hood %.0f to %.0f deg, at most %.0f RPM):",
                 CoaxHood.MIN_LAUNCH_DEG, CoaxHood.MAX_LAUNCH_DEG, SEED_MAX_RPM));
         for (String row : seedRows()) screen.addLine(row);
@@ -110,10 +112,12 @@ public class CoaxHoodTest extends LinearOpMode {
         waitForStart();
         // "WasPressed" remembers presses made during init, which would fire on the first loop.
         gamepad1.resetEdgeDetection();
+        testPose.start();
         while (opModeIsActive()) {
             bulkReads.clear();
             shooter.readSensors();
             storage.update();
+            testPose.update();
 
             if (gamepad1.crossWasPressed()) {
                 physics = !physics;
@@ -237,6 +241,7 @@ public class CoaxHoodTest extends LinearOpMode {
             hood.addTelemetry(screen);
             shooter.addTelemetry(screen);
             storage.addTelemetry(screen);
+            testPose.addTelemetry(screen);
             screen.addData("Battery", "%.2f V", voltage.get());
             screen.update();
         }

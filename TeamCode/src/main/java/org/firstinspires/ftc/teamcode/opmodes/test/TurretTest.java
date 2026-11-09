@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.robot.hardware.BulkReads;
 import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.util.Angles;
 
@@ -28,6 +29,8 @@ import org.firstinspires.ftc.teamcode.util.Angles;
  *   Triangle: sweep. The target turns at SWEEP_DEG_PER_SEC, like the robot turning under
  *     the turret, for tuning the KV feedforward without driving. Stopping the sweep keeps
  *     the target where it got to.
+ * Circle (any mode): door open/closed, at Door.OPEN_POSITION / CLOSED_POSITION (Panels page
+ *   "Door", live). It starts closed. Nothing else moves, so no ball feeds.
  */
 @Configurable
 @TeleOp(name = "Turret Test", group = "Test")
@@ -45,7 +48,10 @@ public class TurretTest extends LinearOpMode {
         Telemetry screen = new JoinedTelemetry(PanelsTelemetry.INSTANCE.getFtcTelemetry(), telemetry);
         BulkReads bulkReads = new BulkReads(hardwareMap);
         Turret turret = new Turret(hardwareMap, new VoltageCache(hardwareMap));
+        Door door = new Door(hardwareMap);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
         boolean manual = true;
+        boolean doorOpen = false;
         boolean stepping = false;
         boolean sweeping = false;
         ElapsedTime stepTimer = new ElapsedTime();
@@ -54,6 +60,7 @@ public class TurretTest extends LinearOpMode {
         waitForStart();
         // "WasPressed" remembers presses made during init, which would fire on the first loop.
         gamepad1.resetEdgeDetection();
+        testPose.start();
         stepTimer.reset();
         loopTimer.reset();
         while (opModeIsActive()) {
@@ -61,6 +68,7 @@ public class TurretTest extends LinearOpMode {
             loopTimer.reset();
             bulkReads.clear();
             turret.readSensors();
+            testPose.update();
 
             if (gamepad1.crossWasPressed()) manual = !manual;
             if (gamepad1.dpadUpWasPressed()) TARGET_DEG = 0;
@@ -78,6 +86,9 @@ public class TurretTest extends LinearOpMode {
                 sweeping = !sweeping;
                 stepping = false;
             }
+            if (gamepad1.circleWasPressed()) doorOpen = !doorOpen;
+            if (doorOpen) door.open();
+            else door.close();
 
             if (sweeping && !manual) TARGET_DEG += SWEEP_DEG_PER_SEC * dt;
             TARGET_DEG = Angles.wrapDegrees(TARGET_DEG);
@@ -93,9 +104,12 @@ public class TurretTest extends LinearOpMode {
             turret.setTestPower(manual ? (Double) stick : null);
             turret.setTargetDeg(target);
             turret.update();
+            door.update();
 
             String test = stepping ? "step (Square)" : sweeping ? "sweep (Triangle)" : "hold";
             screen.addData("Mode (Cross)", manual ? "manual" : "aiming, " + test);
+            screen.addData("Door (Circle)", "%s, open %.3f  closed %.3f",
+                    doorOpen ? "open" : "closed", Door.OPEN_POSITION, Door.CLOSED_POSITION);
             screen.addData("Encoder volts", "%.3f", turret.encoderVolts());
             // Wrapped to -180..180 like every other angle, so it reads the same number ENCODER_ZERO_DEG holds.
             screen.addData("Turret raw encoder deg", "%.1f", Angles.wrapDegrees(turret.rawEncoderDeg()));
@@ -105,6 +119,7 @@ public class TurretTest extends LinearOpMode {
             screen.addData("angle", turret.angleDeg());
             screen.addData("error", turret.errorDeg());
             screen.addData("power", turret.power());
+            testPose.addTelemetry(screen);
             screen.update();
         }
     }

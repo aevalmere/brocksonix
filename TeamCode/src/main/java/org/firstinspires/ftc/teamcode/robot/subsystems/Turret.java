@@ -76,7 +76,7 @@ public class Turret {
      * ENCODER_ZERO_DEG: changing them moves every angle a little.
      */
     public static double ENCODER_MIN_VOLTS = 0;
-    // To re-measure: point the shooter straight out the front, read "Turret raw encoder deg" in Turret Test.
+    // To re-measure: point the shooter straight out the front, read "Turret raw encoder deg" in Tclurret Test.
     /**
      * Raw encoder angle (volts turned into 0 to 360, before ENCODER_REVERSED) when the shooter
      * points straight out the front. It is taken off before the flip, so flipping

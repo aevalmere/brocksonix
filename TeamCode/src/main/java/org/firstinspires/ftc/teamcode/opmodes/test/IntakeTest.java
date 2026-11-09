@@ -19,9 +19,10 @@ import org.firstinspires.ftc.teamcode.util.Debouncer;
 
 /**
  * Drive around and pick balls up. It builds only Pedro's Mecanum drivetrain
- * (from Constants.drivetrainConfig) and the Intake subsystem: no Pinpoint, no
- * Follower, no Robot. The configuration needs the four drive motors and
- * "intake": no transfer motor, no beams.
+ * (from Constants.drivetrainConfig), the Pinpoint (TestPose, so the pose carries
+ * through this test) and the Intake subsystem: no Follower, no Robot. The
+ * configuration needs the four drive motors, "pinpoint" and "intake": no
+ * transfer motor, no beams.
  *
  * Sticks drive robot-centric with Drive Test's stick code
  * (DriveTest.stickPowers). Right trigger (hold): slow mode, all three sticks
@@ -48,6 +49,7 @@ public class IntakeTest extends LinearOpMode {
         BulkReads bulkReads = new BulkReads(hardwareMap);
         // Moves nothing: Mecanum only sets directions and float mode.
         Mecanum drivetrain = new Mecanum(hardwareMap, Constants.drivetrainConfig);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
 
         // The same Intake the match code uses, so a direction or power fixed here is fixed there too.
         Intake intake = new Intake(hardwareMap);
@@ -58,6 +60,7 @@ public class IntakeTest extends LinearOpMode {
         Debouncer blocked = new Debouncer(false);
         ElapsedTime blockedFor = new ElapsedTime();
 
+        screen.addLine(testPose.startDescription());
         screen.addLine("Ready. The intake starts spinning at Start, with no button.");
         screen.addData("Full beam", fullBeam == null ? "not in config, so the intake runs nonstop" : "found");
         screen.update();
@@ -65,8 +68,10 @@ public class IntakeTest extends LinearOpMode {
         waitForStart();
         // So a "WasPressed" button added later can't fire on a press made during init.
         gamepad1.resetEdgeDetection();
+        testPose.start();
         while (opModeIsActive()) {
             bulkReads.clear();
+            testPose.update();
 
             // true = driver input, so the wheels brake at 0 power (as in Drive Test).
             drivetrain.drive(DriveTest.stickPowers(gamepad1), true);
@@ -105,6 +110,7 @@ public class IntakeTest extends LinearOpMode {
             screen.addData("Full beam", beam);
             screen.addData("Slow mode (RT)", DriveTest.slowHeld(gamepad1) ? "on" : "off");
             screen.addLine("Sticks: drive. RT (hold): slow. No button: intake runs. LT (hold): reverse.");
+            testPose.addTelemetry(screen);
             screen.update();
         }
         drivetrain.stop();

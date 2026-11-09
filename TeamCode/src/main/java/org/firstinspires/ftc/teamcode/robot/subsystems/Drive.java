@@ -31,6 +31,11 @@ public class Drive {
     public static double HOLD_BELOW_SPEED = 2;
 
     private final Follower follower;
+    /**
+     * The robot-centric powers drive() sent since the last update(): zero while holding, null
+     * when drive() wasn't called (auto). Robot's turn prediction reads it; update() clears it.
+     */
+    private DrivePowers manualPowers = null;
 
     public Drive(Follower follower) {
         this.follower = follower;
@@ -47,6 +52,7 @@ public class Drive {
         boolean driverInput = Math.hypot(away, left) > STICK_DEADBAND || Math.abs(turnLeft) > STICK_DEADBAND;
         if (!driverInput && HOLD_WHEN_STOPPED) {
             ManualDrive.driveOrHold(follower, DrivePowers.zero(), STICK_DEADBAND, HOLD_BELOW_SPEED);
+            manualPowers = DrivePowers.zero();
             return;
         }
 
@@ -58,7 +64,13 @@ public class Drive {
                 away * stretch,
                 left * stretch,
                 DriveCurve.shape(turnLeft, STICK_DEADBAND, TURN_CUBIC));
-        follower.manual(driverToField(fromDriver, pose().heading(), alliance));
+        manualPowers = driverToField(fromDriver, pose().heading(), alliance);
+        follower.manual(manualPowers);
+    }
+
+    /** What drive() sent since the last update(), robot-centric: zero while holding, null without a drive() call (auto). */
+    public DrivePowers manualPowers() {
+        return manualPowers;
     }
 
     /**
@@ -79,6 +91,7 @@ public class Drive {
 
     public void update() {
         follower.update();
+        manualPowers = null;
     }
 
     /** Stops following or holding. Any Foresight setting the current path changed (like a speed limit) is put back. */

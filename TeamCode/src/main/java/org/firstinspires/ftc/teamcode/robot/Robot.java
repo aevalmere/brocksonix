@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode.robot;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.math.Velocity;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.field.Cell;
@@ -17,6 +19,7 @@ import org.firstinspires.ftc.teamcode.robot.hardware.VoltageCache;
 import org.firstinspires.ftc.teamcode.robot.shot.ShotSolution;
 import org.firstinspires.ftc.teamcode.robot.shot.ShotSolver;
 import org.firstinspires.ftc.teamcode.robot.shot.ShotTables;
+import org.firstinspires.ftc.teamcode.robot.shot.TurnPredictor;
 import org.firstinspires.ftc.teamcode.robot.subsystems.CoaxHood;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Drive;
@@ -57,7 +60,7 @@ import java.util.Set;
  * there go straight through: that's on purpose.
  *
  * Two hoods are supported, and HOOD picks which one is used, live in Panels:
- * STATIC (fixed launch angle, the SHOT_RPM table) or COAX (the coax hood:
+ * STATIC (fixed launch angle, RPM from ShotTables' shot spots by angle, then distance) or COAX (the coax hood:
  * COAX_RPM for the wheel, and HoodSolver picks the angle from the wheel's real
  * speed). The coax hood servo is optional in the robot configuration. With it on
  * the robot and STATIC picked, the hood holds the static hood's angle, so the
@@ -111,6 +114,9 @@ public class Robot {
     private final BulkReads bulkReads;
     private final ShotSolver solver = new ShotSolver();
     private final FireControl fireControl = new FireControl();
+    /** TeleOp: predicts the robot's turn from the turn power sent, so the turret turns with it (see update()). */
+    private final TurnPredictor turnPredictor = new TurnPredictor();
+    private final ElapsedTime loopTimer = new ElapsedTime();
 
     private ShotSolution aim;
     /**
@@ -283,6 +289,12 @@ public class Robot {
     }
 
     public void update() {
+        double dt = loopTimer.seconds();
+        loopTimer.reset();
+        // What the driver sent this loop. Read before drive.update(), which forgets it. Null in auto.
+        DrivePowers driverPowers = drive.manualPowers();
+        turnPredictor.update(driverPowers != null ? driverPowers : DrivePowers.zero(), dt);
+
         bulkReads.clear();
         drive.update();
         storage.update();
@@ -328,7 +340,11 @@ public class Robot {
         }
         // No aim in the middle of a burst (NaN pose) keeps the last good aim. The rail pauses then
         // (not aimed), but cutting the wheel would send a ball already past the door into a slowing wheel.
-        turret.setTargetDeg(lastTurretDeg);
+        // TeleOp, with an aim: the turret leads the turn the driver just asked for (TurnPredictor),
+        // like Continuous Test. In auto, or at the turret's idle 0, it just goes to the angle.
+        // ShotSolver.PREDICT already aims from a predicted heading, so then only the rate is added.
+        if (aim != null && driverPowers != null) turnPredictor.aim(turret, lastTurretDeg, !ShotSolver.PREDICT);
+        else turret.setTargetDeg(lastTurretDeg);
         // Spin up whenever a ball is stored, so the wheel is already at speed when shoot is pressed.
         // It stays up for the whole burst too, so the wheel isn't cut while the last ball is still going through.
         shooter.setTargetRpm((isFiring() || !storage.isEmpty()) ? lastRpm : 0);
@@ -499,6 +515,10 @@ public class Robot {
             }
         }
         if (ShotSolver.LEAD || ShotSolver.PREDICT) solver.addTelemetry(telemetry, drive.velocity());
+        telemetry.addData("Turn prediction", TurnPredictor.ENABLED
+                ? String.format("on, lead %.1f deg, feedforward %.0f deg/s",
+                        turnPredictor.headingAheadDeg(), turnPredictor.feedforwardRateDegPerSec())
+                : "off");
         if (!coax) {
             telemetry.addData("Hood", coaxHood == null ? "static" : "static (coax hood holding the static angle)");
         } else if (aim != null && aim.hoodCanScore()) {

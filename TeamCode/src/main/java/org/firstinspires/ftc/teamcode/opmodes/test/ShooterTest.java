@@ -7,14 +7,11 @@ import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.math.Pose;
 import com.pedropathing.revhub.drivetrains.Mecanum;
-import com.pedropathing.revhub.localizers.PinpointLocalizer;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.field.Alliance;
 import org.firstinspires.ftc.teamcode.field.Cell;
-import org.firstinspires.ftc.teamcode.field.Corner;
 import org.firstinspires.ftc.teamcode.field.Field;
 import org.firstinspires.ftc.teamcode.field.ShootingZone;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
@@ -26,17 +23,15 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
-import org.firstinspires.ftc.teamcode.util.LookupTable;
 
 /**
- * Flywheel tuning and filling the shot tables. The Pinpoint tracks the robot:
- * at Start the pose is set to the NEAR_RIGHT corner (red's GARDEN corner, intake
- * flat on the alliance wall, side flat on the audience wall), so start the robot
- * there. Options sets it there again. Drive to a spot with the sticks (Drive
- * Test's stick code, RT slow), and the screen shows the pose and the distance to
- * the cell; Panels' field page draws the robot and the cell. Find the RPM that
- * scores, put the pair into ShotTables (also live in Panels). Tune KS/KV/KP live
- * in Panels (Shooter). Red field coordinates throughout.
+ * Flywheel tuning and filling the shot tables. The pose comes from TestPose: it
+ * carries over from the last OpMode, and driver 2 relocalizes with Main TeleOp's
+ * buttons. Drive to a spot with the sticks (Drive Test's stick code, RT slow), and
+ * the screen shows the pose and the distance to the cell; Panels' field page draws
+ * the robot and the cell. Find the RPM that scores, and put the pose and RPM into the
+ * nearest of ShotTables' three shot spots (also live in Panels). Tune KS/KV/KP live in Panels (Shooter). The cell belongs
+ * to TestPose.alliance(): the alliance last picked, red if there is none.
  *
  * No break beams needed. Cross: wheel on/off. The target is TARGET_RPM (Panels);
  * D-pad up/down changes it by a big step, left/right by a small one.
@@ -45,7 +40,10 @@ import org.firstinspires.ftc.teamcode.util.LookupTable;
  * With the wheel off the door closes, the intake keeps collecting and the
  * transfer holds balls against the door at Transfer.HOLD_POWER.
  *
- * Door positions: with the wheel off, Triangle swings the door open/closed with the
+ * USE_DOOR (off for now) leaves the door out: then it feeds as soon as the wheel is on, the
+ * transfer stops instead of holding with the wheel off, and Triangle does nothing.
+ *
+ * Door positions (USE_DOOR on): with the wheel off, Triangle swings the door open/closed with the
  * rail stopped, so no ball goes through. Edit Door.OPEN_POSITION and
  * Door.CLOSED_POSITION in Panels (page "Door"); the servo follows live.
  *
@@ -55,7 +53,7 @@ import org.firstinspires.ftc.teamcode.util.LookupTable;
  * With the left motor running, RPM must read positive, or flip ENCODER_REVERSED.
  *
  * With the coax hood on the robot, it holds CoaxHood.STATIC_LAUNCH_DEG, like Main
- * TeleOp with Robot.HOOD = STATIC, so the SHOT_RPM rows found here fit the static tables.
+ * TeleOp with Robot.HOOD = STATIC, so the shot spots found here fit the static hood.
  */
 @Configurable
 @TeleOp(name = "Shooter Test", group = "Test")
@@ -66,12 +64,21 @@ public class ShooterTest extends LinearOpMode {
     public static double RPM_STEP_BIG = 100;
     /** D-pad left/right changes the target RPM by this much. */
     public static double RPM_STEP_SMALL = 25;
-    /** Rail power while feeding (right bumper). Compare with ShotTables.SHOT_FEED_POWER. */
+    /** Rail power while feeding. Compare with ShotTables.SHOT_FEED_POWER. Continuous Test feeds at it too. */
     public static double FEED_POWER = 1.0;
-    /** Wheel target while it is on (Cross). Type it in Panels, or step it with the D-pad. */
-    public static double TARGET_RPM = 3000;
+    /**
+     * Wheel target while it is on (Cross), in this test only. Type it in Panels, or step it
+     * with the D-pad. 2200 scored from one field tile off the GARDEN at the AUDIENCE cell.
+     */
+    public static double TARGET_RPM = 2200;
     /** Which cell the distance is measured to: true = FAR cell, false = AUDIENCE cell. */
     public static boolean FAR_CELL = true;
+    /**
+     * Off for now: this test and Continuous Test leave the door servo alone (never built, never
+     * written), feed as if the door were open, and stop the transfer instead of holding balls
+     * against it. Turret Test still runs the door. Read at init: change it, then Init again.
+     */
+    public static boolean USE_DOOR = false;
 
     /** Panels' PEDRO_PATHING picture is 144 across; ours is Field.SIZE (see PlanDrawing). Drawing only. */
     private static final double TO_PANELS = 144 / Field.SIZE;
@@ -82,12 +89,13 @@ public class ShooterTest extends LinearOpMode {
         BulkReads bulkReads = new BulkReads(hardwareMap);
         VoltageCache voltage = new VoltageCache(hardwareMap);
         Shooter shooter = new Shooter(hardwareMap, voltage);
-        Door door = new Door(hardwareMap);
+        // Null while USE_DOOR is off: the door servo isn't even looked up.
+        Door door = USE_DOOR ? new Door(hardwareMap) : null;
         Intake intake = new Intake(hardwareMap);
         Transfer transfer = new Transfer(hardwareMap);
         // Moves nothing in init: Mecanum only sets directions and float mode, the Pinpoint only reads.
         Mecanum drivetrain = new Mecanum(hardwareMap, Constants.drivetrainConfig);
-        PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, Constants.localizerConfig);
+        TestPose testPose = new TestPose(hardwareMap, gamepad1, gamepad2);
         // Optional, like in Robot: null when the configuration has no hood servo.
         CoaxHood hood = CoaxHood.isConfigured(hardwareMap) ? new CoaxHood(hardwareMap) : null;
         boolean on = false;
@@ -96,19 +104,16 @@ public class ShooterTest extends LinearOpMode {
         waitForStart();
         // "WasPressed" remembers presses made during init: Cross would turn the wheel on at start.
         gamepad1.resetEdgeDetection();
-        Pose startPose = Field.cornerPose(Alliance.RED, Corner.NEAR_RIGHT);
-        localizer.setPose(startPose);
+        testPose.start();
         while (opModeIsActive()) {
             bulkReads.clear();
             shooter.readSensors();
-            if (gamepad1.optionsWasPressed()) localizer.setPose(startPose);
-            localizer.update();
-            Pose pose = localizer.pose();
+            Pose pose = testPose.update();
             drivetrain.drive(DriveTest.stickPowers(gamepad1), true);
 
             if (gamepad1.crossWasPressed()) on = !on;
             // Door test only with the wheel off; turning the wheel on ends it.
-            if (gamepad1.triangleWasPressed() && !on) doorTestOpen = !doorTestOpen;
+            if (gamepad1.triangleWasPressed() && !on && door != null) doorTestOpen = !doorTestOpen;
             if (on) doorTestOpen = false;
             if (gamepad1.dpadUpWasPressed()) TARGET_RPM += RPM_STEP_BIG;
             if (gamepad1.dpadDownWasPressed()) TARGET_RPM -= RPM_STEP_BIG;
@@ -127,18 +132,26 @@ public class ShooterTest extends LinearOpMode {
                 shooter.setTargetRpm(on ? TARGET_RPM : 0);
             }
             shooter.setBoost(fire);
-            if (fire || doorTestOpen) door.open();
-            else door.close();
+            if (door != null) {
+                if (fire || doorTestOpen) door.open();
+                else door.close();
+            }
+            // No door: nothing to wait for.
+            boolean doorFullyOpen = door == null || door.isFullyOpen();
 
             if (doorTestOpen) {
                 // Door test: the rail stays still, so balls don't roll into the wheel.
                 intake.stop();
                 transfer.stop();
-            } else if (fire && door.isFullyOpen()) {
+            } else if (fire && doorFullyOpen) {
                 intake.feed(FEED_POWER);
                 transfer.feed(FEED_POWER);
             } else if (fire) {
                 intake.stop();
+                transfer.stop();
+            } else if (door == null) {
+                // No door to hold against: the transfer stops, so balls don't creep into the wheel.
+                intake.collect(false);
                 transfer.stop();
             } else {
                 // No beams: the intake always collects, and the transfer holds gently against the closed door.
@@ -147,7 +160,7 @@ public class ShooterTest extends LinearOpMode {
             }
 
             shooter.update();
-            door.update();
+            if (door != null) door.update();
             if (hood != null) {
                 // Every loop, so a Panels edit to STATIC_LAUNCH_DEG moves it live.
                 hood.setTargetDeg(CoaxHood.STATIC_LAUNCH_DEG);
@@ -159,20 +172,26 @@ public class ShooterTest extends LinearOpMode {
             screen.addData("Wheel (Cross)", on ? "on, firing nonstop" : "off");
             screen.addData("One motor (hold, wheel off)", "Square = left, Circle = right, %.2f power", MOTOR_TEST_POWER);
             screen.addData("Target RPM (Panels TARGET_RPM, D-pad)", "%.0f", TARGET_RPM);
-            screen.addData("Door test (Triangle, wheel off)", doorTestOpen ? "door OPEN, rail stopped" : "off");
-            screen.addData("Door positions (Panels, Door)", "open %.3f  closed %.3f",
-                    Door.OPEN_POSITION, Door.CLOSED_POSITION);
-            door.addTelemetry(screen);
+            if (door != null) {
+                screen.addData("Door test (Triangle, wheel off)", doorTestOpen ? "door OPEN, rail stopped" : "off");
+                screen.addData("Door positions (Panels, Door)", "open %.3f  closed %.3f",
+                        Door.OPEN_POSITION, Door.CLOSED_POSITION);
+                door.addTelemetry(screen);
+            } else {
+                screen.addData("Door", "off (USE_DOOR), not moved");
+            }
             screen.addData("At speed", shooter.atSpeed());
-            Pose cell = Field.cellTarget(Alliance.RED, FAR_CELL ? Cell.FAR : Cell.AUDIENCE);
+            Pose cell = Field.cellTarget(TestPose.alliance(), FAR_CELL ? Cell.FAR : Cell.AUDIENCE);
             boolean poseOk = !Double.isNaN(pose.x()) && !Double.isNaN(pose.y()) && !Double.isNaN(pose.heading());
+            testPose.addTelemetry(screen);
             if (poseOk) {
                 double distance = Math.hypot(cell.x() - pose.x(), cell.y() - pose.y());
-                screen.addData("Pose (Options: back to the GARDEN corner)", "x %.1f  y %.1f  heading %.0f deg",
+                screen.addData("Pose", "x %.1f  y %.1f  heading %.0f deg",
                         pose.x(), pose.y(), Math.toDegrees(pose.heading()));
                 screen.addData("Distance to " + (FAR_CELL ? "FAR" : "AUDIENCE") + " cell",
-                        "%.1f in. SHOT_RPM there now: %.0f",
-                        distance, LookupTable.at(ShotTables.SHOT_RPM, distance));
+                        "%.1f in., %.0f deg off the front. Static RPM there now: %.0f",
+                        distance, ShotTables.angleOffFront(pose.x(), pose.y(), cell),
+                        ShotTables.staticShotRpm(pose.x(), pose.y(), cell));
             } else {
                 screen.addLine("!! Pose is NaN: the Pinpoint is not reading. Check its cable and pods.");
             }

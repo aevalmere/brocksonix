@@ -96,7 +96,7 @@ public class CoaxHood {
     public static double ON_ANGLE_DEG = 0.5;
 
     // TODO(16): Measure the static hood's launch angle (phone level on its exit lip).
-    /** Where the hood holds when Robot.HOOD is STATIC, so the static hood's SHOT_RPM table still fits. */
+    /** Where the hood holds when Robot.HOOD is STATIC, so the static hood's shot spots (ShotTables) still fit. */
     public static double STATIC_LAUNCH_DEG = 60;
     // TODO(16): Main TeleOp, COAX: set it near the angle most shots use, so the hood has the least to move when a shot comes up.
     /** Where the hood goes when there's nothing to aim at. */

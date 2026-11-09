@@ -11,8 +11,8 @@ public class ShotSolution {
     public final double rpm;
     public final double feedPower;
     /**
-     * False when the aim distance is outside the table's distance range: SHOT_RPM or COAX_RPM for
-     * shots, PASS_RPM for passes with either hood (G405). A coax pass is also false when no RPM
+     * False when the aim distance is outside the allowed range: ShotTables.SHOT_MIN_DISTANCE to
+     * SHOT_MAX_DISTANCE for static hood shots, COAX_RPM's distances for coax shots, PASS_RPM for passes with either hood (G405). A coax pass is also false when no RPM
      * lands it at CoaxHood.PASS_LAUNCH_DEG.
      */
     public final boolean valid;

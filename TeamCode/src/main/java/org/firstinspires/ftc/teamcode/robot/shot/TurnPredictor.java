@@ -3,6 +3,9 @@ package org.firstinspires.ftc.teamcode.robot.shot;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.drivetrain.DrivePowers;
 
+import org.firstinspires.ftc.teamcode.robot.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.util.Angles;
+
 /**
  * Predicts how the robot is about to turn from the turn power sent to the wheels, so
  * the turret can turn the other way at the same moment instead of waiting for the
@@ -100,6 +103,22 @@ public class TurnPredictor {
         double tau = Math.max(TURN_TIME_CONSTANT_SEC, MIN_TIME_CONSTANT);
         double lead = Math.max(LEAD_SEC, 0);
         return commandedDegPerSec * lead + (rateDegPerSec - commandedDegPerSec) * tau * (1 - Math.exp(-lead / tau));
+    }
+
+    /**
+     * Points the turret at turretDeg (the aim worked out from the real pose, robot-relative)
+     * with the stick's prediction on top: the target leads by headingAheadDeg(), and the
+     * predicted turn goes to the turret as its known target rate, so KV pushes the moment the
+     * stick moves. Main TeleOp (through Robot) and Continuous Test both aim through here.
+     *
+     * @param leadHeading false when the aim already came from a predicted heading
+     *                    (ShotSolver.PREDICT), so the turn isn't led twice. The rate still goes in.
+     */
+    public void aim(Turret turret, double turretDeg, boolean leadHeading) {
+        double lead = leadHeading ? headingAheadDeg() : 0;
+        turret.setTargetDeg(Angles.wrapDegrees(turretDeg - lead));
+        // The robot turns one way, so the target (robot-relative) turns the other.
+        if (ENABLED) turret.setTargetRateDegPerSec(-feedforwardRateDegPerSec());
     }
 
     /** The turn power the wheels really get: Pedro's Mecanum scales every wheel down together so none goes past 1. */

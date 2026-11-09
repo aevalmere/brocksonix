@@ -78,7 +78,7 @@ Driver 1's Triangle turns zone fire on and off. It is off at the start of every 
 - Leaving the zone stops the rail at once, unless RB is held. The door closes 100 ms later, as after letting go of RB.
 - Parked in the zone, the rail keeps feeding, so balls picked up there go straight through. That is on purpose.
 - The corners are `ShootingZone.RED_FAR_CORNERS` (Panels page "ShootingZone"), written for red with the FAR cell up: (48, 104), (68, 104), (90, 135), (26, 135). They are a placeholder (`TUNING_GUIDE.md`, step 12). The AUDIENCE cell's zone is the same shape mirrored across the center line (y), and blue's is mirrored across x. It is a mirror, not the 180° spin, since the cells keep their y for both alliances.
-- With the placeholder, near the short side the shot can be closer than the first row of `SHOT_RPM` (20 in.), so `OUT_OF_RANGE` shows and a burst waits there.
+- With the placeholder, near the short side the shot can be closer than `ShotTables.SHOT_MIN_DISTANCE` (20 in.), so `OUT_OF_RANGE` shows and a burst waits there. Main TeleOp refuses static hood shots outside 20 to 72 in. (`SHOT_MIN_DISTANCE` / `SHOT_MAX_DISTANCE`) for now.
 - The Driver Station shows `Zone fire : OFF`, `Zone fire : ON, in zone` or `Zone fire : ON, out of zone`, also with `FULL_TELEMETRY` off. With `FULL_TELEMETRY` on, Panels' field page also draws the zone in yellow and the robot's outline, green in the zone and red outside it. The drawing is for practice only.
 
 ## Driver feedback
@@ -136,7 +136,7 @@ For blue, write the red pose and let the code spin it. Don't use the visualizer'
 | Red HIVE x / blue HIVE x | 58.0 / 83.5 (25.5 in. center to center, red on the left) |
 | Cells per HIVE | 2, one toward the far wall, one toward the audience; centers 30.88 in. apart along y |
 | Tilt when one cell is up | 30° |
-| Upward cell opening | the cell's outer end, tilted 30°: bottom 53.5 in. up, top 65.6 in.; 20 wide × 14 tall, 12 deep |
+| Upward cell opening | the cell's outer end, tilted 30°: bottom 53.5 in. up, top 65.6 in.; 20 wide × 14 tall, 12 deep; side walls `Field.CELL_OPENING_HALF_WIDTH` (10) either side of the center |
 | Upward cell opening center, y | far cell 87.25, audience cell 54.25 (70.75 ± 16.5) |
 | Lowest point of a HIVE | 30.6 in. up, so the robot fits under |
 

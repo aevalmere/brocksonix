@@ -61,6 +61,9 @@ public class ShotSolverCoaxTest {
         ShotTables.PASS_FEED_POWER = new double[][]{{24, 1.0}, {165, 1.0}};
         ShotTables.COAX_EXIT_SPEED = new double[][]{{2000, 0.12}, {5000, 0.12}};
         ShotTables.COAX_EXIT_SPEED_ANGLE = new double[][]{{40, 1.0}, {75, 1.0}};
+        // Off, so the aim math here is plain (ShotSolverTest covers the shift).
+        aimShift = ShotTables.AIM_SHIFT_IN;
+        ShotTables.AIM_SHIFT_IN = 0;
     }
 
     @After
@@ -77,7 +80,10 @@ public class ShotSolverCoaxTest {
         ShotTables.PASS_FEED_POWER = passFeedPower;
         ShotTables.COAX_EXIT_SPEED = exitSpeed;
         ShotTables.COAX_EXIT_SPEED_ANGLE = exitSpeedAngle;
+        ShotTables.AIM_SHIFT_IN = aimShift;
     }
+
+    private double aimShift;
 
     @Test
     public void aCoaxPassInRangeIsValidAndLobsAtThePassAngle() {
