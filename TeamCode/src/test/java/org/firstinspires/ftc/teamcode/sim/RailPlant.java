@@ -15,7 +15,7 @@ import java.util.List;
  * front ball; the open door lets it roll to the wheel, which launches it once the
  * wheel is fast enough. A ball pushed out past slot 4 falls out of the intake.
  *
- * The three beams sit on the slot 1, slot 2 and slot 4 centers, as on the robot.
+ * The three beams sit on the slot 1, slot 3 and slot 4 centers, as on the robot (no slot 2 beam).
  */
 final class RailPlant {
     /** SPEC: a POLLEN ball, about 2.8 in. across (ROBOT.md). */
@@ -33,7 +33,7 @@ final class RailPlant {
     /** A beam reads blocked while a ball's center is within this of it: the beam is thinner than the ball. */
     static final double BEAM_REACH = 0.4 * BALL;
 
-    static final double SLOT_1 = 0.5 * BALL, SLOT_2 = 1.5 * BALL, SLOT_4 = 3.5 * BALL;
+    static final double SLOT_1 = 0.5 * BALL, SLOT_3 = 2.5 * BALL, SLOT_4 = 3.5 * BALL;
 
     /** Ball centers, front (nearest the door) first. */
     private final List<Double> balls = new ArrayList<>();

@@ -31,6 +31,6 @@ public final class HardwareNames {
     public static final String HOOD_SERVO = "hood";
 
     public static final String BEAM_SLOT_1 = "beamSlot1";
-    public static final String BEAM_SLOT_2 = "beamSlot2";
+    public static final String BEAM_SLOT_3 = "beamSlot3";
     public static final String BEAM_FULL = "beamFull";
 }

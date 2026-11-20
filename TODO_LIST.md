@@ -4,9 +4,9 @@ Generated from the `// TODO(step): ...` comments in TeamCode. Don't edit this fi
 
 Most important first: work from the top down. Phase 1 gets the robot playing TeleOp, phase 2 adds a scoring auto, phase 3 makes both better, phase 4 adds AgateFlow and auto pickups, phase 5 is the coax hood once it is on the robot.
 
-**176 left.**
+**175 left.**
 
-## Phase 1: TeleOp, bare minimum (70 left)
+## Phase 1: TeleOp, bare minimum (69 left)
 
 ### 1. Wiring and configuration
 
@@ -28,9 +28,8 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 
 - [ ] [Intake.java:25](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Intake.java#L25) `COLLECT_POWER`: Lower it if balls jam or bounce.
 - [ ] [Intake.java:27](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Intake.java#L27) `REVERSE_POWER`: Storage Test, hold Circle with balls loaded: they must back out without flying out of the intake. Lower it (toward 0) if they do.
-- [ ] [Storage.java:21](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Storage.java#L21) `BLOCKED_READS_LOW`: Storage Test: each beam must show true when blocked by hand. Flip if backwards.
-- [ ] [Storage.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Storage.java#L24) `DEBOUNCE_MS`: Raise (in ms) if the ball count flickers.
-- [ ] [Storage.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Storage.java#L26) `FULL_HOLD_MS`: Feed balls one at a time. Full must appear only on the 4th.
+- [ ] [Storage.java:32](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Storage.java#L32) `DEBOUNCE_MS`: Raise (in ms) if the ball count flickers.
+- [ ] [Storage.java:34](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Storage.java#L34) `FULL_HOLD_MS`: Feed balls one at a time. Full must appear only on the 4th.
 - [ ] [Transfer.java:21](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Transfer.java#L21) `REVERSED`: Storage Test, Cross on: the door end must move balls toward the door.
 - [ ] [Transfer.java:24](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Transfer.java#L24) `COLLECT_POWER`: Lower it if balls jam or bounce.
 - [ ] [Transfer.java:26](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/subsystems/Transfer.java#L26) `HOLD_POWER`: Lowest power that keeps a ball seated on the closed door without the motor straining.
@@ -150,9 +149,9 @@ Most important first: work from the top down. Phase 1 gets the robot playing Tel
 
 ### 12. Driver feel, feedback and loop time
 
-- [ ] [Feedback.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L33) `WARNING_STRENGTH`: Warning buzz: strong and unmistakable, long enough to feel, short enough not to annoy. Raise the cooldown if a flickering warning still annoys.
-- [ ] [Feedback.java:41](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L41) `RELOCALIZE_STRENGTH`: Relocalized buzz: one short, strong pulse that can't be mistaken for the 3-pulse warning. Long enough to feel while driving.
-- [ ] [Feedback.java:45](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L45) `FULL_STRENGTH`: Full rumble: soft enough to drive with, strong enough to notice. The gamepad light only works on PlayStation controllers.
+- [ ] [Feedback.java:34](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L34) `WARNING_STRENGTH`: Warning buzz: strong and unmistakable, long enough to feel, short enough not to annoy. Raise the cooldown if a flickering warning still annoys.
+- [ ] [Feedback.java:42](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L42) `RELOCALIZE_STRENGTH`: Relocalized buzz: one short, strong pulse that can't be mistaken for the 3-pulse warning. Long enough to feel while driving.
+- [ ] [Feedback.java:46](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/driver/Feedback.java#L46) `FULL_STRENGTH`: Full rumble: soft enough to drive with, strong enough to notice. The gamepad light only works on PlayStation controllers.
 - [ ] [Field.java:59](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/Field.java#L59) `CELL_SWITCH_BAND`: Drive across the middle. Raise it if the turret flips between cells (or between shoot and pass) too eagerly.
 - [ ] [ShootingZone.java:33](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/field/ShootingZone.java#L33) `RED_FAR_CORNERS`: Placeholder. Main TeleOp with zone fire on (driver 1 Triangle): shoot from all along the zone's edge and pull in any corner where shots miss. Any part of the robot in the zone fires, so keep the whole trapezoid inside where shots score. Keep it convex.
 - [ ] [MainTeleOp.java:53](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/teleop/MainTeleOp.java#L53) `TELEMETRY_INTERVAL_MS`: Watch Loop ms with everything running, goal under 15. Check again with FULL_TELEMETRY false.

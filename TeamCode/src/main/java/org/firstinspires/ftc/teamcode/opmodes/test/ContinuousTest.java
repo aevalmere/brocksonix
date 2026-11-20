@@ -10,6 +10,7 @@ import com.pedropathing.revhub.drivetrains.Mecanum;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -28,6 +29,7 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Door;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.robot.subsystems.Storage;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.util.Angles;
@@ -35,17 +37,31 @@ import org.firstinspires.ftc.teamcode.util.PIDF;
 
 /**
  * Continuous shooting with full auto aim (turret and RPM from the pose), using the match
- * subsystems (Intake, Transfer, Shooter, Door, Turret) and no break beams. It needs no
- * Foresight tuning, so it runs before Main TeleOp can. No shooting on the move yet.
+ * subsystems (Intake, Transfer, Shooter, Door, Turret). It needs no Foresight tuning, so it
+ * runs before Main TeleOp can. No shooting on the move yet.
  *
- * Rail: the intake always collects, and the transfer holds the balls against the closed
- * door at Transfer.HOLD_POWER, a light stall, so storage keeps up to 2 balls there waiting.
- * Hold RB with the wheel on to fire: the door opens (Door's positions and times) and, once
- * it is fully open, intake and transfer feed together at ShooterTest.FEED_POWER for as
- * long as RB is held. Letting go closes the door and goes back to holding. LT reverses
- * both rail motors, door closed, whatever else is held.
- * ShooterTest.USE_DOOR (off for now) leaves the door out: RB feeds at once, and while not
- * firing the transfer stops instead of holding the balls.
+ * Break beams: one line per beam, in the order a ball passes them (slot 4, slot 3, slot 1),
+ * says BLOCKED or clear (Storage.BLOCKED_READS_LOW) and the raw level, live. Each beam is
+ * optional: one missing from the configuration shows "not configured". Breakbeam Test shows
+ * more per beam (pass counts, how long the last block lasted), with nothing else running.
+ *
+ * Rail, the whole ball path as Robot.update() runs it, with the real Storage (its debounce
+ * and full rule). First match wins:
+ * - LT: intake and transfer reverse, door closed, whatever else is held.
+ * - RB held with the wheel on, door fully open: both feed at ShooterTest.FEED_POWER.
+ * - RB held but the door still opening, or the door still closing after a shot: both stop,
+ *   so no ball reaches a half-open door (Robot does the same).
+ * - Otherwise they collect. The intake runs until storage is full (Storage.isFull(): all
+ *   three beams blocked), then stops, and runs again as soon as any beam clears. The transfer runs until the slot 1 beam sees a ball, then
+ *   holds it: with the door, at Transfer.HOLD_POWER against it (Transfer.collect, as in the
+ *   match; set HOLD_POWER to 0 for a dead stop); with ShooterTest.USE_DOOR off (no door),
+ *   it stops, since nothing else keeps the ball out of the wheel. When slot 1 clears (a
+ *   ball was shot), it runs again and brings the next ball up.
+ * Storage needs all three beams. With one missing the rail runs as before the beams were
+ * used, and the Intake and Transfer lines say which beam is missing: the intake always
+ * collects, and the transfer holds at HOLD_POWER against the door, or with no door stays
+ * stopped (so balls only move up while RB feeds).
+ * The "Intake" and "Transfer" lines say what each motor is doing and why.
  *
  * Wheel: Cross turns it on and off. It runs closed loop at the static hood's RPM for the angle
  * and distance the robot sits at from the cell (ShotTables.staticShotRpm, through ShotSolver), with the
@@ -107,8 +123,17 @@ public class ContinuousTest extends LinearOpMode {
         // The same driver object the localizer uses, only for its status and Share's reset.
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, Constants.localizerConfig.name.get());
         int pinpointFirmware = pinpoint.getDeviceVersion();
+        // Break beams in ball-travel order: slot 4 (intake end) first, slot 1 (door) last. No slot 2 beam.
+        DigitalChannel[] beams = TestBeams.find(hardwareMap);
+        // The match's Storage runs the rail, but only with all three beams (it would throw otherwise).
+        String missingBeams = Storage.missingBeams(hardwareMap);
+        Storage storage = missingBeams.isEmpty() ? new Storage(hardwareMap) : null;
 
         screen.addLine(testPose.startDescription());
+        for (int i = 0; i < beams.length; i++) {
+            screen.addData(TestBeams.label(i), beams[i] == null ? "not configured" : "found");
+        }
+        if (storage == null) screen.addLine("!! Missing " + missingBeams + ": the rail won't stop by itself at slot 1 or when full.");
         screen.addLine("Ready. Cross: wheel on. Hold RB: fire. Square: turret tracking.");
         screen.update();
 
@@ -134,6 +159,7 @@ public class ContinuousTest extends LinearOpMode {
 
             // Read: everything this loop decides from is this loop's.
             bulkReads.clear();
+            if (storage != null) storage.update();
             shooter.readSensors();
             turret.readSensors();
             // Robot must be still: the Pinpoint zeroes its gyro while it calibrates.
@@ -198,21 +224,50 @@ public class ContinuousTest extends LinearOpMode {
             }
             // No door: nothing to wait for.
             boolean doorFullyOpen = door == null || door.isFullyOpen();
+            boolean doorFullyClosed = door == null || door.isFullyClosed();
+            // What each rail motor is doing and why, for the Intake and Transfer lines.
+            String intakeWhy, transferWhy;
             if (reversing) {
                 intake.reverse();
                 transfer.reverse();
+                intakeWhy = transferWhy = "reversing (LT)";
             } else if (fire && doorFullyOpen) {
                 intake.feed(ShooterTest.FEED_POWER);
                 transfer.feed(ShooterTest.FEED_POWER);
-            } else if (door == null) {
-                // No door to hold against: the transfer stops, so balls don't creep into the wheel.
-                intake.collect(false);
+                intakeWhy = transferWhy = "feeding (RB)";
+            } else if (fire || !doorFullyClosed) {
+                // As in Robot.update(): stopped while the door moves, so no ball meets it half open.
+                intake.stop();
                 transfer.stop();
-            } else {
-                // Constant intake; the transfer stalls lightly against the door (or the opening door),
-                // holding the stored balls until it is fully open.
+                intakeWhy = transferWhy = fire ? "stopped, door opening" : "stopped, door closing";
+            } else if (storage == null) {
+                // No Storage: the rail can't see the balls, so nothing stops by itself.
                 intake.collect(false);
-                transfer.collect(true);
+                intakeWhy = "collecting, never stops (missing " + missingBeams + ")";
+                if (door == null) {
+                    // No door to hold against: the transfer stops, so balls don't creep into the wheel.
+                    transfer.stop();
+                    transferWhy = "stopped, no door and can't see slot 1 (missing " + missingBeams + ")";
+                } else {
+                    transfer.collect(true);
+                    transferWhy = "holding against the door, no auto-stop (missing " + missingBeams + ")";
+                }
+            } else {
+                // The match's rule: the intake fills storage, the transfer brings a ball up to slot 1.
+                boolean full = storage.isFull();
+                boolean ballAtDoor = storage.slot1Occupied();
+                intake.collect(full);
+                intakeWhy = full ? "stopped, full (all 3 beams blocked)" : "collecting";
+                if (door == null && ballAtDoor) {
+                    // No door: stopping the transfer is the only thing that keeps the ball out of the wheel.
+                    transfer.stop();
+                    transferWhy = "stopped, slot 1 blocked (no door)";
+                } else {
+                    transfer.collect(ballAtDoor);
+                    transferWhy = ballAtDoor
+                            ? String.format("holding at %.2f, slot 1 blocked", Transfer.HOLD_POWER)
+                            : "collecting, until slot 1 sees a ball";
+                }
             }
 
             // Write.
@@ -232,10 +287,13 @@ public class ContinuousTest extends LinearOpMode {
                     : String.format("off (table %.0f, trim %+.0f rpm)", tableRpm, rpmTrim));
             screen.addData("Fire (hold RB)", reversing ? "reversing (LT)"
                     : fire ? (doorFullyOpen ? "feeding" : "door opening")
-                    : door == null ? "transfer stopped (no door)"
-                    : wheelOn ? "holding balls at the door" : "holding balls, wheel off");
-            intake.addTelemetry(screen);
-            transfer.addTelemetry(screen);
+                    : wheelOn ? "not firing" : "not firing, wheel off");
+            screen.addData("Intake", intakeWhy);
+            screen.addData("Transfer", transferWhy);
+            if (storage != null) screen.addData("Balls (Storage)", storage.countLabel());
+            for (int i = 0; i < beams.length; i++) {
+                screen.addData(TestBeams.label(i), TestBeams.text(beams[i]));
+            }
             if (door != null) door.addTelemetry(screen);
             else screen.addData("Door", "off (ShooterTest.USE_DOOR), not moved");
             screen.addData("Drive (Circle)", !fieldCentric ? "robot-centric"

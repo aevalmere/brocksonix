@@ -13,8 +13,8 @@ import org.firstinspires.ftc.teamcode.robot.hardware.HardwareNames;
 @Configurable
 public class Door {
     /** The servo was zeroed with the door open. */
-    public static double OPEN_POSITION = 0.965;
-    public static double CLOSED_POSITION = 0.76;
+    public static double OPEN_POSITION = 0.27;
+    public static double CLOSED_POSITION = 0.07;
     /** Time for the servo to swing fully open. Feeding waits for this. */
     public static double OPEN_TIME_MS = 55;
     /** Time for the servo to swing fully closed. The rail waits for this after a burst. */

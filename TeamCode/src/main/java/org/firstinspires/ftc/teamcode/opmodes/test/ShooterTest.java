@@ -40,7 +40,7 @@ import org.firstinspires.ftc.teamcode.robot.subsystems.Transfer;
  * With the wheel off the door closes, the intake keeps collecting and the
  * transfer holds balls against the door at Transfer.HOLD_POWER.
  *
- * USE_DOOR (off for now) leaves the door out: then it feeds as soon as the wheel is on, the
+ * USE_DOOR off leaves the door out: then it feeds as soon as the wheel is on, the
  * transfer stops instead of holding with the wheel off, and Triangle does nothing.
  *
  * Door positions (USE_DOOR on): with the wheel off, Triangle swings the door open/closed with the
@@ -74,11 +74,11 @@ public class ShooterTest extends LinearOpMode {
     /** Which cell the distance is measured to: true = FAR cell, false = AUDIENCE cell. */
     public static boolean FAR_CELL = true;
     /**
-     * Off for now: this test and Continuous Test leave the door servo alone (never built, never
+     * Off: this test and Continuous Test leave the door servo alone (never built, never
      * written), feed as if the door were open, and stop the transfer instead of holding balls
-     * against it. Turret Test still runs the door. Read at init: change it, then Init again.
+     * against it. Turret Test always runs the door. Read at init: change it, then Init again.
      */
-    public static boolean USE_DOOR = false;
+    public static boolean USE_DOOR = true;
 
     /** Panels' PEDRO_PATHING picture is 144 across; ours is Field.SIZE (see PlanDrawing). Drawing only. */
     private static final double TO_PANELS = 144 / Field.SIZE;

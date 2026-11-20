@@ -32,8 +32,8 @@ What matters for this robot, from the Competition Manual, version TU04 (2026-10-
 | 2 | Flower intake | SWYFT Slim servo | `flowerLeft`, `flowerRight` | TBD (hub servo port, 5 V) | Mounted opposite each other, mirrored |
 | 1 | Door | SWYFT Slim servo | `door` | TBD (hub servo port, 5 V) | End of the rail, before the shooter |
 | 1 | Coax hood (coming, optional) | Positional servo, type TBD | `hood` | TBD (hub servo port, 5 V) | Turns the hood around the flywheel axle, gear ratio TBD. The robot runs without it |
-| 2 | Transfer break beams | Adafruit 3 mm IR break beam | `beamSlot1`, `beamSlot2` | TBD (digital port) | Slots 1 and 2 |
-| 1 | Intake break beam | Adafruit 3 mm IR break beam | `beamFull` | TBD (digital port) | Slot 4, trips only when all 4 are stored |
+| 2 | Rail break beams | Adafruit 3 mm IR break beam, configured as "Digital Device" | `beamSlot1`, `beamSlot3` | TBD (digital port) | `beamSlot1` at slot 1, `beamSlot3` at slot 3. No beam at slot 2: see Ball path and storage |
+| 1 | Intake break beam | Adafruit 3 mm IR break beam, configured as "Digital Device" | `beamFull` | TBD (digital port) | Slot 4, trips only when all 4 are stored |
 | 1 | Localization | goBILDA Pinpoint V2 | `pinpoint` | Control Hub I2C 1 | goBILDA 4-bar odometry pods |
 
 **Motors:** 8 of 8 allowed (R503): 4 drive, intake, transfer, 2 shooter. Adding a motor means taking one out. **Servos:** 4 of 8 allowed (turret, door, 2 flower intake), 5 of 8 with the coax hood. The configuration names are the constants in `robot/hardware/HardwareNames.java`; the Driver Station configuration must use them exactly.
@@ -128,19 +128,21 @@ All storage is one straight linear rail with wheels. It holds 4 POLLEN in a sing
    2 servos          │ slot 4    slot 3  │  slot 2    slot 1 │      servo     2 motors
                      │   intake motor    │  transfer motor   │
                      └───────────────────────────────────────┘
-                     beam at slot 4         beams at slots 2, 1
+                  beams at slots 4, 3          beam at slot 1
 ```
 
 Storage holds 4 POLLEN max (the G407 limit). Slots are numbered from the door back toward the intake:
 
 | Slot | Location | Driven by | Sensor |
 |------|----------|-----------|--------|
-| 1 | Against the closed door (first ball to shoot) | Transfer motor | Transfer beam A |
-| 2 | Behind slot 1, toward the intake | Transfer motor | Transfer beam B |
-| 3 | Behind slot 2 | Intake motor | None |
-| 4 | Intake end of the rail | Intake motor | Intake beam (trips and stays tripped only when all 4 are stored) |
+| 1 | Against the closed door (first ball to shoot) | Transfer motor | Beam `beamSlot1` |
+| 2 | Behind slot 1, toward the intake | Transfer motor | None |
+| 3 | Behind slot 2 | Intake motor | Beam `beamSlot3` |
+| 4 | Intake end of the rail | Intake motor | Beam `beamFull` (trips and stays tripped only when all 4 are stored) |
 
-Break beams are Adafruit 3 mm IR break beam sensors (separate emitter and receiver). The receiver output is open collector and connects to a hub digital port. Which logic level means "broken" should be checked on the robot.
+Break beams are Adafruit 3 mm IR break beam sensors (separate emitter and receiver). The receiver output is open collector and connects to a hub digital port; each is a "Digital Device" in the Driver Station configuration. A blocked beam reads low, checked on the robot in Breakbeam Test (`Storage.BLOCKED_READS_LOW` = true). Breakbeam Test (moves nothing, needs only the beams) and Continuous Test show each beam live, in ball-travel order (slot 4, 3, 1), and "not configured" for one missing from the configuration; Breakbeam Test also counts blocks and times them, for checking by hand.
+
+What three beams can tell: while collecting, balls stack from the door, so 0 balls blocks no beam, 1 or 2 block only slot 1 (they look the same), 3 block slots 1 and 3, and 4 block all three. `Storage` shows the count as 0, 1-2, 2-3 or 4. A ball resting at slot 2 with slot 1 clear (only while the rail is stopped) is not seen at all. A TeleOp burst needs a ball at slot 1 (`Storage.slot1Occupied()`), see `RUNDOWN.md`.
 
 ## Open hardware details (TBD)
 

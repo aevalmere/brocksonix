@@ -129,7 +129,7 @@ public final class RobotSim {
     final FakeMotor intake = new FakeMotor(BARE_MOTOR_FREE_TICKS_PER_SECOND, 1 / RAIL_MOTOR_TIME_CONSTANT, 28);
     final FakeMotor transfer = new FakeMotor(BARE_MOTOR_FREE_TICKS_PER_SECOND, 1 / RAIL_MOTOR_TIME_CONSTANT, 28);
     final FakeDigitalChannel beamSlot1 = new FakeDigitalChannel();
-    final FakeDigitalChannel beamSlot2 = new FakeDigitalChannel();
+    final FakeDigitalChannel beamSlot3 = new FakeDigitalChannel();
     final FakeDigitalChannel beamFull = new FakeDigitalChannel();
     final RailPlant rail = new RailPlant();
 
@@ -201,7 +201,7 @@ public final class RobotSim {
         hardwareMap.register(HardwareNames.INTAKE_MOTOR, intake);
         hardwareMap.register(HardwareNames.TRANSFER_MOTOR, transfer);
         hardwareMap.register(HardwareNames.BEAM_SLOT_1, beamSlot1);
-        hardwareMap.register(HardwareNames.BEAM_SLOT_2, beamSlot2);
+        hardwareMap.register(HardwareNames.BEAM_SLOT_3, beamSlot3);
         hardwareMap.register(HardwareNames.BEAM_FULL, beamFull);
 
         hardwareMap.register("Control Hub", new FakeVoltageSensor(VOLTS));
@@ -279,7 +279,7 @@ public final class RobotSim {
         turretEncoder.setVoltage(Turret.ENCODER_MIN_VOLTS + turn * (Turret.ENCODER_FULL_TURN_VOLTS - Turret.ENCODER_MIN_VOLTS));
 
         beam(beamSlot1, RailPlant.SLOT_1);
-        beam(beamSlot2, RailPlant.SLOT_2);
+        beam(beamSlot3, RailPlant.SLOT_3);
         beam(beamFull, RailPlant.SLOT_4);
 
         truth[0] = drivePlant.getX();

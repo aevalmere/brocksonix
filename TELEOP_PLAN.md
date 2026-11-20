@@ -83,7 +83,7 @@ Driver 1's Triangle turns zone fire on and off. It is off at the start of every 
 
 ## Driver feedback
 
-- **Gamepad light**, on driver 1's gamepad only (PlayStation controllers only): red = 0-1 balls (can't shoot), yellow = 2-3, green = 4.
+- **Gamepad light**, on driver 1's gamepad only (PlayStation controllers only): red = no ball at the door (can't shoot), yellow = a ball at the door (1 to 3 stored, can shoot), green = 4. The beams can't tell 1 stored ball from 2.
 - **Rumble**, three kinds. On driver 1's gamepad: 3 strong pulses = a new warning; a soft constant rumble = storage is full. On both gamepads: one short, strong pulse (200 ms, `Feedback.RELOCALIZE_MS`) = a relocalize just happened. Driver 2 knows the press counted, and driver 1 knows the robot can leave the corner. Driver 1 feels it after a warning buzz that is already playing, then the soft rumble comes back.
 - **Warnings** show as `!!` lines on the Driver Station. With `MainTeleOp.FULL_TELEMETRY` off (competition), they, the Goal and Zone fire lines and the loop time are all that's sent:
 

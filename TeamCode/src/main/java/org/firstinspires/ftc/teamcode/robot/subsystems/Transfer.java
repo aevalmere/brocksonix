@@ -36,7 +36,8 @@ public class Transfer {
     public Transfer(HardwareMap hardwareMap) {
         DcMotorEx transferMotor = hardwareMap.get(DcMotorEx.class, HardwareNames.TRANSFER_MOTOR);
         transferMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        transferMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        // Float: at 0 power the transfer coasts to a stop instead of braking.
+        transferMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         transferMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motor = new CachedMotor(transferMotor);
     }

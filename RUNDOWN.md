@@ -58,7 +58,7 @@ Drive powers: `driverOne` only tells the `Follower` what to do (`follower.manual
 8. **Ready**:
    - `aimed()`: an aim that is in range, `canFire()` (alliance and trusted pose), `turret.onTarget()` (within `ON_TARGET_DEG`, 3°, and not off or being tested), and the hood. Static with a coax hood fitted: the hood is at `STATIC_LAUNCH_DEG`. Coax: some angle scores, and the hood is there.
    - `wheelReady()`: static, `shooter.atSpeed()` (within `RPM_TOLERANCE`, 90). Coax, within `COAX_RPM_TOLERANCE` (300).
-   - Enough balls: 2 in TeleOp (`storage.hasAtLeastTwo()`), 1 when `singleBallBursts` is on (auto).
+   - Enough balls: in TeleOp a ball at the door (`storage.slot1Occupied()`), so 1 is enough: the beams (slots 1, 3, 4) can't tell 1 stacked ball from 2, and waiting for 2 would mean waiting for 3. With `singleBallBursts` on (auto): any ball a beam sees (`!storage.isEmpty()`).
 9. **Fire**: `fireControl.update(...)`, then `shooter.setBoost(isFiring())`.
 10. **Door**: open while `fireControl.doorOpen()` says so.
 11. **Intake and transfer**, first match wins, the same call on both: `unjamHeld` runs them backwards (`reverse()`). Feeding runs them at the aim's feed power (`feed(...)`). A burst going, or the door not fully closed: stopped (the rail holds balls back). Otherwise they collect (`intake.collect(storage.isFull())`, `transfer.collect(storage.slot1Occupied())`).
@@ -77,7 +77,7 @@ Drive powers: `driverOne` only tells the `Follower` what to do (`follower.manual
 | Subsystem | Reads | Writes |
 |---|---|---|
 | `Drive` | Odometry, in `follower.update()` | Four drive motors |
-| `Storage` | Three break beams, debounced | Nothing |
+| `Storage` | Three break beams (slots 1, 3, 4), debounced | Nothing |
 | `Shooter` | Wheel speed, in `readSensors()` | Both wheel motors, in `update()`: kF (fixed friction push) + kV + kP + kI + kD + kA, times voltage compensation. Boost: full power when 1000+ RPM under target. |
 | `Turret` | Absolute encoder, in `readSensors()` | CR servo power, in `update()` (PIDF plus KS) |
 | `CoaxHood` (optional) | Nothing: no feedback, it estimates arrival from `SPEED_DEG_PER_SEC` | Servo position |
@@ -90,7 +90,7 @@ Drive powers: `driverOne` only tells the `Follower` what to do (`follower.manual
 
 `robot/FireControl.java` runs each burst in three steps, the cases of `FireControl.update`: WAIT, FIRE, CLOSE. Its tests are in `FireControlTest`.
 
-- **Hold RB** (or sit in the zone with zone fire on). A burst starts once 2 or more balls are stored (light yellow or green). The wheel is usually at speed already, since it spins whenever a ball is stored.
+- **Hold RB** (or sit in the zone with zone fire on). A burst starts once a ball is at the door (light yellow or green). The wheel is usually at speed already, since it spins whenever a ball is stored.
 - **WAIT**: the shot must stay ready for `READY_HOLD_MS` (40 ms). Then the door opens, and the rail starts once it is fully open (`Door.OPEN_TIME_MS`, 150 ms).
 - **FIRE**: the rail runs without stopping while RB is held. The feed power (`ShotTables.SHOT_FEED_POWER`, by distance) sets the gap between balls. The wheel sags as balls go through, and ready is not asked again. The rail pauses only while the aim is off or the wheel is more than `BURST_RPM_FLOOR` (600) under target, and goes again when both are back. Running out of balls doesn't end the burst.
 - **CLOSE**: let go (or leave the zone, with zone fire on and RB not held) and the rail stops at once. The door stays open `DOOR_CLOSE_DELAY_MS` (100 ms) so it doesn't close on a ball already past it. Then it closes, and the rail stays stopped until it is fully closed (`Door.CLOSE_TIME_MS`, 150 ms), then collects.

@@ -106,7 +106,10 @@ public class Robot {
     public Cell upCell = null;
     /** Runs the rail and intake backwards to clear a jam or spit balls out. */
     public boolean unjamHeld = false;
-    /** Auto only: lets a burst start with 1 ball stored. TeleOp leaves this off, so a burst needs 2. */
+    /**
+     * Auto only: lets a burst start with any ball seen, even one not yet at the door. TeleOp leaves
+     * this off, so a burst needs a ball at the door (Storage.slot1Occupied()).
+     */
     public boolean singleBallBursts = false;
     /** Auto only: the burst ends by itself after the first shot is counted (RobotCommands.shoot()). */
     public boolean stopAfterOneShot = false;
@@ -362,7 +365,9 @@ public class Robot {
         // a burst only once the shot is ready, and keeps one only while the shot can come back.
         boolean zoneShot = zoneFire && inZone && (isFiring() ? shotCanComeBack() : ready);
         FireControl.Mode wanted = (shootHeld || zoneShot) ? aimMode : FireControl.Mode.NONE;
-        boolean enoughBalls = singleBallBursts ? !storage.isEmpty() : storage.hasAtLeastTwo();
+        // TeleOp: a ball at the door. The beams (slots 1, 3, 4) can't tell 1 stacked ball from 2,
+        // so waiting for 2 would mean waiting for 3. Auto (singleBallBursts): any ball seen.
+        boolean enoughBalls = singleBallBursts ? !storage.isEmpty() : storage.slot1Occupied();
         fireControl.update(wanted, enoughBalls, stopAfterOneShot,
                 ready, aimed, shooter.rpm(), shooter.effectiveTargetRpm(), door.isFullyOpen());
         shooter.setBoost(isFiring());

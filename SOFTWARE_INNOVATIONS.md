@@ -71,7 +71,7 @@ Two things are ours, not Ditto's: an axis the lag correction finds already stopp
 
 `robot/FireControl` runs a burst in three steps:
 
-1. Wait. A burst needs 2 balls in TeleOp (auto may allow 1). The turret must be on target and the flywheel at speed (with the coax hood: an angle that scores, the hood there, and the wheel within 300 RPM), steady for 40 ms (`READY_HOLD_MS`), so one lucky reading can't start it. Then the door opens, and the rail starts once the door has had time to open fully.
+1. Wait. A burst needs a ball at the door in TeleOp (auto: any ball a beam sees). The turret must be on target and the flywheel at speed (with the coax hood: an angle that scores, the hood there, and the wheel within 300 RPM), steady for 40 ms (`READY_HOLD_MS`), so one lucky reading can't start it. Then the door opens, and the rail starts once the door has had time to open fully.
 2. Fire. The rail runs for as long as the button is held, at a feed power looked up by distance (`ShotTables.SHOT_FEED_POWER`).
 3. Close. Letting go stops the rail at once. The door stays open 100 ms longer (`DOOR_CLOSE_DELAY_MS`), so it never closes on a ball that is already past it, and then the burst is over. After that the rail waits until the door is fully closed, so the next ball can't reach a half-open door.
 
@@ -165,7 +165,7 @@ A static push (`KS`) fades in over the last 5° so it doesn't buzz at the target
 
 ### 4 slots from 3 sensors
 
-`robot/subsystems/Storage` has break beams at slots 1, 2 and 4, each debounced by time (30 ms). Every ball crosses the slot 4 beam on its way in, so "full" means that beam stays blocked for 150 ms. Firing only needs to know "2 or more", so slot 3 needs no sensor. The drivers see 0, 1, 2-3 or 4.
+`robot/subsystems/Storage` has break beams at slots 1, 3 and 4, each debounced by time (30 ms). Every ball crosses the slot 4 beam on its way in, so "full" means that beam stays blocked for 150 ms. Balls stack from the door while collecting, so slot 1 alone means 1 or 2 balls, slots 1 and 3 mean 3, and all three mean 4; slot 2 needs no sensor because firing only needs a ball at the door. The drivers see 0, 1-2, 2-3 or 4, and each method says only what the beams know (a ball resting at slot 2 with slot 1 clear is not seen).
 
 ### A rail that holds without stalling
 
@@ -234,7 +234,7 @@ Driver 2's left stick trims the turret, and the right stick trims the RPM, or th
 
 `robot/Warning` lists everything the drivers must know: no alliance, pose unknown, NaN pose, out of range, shooter off, turret off, shot table out of order, coax hood picked but no hood servo configured (`HOOD_MISSING`), and hood servo at the end of its range (`HOOD_AT_END`). `Robot.warnings()` says which are active. Telemetry prints them even in competition mode, and `driver/Feedback` buzzes them on driver 1's gamepad. A new warning is one line in one place.
 
-There are three rumbles, so each always means the same thing. On driver 1's gamepad, three strong pulses mean a warning appeared (the same warning won't buzz again for 3 s, and "out of range" never buzzes since it's normal while driving). A soft constant rumble means storage is full. On both gamepads, one short, strong pulse (`RELOCALIZE_MS`, 200 ms) means a relocalize happened; driver 1 feels it after a warning buzz that is already playing, and the soft rumble comes back after it. Driver 1's gamepad light shows the ball count: red for 0-1 (can't shoot), yellow for 2-3, green for 4. In init both gamepads light up in the alliance color, or white when none is picked.
+There are three rumbles, so each always means the same thing. On driver 1's gamepad, three strong pulses mean a warning appeared (the same warning won't buzz again for 3 s, and "out of range" never buzzes since it's normal while driving). A soft constant rumble means storage is full. On both gamepads, one short, strong pulse (`RELOCALIZE_MS`, 200 ms) means a relocalize happened; driver 1 feels it after a warning buzz that is already playing, and the soft rumble comes back after it. Driver 1's gamepad light shows the ball count: red for no ball at the door (can't shoot), yellow for a ball at the door (1 to 3 stored), green for 4. In init both gamepads light up in the alliance color, or white when none is picked.
 
 ## 6. AgateFlow, our path planner
 
@@ -335,6 +335,7 @@ Three classes test the layer that drives the plans, on the same virtual clock (`
 - `ShotSolverTest` (4): with `PREDICT` off every shot is solved from where the robot is now, with the velocity as read, a robot braking to a stop gets no lead the wrong way, the turret aims from the pose at `TURRET_LATENCY_SEC` while the distance uses the release, and the acceleration learned with `PREDICT` off is used the moment it is turned on.
 - `PIDFTest` (17): each part's sign and size, the integral's zone, cap, anti-windup, pause and reset when the turret crosses the target, no kick from a target jump, a trim change or the angle wrapping past 180°, the target speed cap, and a NaN target that doesn't stick.
 - `CachedHardwareTest` (4): the write caches skip repeats, but never a stop, and never the first write after `raw()` handed out the device.
+- `StorageLogicTest` (3): the ball count shows only what the beams at slots 1, 3 and 4 can see (1 and 2 stacked balls both read 1-2), full wins, and storage is empty only when no beam sees a ball.
 - `ShotSolverCoaxTest` (6): a coax pass is valid only inside `PASS_RPM`'s distances, gets no hood angle with the wheel too slow, and gives nothing from a bad Panels number. Coax `LEAD` uses the physics flight time, and falls back to `SHOT_FLIGHT_TIME` when no angle scores.
 - `RetryTest` (5): it stops at the first try that works, gives up after the limit, uses the retry command for later tries, and ends each try exactly once, even when it is ended twice from outside.
 - `FieldTest` (10): red poses stay as written, blue is red spun 180° about the center, the cells mirror only in x, the 4 corner poses touch the walls for both alliances, the side-wall headings face the driver's left and right, "left" is the same side for corners, side walls and cells, each bumper picks the cell on its side, the robot's half has a band in the middle, and the pass target is on the robot's own half.

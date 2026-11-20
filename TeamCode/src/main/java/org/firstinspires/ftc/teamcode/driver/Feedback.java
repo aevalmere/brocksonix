@@ -24,8 +24,9 @@ import java.util.Set;
  *   stops when balls leave. A warning or relocalized buzz plays over it, then the
  *   full rumble comes back.
  *
- * Gamepad light (driver 1, PlayStation controllers only): red = 0-1 balls
- * (can't shoot), yellow = 2-3, green = 4.
+ * Gamepad light (driver 1, PlayStation controllers only): red = no ball at the
+ * door (can't shoot), yellow = a ball at the door (1 to 3 stored, a burst can
+ * start), green = 4. The beams can't tell 1 stacked ball from 2 (see Storage).
  */
 @Configurable
 public class Feedback {
@@ -112,7 +113,7 @@ public class Feedback {
             }
         }
 
-        String light = full ? "green" : storage.hasAtLeastTwo() ? "yellow" : "red";
+        String light = full ? "green" : storage.slot1Occupied() ? "yellow" : "red";
         if (!light.equals(lastLight)) {
             if (light.equals("green")) setLight(0, 1, 0);
             else if (light.equals("yellow")) setLight(1, 0.8, 0);
